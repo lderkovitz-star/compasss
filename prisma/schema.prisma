@@ -1,0 +1,216 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String              @id @default(uuid())
+  email            String              @unique
+  name             String
+  targetRole       String?             @map("target_role")
+  hobbiesSkills    String?             @map("hobbies_skills")
+  resumeFileUrl    String?             @map("resume_file_url")
+  resumeUploadedAt DateTime?           @map("resume_uploaded_at")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  sessions         AssessmentSession[]
+
+  @@map("users")
+}
+
+model ScenarioPackage {
+  id               String              @id @default(uuid())
+  name             String
+  code             String              @unique
+  description      String
+  version          String              @default("1.0.0")
+  isActive         Boolean             @default(false) @map("is_active")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  deletedAt        DateTime?           @map("deleted_at")
+  backdropImageUrl String?             @map("backdrop_image_url") // Swappable scenario background per package
+  scenarios        Scenario[]
+  sessions         AssessmentSession[]
+
+  @@map("scenario_packages")
+}
+
+model Dimension {
+  id           String          @id @default(uuid())
+  code         String          @unique
+  name         String
+  description  String
+  category     String
+  optionScores OptionScore[]
+  snapshots    ScoreSnapshot[]
+  finalScores  FinalScore[]
+
+  @@map("dimensions")
+}
+
+model Scenario {
+  id               String             @id @default(uuid())
+  packageId        String             @map("package_id")
+  package          ScenarioPackage    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  sequenceOrder    Int                @map("sequence_order")
+  narrativeText    String             @map("narrative_text")
+  timeLimitSec     Int                @default(60) @map("time_limit_sec")
+  deletedAt        DateTime?          @map("deleted_at")
+  backdropImageUrl String?            @map("backdrop_image_url") // Per-scenario backdrop override
+  options          ScenarioOption[]
+  responses        Response[]
+  snapshots        ScoreSnapshot[]
+  biometrics       BiometricReading[]
+
+  @@map("scenarios")
+}
+
+model ScenarioOption {
+  id         String        @id @default(uuid())
+  scenarioId String        @map("scenario_id")
+  scenario   Scenario      @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  optionCode String        @map("option_code") // 'A', 'B', 'C', 'D'
+  optionText String        @map("option_text")
+  scores     OptionScore[]
+  responses  Response[]
+
+  @@map("scenario_options")
+}
+
+model OptionScore {
+  id          String         @id @default(uuid())
+  optionId    String         @map("option_id")
+  option      ScenarioOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  dimensionId String         @map("dimension_id")
+  dimension   Dimension      @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  weightScore Float          @map("weight_score")
+
+  @@map("option_scores")
+}
+
+model AssessmentSession {
+  id                 String             @id @default(uuid())
+  userId             String             @map("user_id")
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId          String             @map("package_id")
+  package            ScenarioPackage    @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  status             String             @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  startedAt          DateTime           @default(now()) @map("started_at")
+  completedAt        DateTime?          @map("completed_at")
+  currentScenarioIdx Int                @default(0) @map("current_scenario_idx")
+  // Deterministic 3-trait rubric scores (Decisiveness, RiskTolerance, ResourcePreservation)
+  traitScores        Json?              @map("trait_scores")
+  // Coordinator human overrides on trait scores: { [trait]: { value, overriddenBy, note, updatedAt } }
+  humanOverrides     Json?              @map("human_overrides")
+  // Anthropic AI tiering result: { tier, rationale, evaluatedAt }
+  aiEvaluation       Json?              @map("ai_evaluation")
+  responses          Response[]
+  snapshots          ScoreSnapshot[]
+  finalScores        FinalScore[]
+  biometrics         BiometricReading[]
+
+  @@map("assessment_sessions")
+}
+
+model Response {
+  id           String            @id @default(uuid())
+  sessionId    String            @map("session_id")
+  session      AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioId   String            @map("scenario_id")
+  scenario     Scenario          @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  optionId     String            @map("option_id")
+  option       ScenarioOption    @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  timeSpentMs  Int               @map("time_spent_ms")
+  startedAt    DateTime?         @map("started_at") // When candidate first saw the scenario
+  submittedAt  DateTime          @default(now()) @map("submitted_at")
+  // JSON decision path: array of { optionId, event: 'hover'|'click'|'revisit', timestampMs }
+  decisionPath Json?             @map("decision_path")
+
+  @@map("responses")
+}
+
+model ScoreSnapshot {
+  id              String            @id @default(uuid())
+  sessionId       String            @map("session_id")
+  session         AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioId      String            @map("scenario_id")
+  scenario        Scenario          @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  dimensionId     String            @map("dimension_id")
+  dimension       Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  cumulativeScore Float             @map("cumulative_score")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@map("score_snapshots")
+}
+
+model FinalScore {
+  id             String            @id @default(uuid())
+  sessionId      String            @map("session_id")
+  session        AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  dimensionId    String            @map("dimension_id")
+  dimension      Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  finalScore     Float             @map("final_score")
+  percentileRank Float?            @map("percentile_rank")
+
+  @@unique([sessionId, dimensionId])
+  @@map("final_scores")
+}
+
+model BiometricReading {
+  id         String            @id @default(uuid())
+  sessionId  String            @map("session_id")
+  session    AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioId String?           @map("scenario_id")
+  scenario   Scenario?         @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  bpm        Int
+  recordedAt BigInt            @map("recorded_at")
+  deviceId   String?           @map("device_id")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  @@map("biometric_readings")
+}
+
+model Admin {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  name             String   @default("Admin")
+  role             String   @default("ADMIN") // SUPER_ADMIN, ADMIN, ASSESSOR
+  passwordHash     String   @map("password_hash")
+  profileImageUrl  String?  @map("profile_image_url")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+model PlatformSettings {
+  id                String   @id @default(uuid())
+  platformName      String   @default("CognitiveEdge") @map("platform_name")
+  supportEmail      String   @default("support@cognitiveedge.com") @map("support_email")
+  biometricMode     String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
+  antiCheat         Boolean  @default(true) @map("anti_cheat")
+  blindUiMode       Boolean  @default(true) @map("blind_ui_mode")
+  // Branding / Media
+  logoUrl           String?  @map("logo_url")
+  defaultBackdropUrl String? @map("default_backdrop_url")
+  // AI Configuration (Anthropic)
+  anthropicApiKey   String?  @map("anthropic_api_key")
+  aiPromptTemplate  String?  @map("ai_prompt_template")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  linkUrl   String?  @map("link_url")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
