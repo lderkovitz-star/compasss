@@ -30,10 +30,12 @@ Use your existing Vercel project, so you keep the same web address.
    - If it is not in the list, click **Adjust GitHub App Permissions** and give
      Vercel access to the repository, then come back and select it.
 
+> Vercel may start a deployment as soon as the repository is connected. Until
+> Steps 2–4 are done, it will fail with `These environment variables are not
+> set`. That is expected — carry on with Step 2, and deploy in Step 5.
+>
 > Starting a new project instead? Use **Add New → Project** and import
-> **compasss**. Vercel will try to deploy straight away, and that first
-> deployment will fail with `DATABASE_URL is not set`. That is expected —
-> continue with Step 2.
+> **compasss**, then continue with Step 2.
 
 ## Step 2 — Add a database
 
@@ -47,7 +49,7 @@ Vercel adds `DATABASE_URL` and `DATABASE_URL_UNPOOLED` to the project for you.
 You do not need to copy anything.
 
 > Please choose **Neon**. Other providers name their settings differently, and
-> the deployment will stop with `DATABASE_URL is not set`.
+> the deployment will stop saying `DATABASE_URL` is not set.
 
 You do **not** need to create any tables or load any data. That happens
 automatically in Step 5.
@@ -77,6 +79,9 @@ keep **Production** and **Preview** selected.
 | `AUTH_SECRET` | A long random string, at least 32 characters. Your password manager's generator works well. Keep it private. |
 | `ADMIN_EMAIL` | The email address you want to sign in to the admin panel with. |
 | `ADMIN_PASSWORD` | A strong password for that account. |
+
+All three are required. The build checks for them and stops with a message
+naming anything that is missing.
 
 Environment variables live in **Vercel**, not in GitHub. Never add them to the
 repository.
@@ -176,9 +181,10 @@ the **Pro** plan and add your developer as a team member.
 | What you see | Why | What to do |
 |---|---|---|
 | `404: NOT_FOUND` on every page, and the deployment has no build log | It was deployed with Vercel Drop | Follow Step 1, then Step 5 |
-| Build fails with `DATABASE_URL is not set` | No database is connected | Follow Step 2, then redeploy |
+| Build fails with `These environment variables are not set` | A required setting is missing — the message lists which | Add what it lists (Step 2 or Step 4), then redeploy |
+| Build fails with `No admin account exists yet` | `ADMIN_EMAIL` / `ADMIN_PASSWORD` are missing | Add both (Step 4), then redeploy |
+| Build fails with `Failed to collect page data`, with `AUTH_SECRET must be set in production` just above it | `AUTH_SECRET` is missing | Add it (Step 4), then redeploy |
 | Build fails with `Can't reach database server` | The database is unreachable | Check the database in **Storage**, then redeploy |
-| Public pages work, but the admin login shows a server error | `AUTH_SECRET` is missing | Add it (Step 4), then redeploy |
 | `Invalid credentials` on your first sign-in | `ADMIN_EMAIL` / `ADMIN_PASSWORD` don't match, or were added after the last deploy | Check both values, then redeploy |
 | Résumé, logo or background upload fails | File storage is not connected | Follow Step 3, then redeploy |
 | Uploading a large file fails | Vercel limits uploads to about 4.5 MB | Use a file under 4.5 MB |
