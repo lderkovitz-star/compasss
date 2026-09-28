@@ -71,7 +71,7 @@ export default function ExportButtons({
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("CognitiveEdge", margin, 20);
+      doc.text("Compass", margin, 20);
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(191, 219, 254); // blue-200
@@ -108,7 +108,7 @@ export default function ExportButtons({
       doc.text("Target Role:", margin + 6, y + 23);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(71, 85, 105);
-      doc.text(targetRole, margin + 28, y + 23);
+      doc.text(targetRole || 'Not specified', margin + 28, y + 23);
 
       doc.setTextColor(15, 23, 42);
       doc.setFont("helvetica", "bold");
@@ -338,7 +338,7 @@ export default function ExportButtons({
         doc.setPage(i);
         doc.setFontSize(7);
         doc.setTextColor(148, 163, 184);
-        doc.text(`CognitiveEdge Platform  |  Page ${i} of ${totalPages}`, pageW / 2, pageH - 8, { align: "center" });
+        doc.text(`Compass Platform  |  Page ${i} of ${totalPages}`, pageW / 2, pageH - 8, { align: "center" });
         doc.setDrawColor(226, 232, 240);
         doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
       }
@@ -364,7 +364,7 @@ export default function ExportButtons({
 
       // @ts-ignore
       const wb = new ExcelJS.Workbook();
-      wb.creator = "CognitiveEdge Intelligence";
+      wb.creator = "Compass Intelligence";
       wb.created = new Date();
 
       // Style constants
@@ -405,7 +405,7 @@ export default function ExportButtons({
       ];
 
       // Top Title Banner
-      const titleRow = wsSummary.addRow(["COGNITIVEEDGE EXECUTIVE ASSESSMENT REPORT"]);
+      const titleRow = wsSummary.addRow(["COMPASS EXECUTIVE ASSESSMENT REPORT"]);
       titleRow.height = 28;
       wsSummary.mergeCells('A1:G1');
       titleRow.getCell(1).fill = navyHeaderFill;
@@ -470,7 +470,7 @@ export default function ExportButtons({
       };
 
       addGridRow("Candidate Name", candidateName, "Assessment Status", status || "COMPLETED");
-      addGridRow("Email Address", candidateEmail, "Target Role", targetRole);
+      addGridRow("Email Address", candidateEmail, "Target Role", targetRole || "Not specified");
       addGridRow("Assessment Package", packageName, "Total Scenarios Completed", `${responses.length} Scenarios`);
       addGridRow(
         "Overall Cognitive Score",

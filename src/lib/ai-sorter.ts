@@ -22,6 +22,7 @@ interface CandidateTrace {
   candidateName: string;
   candidateEmail: string;
   targetRole: string;
+  intakeContext: string;
   packageName: string;
   traitScores: {
     decisiveness: number;
@@ -50,6 +51,10 @@ Candidate Information:
 - Assessment Package: {{package_name}}
 - Completion Date: {{completed_at}}
 
+Candidate Intake Context (free text the candidate submitted - extract the role
+title and any job requirements from it yourself):
+{{intake_context}}
+
 Behavioral Metrics:
 - Decisiveness Score: {{decisiveness}}/100
 - Risk Tolerance Score: {{risk_tolerance}}/100
@@ -71,6 +76,7 @@ Respond ONLY in this exact JSON format with no additional text:
   const prompt = (template || defaultTemplate)
     .replace('{{candidate_name}}', candidate.candidateName)
     .replace('{{target_role}}', candidate.targetRole)
+    .replace('{{intake_context}}', candidate.intakeContext)
     .replace('{{package_name}}', candidate.packageName)
     .replace('{{completed_at}}', candidate.completedAt)
     .replace('{{decisiveness}}', String(candidate.traitScores.decisiveness))
@@ -167,6 +173,7 @@ export async function tierSingleCandidate(sessionId: string): Promise<AIEvaluati
     candidateName: session.user.name,
     candidateEmail: session.user.email,
     targetRole: session.user.targetRole ?? 'Not specified',
+    intakeContext: session.user.hobbiesSkills?.trim() || 'Not provided',
     packageName: session.package.name,
     traitScores,
     avgTimeSpentMs,

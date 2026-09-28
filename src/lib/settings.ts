@@ -7,8 +7,8 @@ export async function getGlobalSettings() {
     if (!settings) {
       settings = await prisma.platformSettings.create({
         data: {
-          platformName: 'CognitiveEdge',
-          supportEmail: 'support@cognitiveedge.com',
+          platformName: 'Compass',
+          supportEmail: 'support@compass.com',
           biometricMode: 'optional',
           antiCheat: true,
           blindUiMode: true,
@@ -21,8 +21,8 @@ export async function getGlobalSettings() {
     console.error('Error fetching global settings:', err);
     return {
       id: 'fallback-settings',
-      platformName: 'CognitiveEdge',
-      supportEmail: 'support@cognitiveedge.com',
+      platformName: 'Compass',
+      supportEmail: 'support@compass.com',
       biometricMode: 'optional',
       antiCheat: true,
       blindUiMode: true,

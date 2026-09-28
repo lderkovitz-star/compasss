@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getGlobalSettings } from "@/lib/settings";
+import { resolveBrandName } from "@/lib/constants/brand";
 import { Fraunces, IBM_Plex_Mono } from 'next/font/google';
 
 const fraunces = Fraunces({ subsets: ['latin'], display: 'swap', style: ['normal', 'italic'] });
@@ -27,7 +28,7 @@ export default async function Home() {
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] sm:text-[15px] font-bold tracking-tight text-white leading-tight truncate">{settings.platformName || 'CognitiveEdge'}</div>
+              <div className="text-[13px] sm:text-[15px] font-bold tracking-tight text-white leading-tight truncate">{resolveBrandName(settings.platformName)}</div>
               <div className="text-[8px] sm:text-[10px] text-[#5B6580] tracking-[0.08em] uppercase leading-tight mt-0.5 font-semibold truncate hidden sm:block">Executive Assessment</div>
             </div>
           </Link>
@@ -219,7 +220,7 @@ export default async function Home() {
       {/* FOOTER */}
       <footer className="border-t border-white/10 py-6 sm:py-7">
         <div className="max-w-[1180px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs sm:text-[12.5px] text-[#5B6580] text-center sm:text-left">
-          <span>© 2026 {settings.platformName || 'CognitiveEdge'}</span>
+          <span>© 2026 {resolveBrandName(settings.platformName)}</span>
           <span className={plexMono.className}>v2.0 — executive platform</span>
         </div>
       </footer>

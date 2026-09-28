@@ -28,7 +28,7 @@ export default function AssessmentCompletePage({ searchParams }: Props) {
               </svg>
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] sm:text-[15px] font-bold tracking-tight text-white leading-tight truncate">CognitiveEdge</div>
+              <div className="text-[13px] sm:text-[15px] font-bold tracking-tight text-white leading-tight truncate">Compass</div>
               <div className="text-[8px] sm:text-[10px] text-[#5B6580] tracking-[0.08em] uppercase leading-tight mt-0.5 font-semibold truncate hidden sm:block">Assessment Protocol</div>
             </div>
           </Link>

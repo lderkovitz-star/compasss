@@ -9,8 +9,8 @@ export async function GET() {
     if (!settings) {
       settings = await prisma.platformSettings.create({
         data: {
-          platformName: 'CognitiveEdge',
-          supportEmail: 'support@cognitiveedge.com',
+          platformName: 'Compass',
+          supportEmail: 'support@compass.com',
           biometricMode: 'disabled', // v0 default: disabled
           antiCheat: true,
           blindUiMode: true,
