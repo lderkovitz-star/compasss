@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-import { BRAND_NAME } from '@/lib/constants/brand';
+import { resolveBrandName } from '@/lib/constants/brand';
 
 interface SidebarProps {
   adminEmail: string;
@@ -31,9 +31,7 @@ export default function AdminSidebar({
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const displayPlatformName = platformName && platformName.toLowerCase() !== 'cognitiveedge'
-    ? platformName
-    : BRAND_NAME;
+  const displayPlatformName = resolveBrandName(platformName);
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;

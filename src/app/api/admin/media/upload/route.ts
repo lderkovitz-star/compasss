@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { put } from '@vercel/blob';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-const MAX_SIZE_MB = 5;
+const MAX_SIZE_MB = 4; // Vercel rejects request bodies over 4.5 MB
 
 export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();

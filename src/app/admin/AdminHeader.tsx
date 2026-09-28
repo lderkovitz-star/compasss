@@ -30,7 +30,7 @@ export default function AdminHeader({ adminEmail, adminName, adminRole, adminIma
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const pageInfo = PAGE_TITLES[pathname] ?? { title: 'Admin Panel', desc: 'CognitiveEdge Management Console' };
+  const pageInfo = PAGE_TITLES[pathname] ?? { title: 'Admin Panel', desc: 'Compass Management Console' };
   const displayName = adminName || adminEmail.split('@')[0];
   const initials = displayName.slice(0, 2).toUpperCase();
   const role = adminRole || 'ADMIN';

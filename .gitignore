@@ -36,3 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 .env
+
+# Local upload folders - files are stored in Vercel Blob, not in the repo
+/public/resumes/
+/public/uploads/

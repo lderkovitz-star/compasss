@@ -7,7 +7,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "CognitiveEdge — Executive Assessment Platform",
+  title: "Compass — Executive Assessment Platform",
   description: "AI-powered cognitive and behavioral assessment platform for executive talent evaluation.",
 };
 

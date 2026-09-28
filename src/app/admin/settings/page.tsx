@@ -11,8 +11,8 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
 
   // General Settings
-  const [platformName, setPlatformName] = useState('CognitiveEdge');
-  const [supportEmail, setSupportEmail] = useState('support@cognitiveedge.com');
+  const [platformName, setPlatformName] = useState('Compass');
+  const [supportEmail, setSupportEmail] = useState('support@compass.com');
   const [biometricMode, setBiometricMode] = useState('disabled');
 
   // Media / Branding
@@ -40,8 +40,8 @@ export default function AdminSettingsPage() {
     ])
       .then(([settingsData, packagesData]) => {
         if (settingsData && !settingsData.error) {
-          setPlatformName(settingsData.platformName ?? 'CognitiveEdge');
-          setSupportEmail(settingsData.supportEmail ?? 'support@cognitiveedge.com');
+          setPlatformName(settingsData.platformName ?? 'Compass');
+          setSupportEmail(settingsData.supportEmail ?? 'support@compass.com');
           setBiometricMode(settingsData.biometricMode ?? 'disabled');
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
@@ -223,7 +223,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={platformName}
                   onChange={e => setPlatformName(e.target.value)}
-                  placeholder="e.g. CognitiveEdge"
+                  placeholder="e.g. Compass"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-slate-900 bg-white font-medium placeholder:text-slate-400 shadow-sm"
                 />
               </div>
@@ -233,7 +233,7 @@ export default function AdminSettingsPage() {
                   type="email"
                   value={supportEmail}
                   onChange={e => setSupportEmail(e.target.value)}
-                  placeholder="support@cognitiveedge.com"
+                  placeholder="support@compass.com"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-slate-900 bg-white font-medium placeholder:text-slate-400 shadow-sm"
                 />
               </div>
@@ -589,7 +589,7 @@ export default function AdminSettingsPage() {
                   value={aiPromptTemplate}
                   onChange={e => setAiPromptTemplate(e.target.value)}
                   rows={9}
-                  placeholder={`Available variables:\n{{candidate_name}}, {{target_role}}, {{package_name}}\n{{decisiveness}}, {{risk_tolerance}}, {{resource_preservation}}\n{{avg_time_ms}}, {{total_switches}}, {{completed_at}}`}
+                  placeholder={`Available variables:\n{{candidate_name}}, {{target_role}}, {{intake_context}}, {{package_name}}\n{{decisiveness}}, {{risk_tolerance}}, {{resource_preservation}}\n{{avg_time_ms}}, {{total_switches}}, {{completed_at}}`}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono resize-y text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
                 />
               </div>

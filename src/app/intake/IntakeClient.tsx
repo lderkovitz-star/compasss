@@ -1,28 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface FormState {
   name: string;
   email: string;
-  targetRole: string;
   hobbiesSkills: string;
 }
-
-const ROLES = [
-  'Chief Executive Officer (CEO)',
-  'Chief Operations Officer (COO)',
-  'Chief Risk Officer (CRO)',
-  'Chief Financial Officer (CFO)',
-  'Chief Technology Officer (CTO)',
-  'VP of Strategy',
-  'VP of Operations',
-  'Senior Manager',
-  'Program Director',
-  'Other',
-];
 
 interface IntakeClientProps {
   platformName: string;
@@ -38,18 +24,19 @@ export default function IntakeClient({
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState<FormState>({ name: '', email: '', targetRole: '', hobbiesSkills: '' });
+  const [form, setForm] = useState<FormState>({ name: '', email: '', hobbiesSkills: '' });
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [biometricConnected, setBiometricConnected] = useState(false);
 
+  const displayBrand = platformName || 'Compass';
+
   async function connectBiometrics() {
     try {
-      // Typecast for navigator to avoid TS errors as bluetooth is experimental
-      const nav = navigator as any;
-      if (!nav.bluetooth) {
+      const nav = typeof navigator !== 'undefined' ? (navigator as unknown as { bluetooth?: { requestDevice: (opts: unknown) => Promise<{ name?: string }> } }) : null;
+      if (!nav?.bluetooth) {
         setError('Bluetooth is not supported in this browser. Use Chrome or Edge.');
         return;
       }
@@ -60,7 +47,7 @@ export default function IntakeClient({
       });
       console.log('Bluetooth Device connected:', device.name);
       setBiometricConnected(true);
-      setError(''); // Clear error if connected
+      setError('');
     } catch (err: unknown) {
       console.error('Bluetooth error:', err);
       setError('Failed to connect to biometric device. Please ensure Bluetooth is enabled and you selected a device.');
@@ -70,8 +57,19 @@ export default function IntakeClient({
   function handleFile(f: File | null) {
     if (!f) return;
     const valid = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!valid.includes(f.type)) { setError('Please upload a PDF or DOCX file.'); return; }
-    if (f.size > 10 * 1024 * 1024) { setError('File must be under 10MB.'); return; }
+    const nameLower = f.name.toLowerCase();
+    const isAllowedExt = nameLower.endsWith('.pdf') || nameLower.endsWith('.docx');
+
+    if (!valid.includes(f.type) && !isAllowedExt) {
+      setError('Please upload a PDF or DOCX file.');
+      return;
+    }
+    // Vercel rejects request bodies over 4.5 MB before they reach the server,
+    // which the browser reports as "Failed to fetch".
+    if (f.size > 4 * 1024 * 1024) {
+      setError('File must be under 4MB.');
+      return;
+    }
     setFile(f);
     setError('');
   }
@@ -79,29 +77,76 @@ export default function IntakeClient({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!form.name.trim()) { setError('Full name is required.'); return; }
-    if (!form.email.trim()) { setError('Email is required.'); return; }
-    if (!form.targetRole) { setError('Target role is required.'); return; }
+
+    const trimmedName = form.name.trim();
+    const trimmedEmail = form.email.trim();
+
+    if (!trimmedName) {
+      setError('Full name is required.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setError('Email address is required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Please provide a valid email address.');
+      return;
+    }
     if (biometricMode === 'required' && !biometricConnected) {
       setError('Biometric connection is required to proceed. Please connect your Heart Rate Monitor.');
       return;
     }
 
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+
     try {
       const fd = new FormData();
-      fd.append('name', form.name.trim());
-      fd.append('email', form.email.trim());
-      fd.append('targetRole', form.targetRole);
-      fd.append('hobbiesSkills', form.hobbiesSkills);
-      if (file) fd.append('resume', file);
+      fd.append('name', trimmedName);
+      fd.append('email', trimmedEmail);
+      if (form.hobbiesSkills) {
+        fd.append('hobbiesSkills', form.hobbiesSkills);
+      }
+      if (file) {
+        fd.append('resume', file);
+      }
 
-      const res = await fetch('/api/intake', { method: 'POST', body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Submission failed.');
+      const res = await fetch('/api/intake', {
+        method: 'POST',
+        body: fd,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch (jsonErr) {
+        console.error('Failed to parse response JSON:', jsonErr);
+      }
+
+      if (!res.ok) {
+        throw new Error(json?.error || `Submission failed (HTTP ${res.status}).`);
+      }
+
+      if (!json?.sessionId) {
+        throw new Error('Assessment session initialization failed. Missing session identifier.');
+      }
+
       router.push(`/assessment/${json.sessionId}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      clearTimeout(timeoutId);
+      console.error('[intake submission error]:', err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Submission timed out. The server took too long to process. Please check your connection and try again.');
+      } else if (err instanceof TypeError && err.message.toLowerCase().includes('failed to fetch')) {
+        setError('Network connection interrupted. Please verify server status and try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      }
       setLoading(false);
     }
   }
@@ -130,7 +175,7 @@ export default function IntakeClient({
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] sm:text-[15px] font-bold tracking-tight text-white leading-tight truncate">{platformName}</div>
+              <div className="text-[13px] sm:text-[15px] font-bold tracking-tight text-white leading-tight truncate">{displayBrand}</div>
               <div className="text-[8px] sm:text-[10px] text-[#5B6580] tracking-[0.08em] uppercase leading-tight mt-0.5 font-semibold truncate hidden sm:block">Candidate Intake</div>
             </div>
           </Link>
@@ -192,48 +237,38 @@ export default function IntakeClient({
                 />
               </div>
             </div>
-            <div className="mt-4 sm:mt-5">
-              <label className="block text-[12px] font-medium text-[#97A2BE] mb-1.5 sm:mb-2" htmlFor="targetRole">Target Role *</label>
-              <div className="relative">
-                <select
-                  id="targetRole"
-                  className="w-full rounded-xl border border-white/10 bg-[#0B1220]/50 px-3.5 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-[14px] text-white outline-none transition-all focus:border-[#5B8CFF] focus:ring-1 focus:ring-[#5B8CFF] appearance-none cursor-pointer"
-                  value={form.targetRole}
-                  onChange={e => setForm(f => ({ ...f, targetRole: e.target.value }))}
-                  required
-                >
-                  <option value="" className="text-slate-900 bg-white font-medium">Select your target role…</option>
-                  {ROLES.map(r => (
-                    <option key={r} value={r} className="text-slate-900 bg-white font-medium">
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#5B6580]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                </svg>
-              </div>
-            </div>
           </div>
 
           {/* AI Intake Section */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xl">
             <div className="border-b border-white/10 pb-3 sm:pb-4 mb-4 sm:mb-5 flex items-center justify-between">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5B8CFF]">AI Intake Context</h2>
+              <div>
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5B8CFF]">AI Intake Context</h2>
+                <p className="text-[12px] text-[#97A2BE] mt-0.5">Role titles, job requirements, skills & experience context</p>
+              </div>
               <span className="text-[10px] font-medium text-[#97A2BE] uppercase tracking-[0.08em] bg-white/5 border border-white/10 px-2 py-0.5 sm:py-1 rounded-md">Optional</span>
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#97A2BE] mb-1.5 sm:mb-2" htmlFor="hobbiesSkills">Skills, Hobbies & Background</label>
+              <label className="block text-[12px] font-medium text-[#97A2BE] mb-1.5 sm:mb-2" htmlFor="hobbiesSkills">
+                Target Role & Qualifications Context
+              </label>
               <textarea
                 id="hobbiesSkills"
-                className="w-full rounded-xl border border-white/10 bg-[#0B1220]/50 px-3.5 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-[14px] text-white placeholder-[#5B6580] outline-none transition-all focus:border-[#5B8CFF] focus:ring-1 focus:ring-[#5B8CFF] min-h-[100px] resize-none"
-                placeholder="Share your skills, interests, and background..."
+                rows={6}
+                className="w-full rounded-xl border border-white/10 bg-[#0B1220]/50 px-3.5 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-[14px] text-white placeholder-[#5B6580] outline-none transition-all focus:border-[#5B8CFF] focus:ring-1 focus:ring-[#5B8CFF] min-h-[140px] resize-y whitespace-pre-wrap leading-relaxed"
+                placeholder="Include target role title, executive competencies, job requirements, or background highlights for our AI to extract automatically...&#10;&#10;e.g.&#10;Target Role: Chief Operating Officer (COO)&#10;Key Competencies: P&L management, crisis operations, cross-border restructuring&#10;Background: 15+ years enterprise leadership across operations and transformation..."
                 value={form.hobbiesSkills}
                 onChange={e => setForm(f => ({ ...f, hobbiesSkills: e.target.value }))}
+                wrap="soft"
               />
-              <p className="text-[11px] text-[#5B6580] mt-2">
-                This data is forwarded to the client&apos;s AI intake pipeline as raw text.
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mt-2.5 text-[11px] text-[#5B6580]">
+                <span>
+                  Our AI pipeline automatically identifies role titles, competencies, and evaluation traits.
+                </span>
+                <span className="font-mono text-[10.5px] text-[#97A2BE]/70 flex-shrink-0">
+                  {form.hobbiesSkills.trim() ? `${form.hobbiesSkills.trim().split(/\s+/).filter(Boolean).length} words · ` : ''}{form.hobbiesSkills.length.toLocaleString()} characters
+                </span>
+              </div>
             </div>
           </div>
 
@@ -279,7 +314,6 @@ export default function IntakeClient({
 
           {/* Resume Upload */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xl">
-
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5B8CFF] border-b border-white/10 pb-4 mb-5">Resume / CV</h2>
             <div
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
@@ -316,7 +350,7 @@ export default function IntakeClient({
                     </svg>
                   </div>
                   <p className="text-[13px] font-medium text-white mb-1">Drag & drop your resume here</p>
-                  <p className="text-[11.5px] text-[#5B6580]">or click to browse — PDF or DOCX, max 10MB</p>
+                  <p className="text-[11.5px] text-[#5B6580]">or click to browse — PDF or DOCX, max 4MB</p>
                 </>
               )}
             </div>

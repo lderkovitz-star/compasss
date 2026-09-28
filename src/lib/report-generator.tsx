@@ -85,7 +85,7 @@ const ReportDocument = ({ user, scores }: { user: any, scores: ScoreData[] }) =>
     <Page size="A4" style={styles.page}>
       <View style={styles.header}>
         <Text style={styles.title}>Cognitive Assessment Report</Text>
-        <Text style={styles.subtitle}>Candidate: {user.name} | Target Role: {user.targetRole}</Text>
+        <Text style={styles.subtitle}>Candidate: {user.name} | Target Role: {user.targetRole || 'Not specified'}</Text>
       </View>
 
       <View>
@@ -102,7 +102,7 @@ const ReportDocument = ({ user, scores }: { user: any, scores: ScoreData[] }) =>
       </View>
 
       <Text style={styles.footer}>
-        Confidential Report — Generated securely by CognitiveEdge System
+        Confidential Report — Generated securely by Compass System
       </Text>
     </Page>
   </Document>

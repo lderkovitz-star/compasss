@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { getGlobalSettings } from '@/lib/settings';
+import { resolveBrandName } from '@/lib/constants/brand';
 import { LoginForm } from './components/LoginForm';
 
 // admin-login page with proper icons and layout
@@ -15,7 +16,7 @@ export default async function AdminLoginPage() {
         </div>
     }>
       <LoginForm 
-        initialPlatformName={settings.platformName || 'CognitiveEdge'} 
+        initialPlatformName={resolveBrandName(settings.platformName)} 
         initialPlatformLogo={settings.logoUrl || null} 
       />
     </Suspense>
