@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 
 // GET single scenario with options
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const scenario = await prisma.scenario.findUnique({
     where: { id: params.id },
     include: {
@@ -19,6 +23,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 // PUT — update scenario + its options
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await req.json();
     const { narrativeText, timeLimitSec, sequenceOrder, options } = body;
@@ -75,6 +82,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 // DELETE — scenario soft delete
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     await prisma.scenario.update({
       where: { id: params.id },

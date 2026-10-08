@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 
@@ -26,8 +26,21 @@ export function verifyToken(token: string): string | null {
     const payload = decoded.slice(0, lastDot);
     const sig = decoded.slice(lastDot + 1);
     const expectedSig = createHmac('sha256', SECRET).update(payload).digest('hex');
+    if (sig.length !== expectedSig.length) return null;
     if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) return null;
-    return payload.split(':')[0]; // return email
+
+    // The payload is `${email}:${issuedAtMs}`. The signature proves the token
+    // was minted here; it says nothing about when. Without this check a token
+    // captured once stays valid forever, since the cookie maxAge is only a
+    // client-side hint.
+    const lastColon = payload.lastIndexOf(':');
+    if (lastColon === -1) return null;
+    const issuedAt = Number(payload.slice(lastColon + 1));
+    if (!Number.isFinite(issuedAt)) return null;
+    const age = Date.now() - issuedAt;
+    if (age < 0 || age > COOKIE_MAX_AGE * 1000) return null;
+
+    return payload.slice(0, lastColon);
   } catch {
     return null;
   }
@@ -96,5 +109,32 @@ export async function validateCredentials(email: string, password: string): Prom
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
+
+export type AdminPrincipal = NonNullable<Awaited<ReturnType<typeof getCurrentAdmin>>>;
+
+/**
+ * Route-handler guard. Returns either the signed-in admin or the response to
+ * send back. Middleware only verifies the cookie signature, so it cannot tell
+ * whether the account still exists, is still active, or holds the right role —
+ * that check has to happen in the handler.
+ *
+ *   const auth = await requireAdmin();
+ *   if (auth instanceof NextResponse) return auth;
+ */
+export async function requireAdmin(
+  roles?: readonly string[]
+): Promise<AdminPrincipal | NextResponse> {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (roles && !roles.includes(admin.role)) {
+    return NextResponse.json({ error: 'Insufficient permissions.' }, { status: 403 });
+  }
+  return admin;
+}
+
+/** Roles permitted to change data. ASSESSOR is read-only, as the UI advertises. */
+export const WRITE_ROLES = ['SUPER_ADMIN', 'ADMIN'] as const;
 
 export { COOKIE_NAME, COOKIE_MAX_AGE };

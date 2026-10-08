@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateReportPDF } from '@/lib/report-generator';
+import { requireAdmin } from '@/lib/auth';
+
+// This route sits outside the middleware matcher, so the guard here is the
+// only thing standing between a session id and a candidate's full report.
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get('sessionId');
 
