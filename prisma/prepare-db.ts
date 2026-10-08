@@ -59,9 +59,53 @@ async function main() {
     return;
   }
 
-  run('npx prisma db push --skip-generate');
-
   const prisma = new PrismaClient({ datasourceUrl: directUrl });
+
+  // This project was deployed with `prisma db push` for months, so the live
+  // database has tables but no migration history. Adopt it on the first run
+  // that sees that combination: mark the baseline as already applied, then let
+  // `migrate deploy` carry every later migration. Without the baseline,
+  // `migrate deploy` would try to create tables that already exist.
+  const [{ adopted }] = await prisma.$queryRaw<{ adopted: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = '_prisma_migrations'
+    ) AS adopted
+  `;
+  const [{ populated }] = await prisma.$queryRaw<{ populated: boolean }[]>`
+    SELECT EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = 'platform_settings'
+    ) AS populated
+  `;
+
+  if (!adopted && populated) {
+    // Adopting the baseline records "0_init is already applied". If the live
+    // schema has drifted from schema.prisma, that record is a lie and the next
+    // migration fails against a shape nobody expected. Check before claiming it.
+    const drift = execSync(
+      'npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script',
+      { encoding: 'utf8', env: { ...process.env, DATABASE_URL: directUrl } }
+    ).trim();
+
+    const clean = drift.split('\n').every((line) => line.trim() === '' || line.startsWith('--'));
+    if (!clean) {
+      fail([
+        'The live database does not match prisma/schema.prisma, so the migration',
+        'baseline cannot be adopted safely. Differences found:',
+        '',
+        ...drift.split('\n').slice(0, 20).map((l) => '  ' + l),
+        '',
+        'Reconcile these before deploying again.',
+      ]);
+    }
+
+    console.log('Existing database matches the schema - adopting the migration baseline.');
+    run('npx prisma migrate resolve --applied 0_init');
+  }
+
+  run('npx prisma migrate deploy');
+
   const [admins, dimensions, packages, users] = await Promise.all([
     prisma.admin.count(),
     prisma.dimension.count(),
