@@ -8,6 +8,8 @@ if (process.env.NODE_ENV === 'production' && !AUTH_SECRET) {
   throw new Error('AUTH_SECRET must be set in production');
 }
 const SECRET = AUTH_SECRET || 'fallback-secret-key';
+// Must match COOKIE_MAX_AGE in src/lib/auth.ts (8 hours).
+const COOKIE_MAX_AGE_MS = 60 * 60 * 8 * 1000;
 
 async function verifyHmacToken(token: string): Promise<boolean> {
   try {
@@ -34,7 +36,17 @@ async function verifyHmacToken(token: string): Promise<boolean> {
     for (let i = 0; i < sig.length; i++) {
       diff |= sig.charCodeAt(i) ^ expectedSig.charCodeAt(i);
     }
-    return diff === 0;
+    if (diff !== 0) return false;
+
+    // Expiry. Kept in step with verifyToken() in src/lib/auth.ts — the payload
+    // is `${email}:${issuedAtMs}` and a valid signature alone says nothing
+    // about age.
+    const lastColon = payload.lastIndexOf(':');
+    if (lastColon === -1) return false;
+    const issuedAt = Number(payload.slice(lastColon + 1));
+    if (!Number.isFinite(issuedAt)) return false;
+    const age = Date.now() - issuedAt;
+    return age >= 0 && age <= COOKIE_MAX_AGE_MS;
   } catch {
     return false;
   }

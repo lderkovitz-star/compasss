@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 
 // GET — list all packages
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -26,6 +30,9 @@ export async function GET(req: NextRequest) {
 
 // POST — activate or create a package
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await req.json();
 

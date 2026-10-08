@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
+  // Permanently deletes soft-deleted content. Super admins only.
+  const auth = await requireAdmin(['SUPER_ADMIN']);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
