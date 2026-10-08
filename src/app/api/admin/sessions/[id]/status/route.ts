@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const session = await prisma.assessmentSession.findUnique({
       where: { id: params.id },

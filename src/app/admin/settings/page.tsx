@@ -25,6 +25,8 @@ export default function AdminSettingsPage() {
 
   // AI Config
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [apiKeyLast4, setApiKeyLast4] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiPromptTemplate, setAiPromptTemplate] = useState('');
   const [savingAI, setSavingAI] = useState(false);
@@ -45,7 +47,9 @@ export default function AdminSettingsPage() {
           setBiometricMode(settingsData.biometricMode ?? 'disabled');
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
-          setAnthropicApiKey(settingsData.anthropicApiKey ?? '');
+          // The key is write-only server-side; we only learn whether one is set.
+          setApiKeyConfigured(Boolean(settingsData.anthropicApiKeyConfigured));
+          setApiKeyLast4(settingsData.anthropicApiKeyLast4 ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
         }
         if (Array.isArray(packagesData)) {
@@ -93,7 +97,7 @@ export default function AdminSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           platformName, supportEmail, biometricMode,
-          anthropicApiKey,
+          ...(anthropicApiKey.trim() ? { anthropicApiKey } : {}),
           aiPromptTemplate,
         }),
       });
@@ -489,7 +493,7 @@ export default function AdminSettingsPage() {
                     type={showApiKey ? 'text' : 'password'}
                     value={anthropicApiKey}
                     onChange={e => setAnthropicApiKey(e.target.value)}
-                    placeholder="sk-ant-api03-..."
+                    placeholder={apiKeyConfigured ? `Key set (ends ${apiKeyLast4 ?? '****'}) - type to replace` : 'sk-ant-api03-...'}
                     className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
                   />
                   <button
@@ -629,7 +633,7 @@ export default function AdminSettingsPage() {
             <div className="p-5 space-y-4">
               {[
                 { icon: '🗂️', label: 'Local File System', status: 'Active', detail: 'Resumes & Media assets', color: 'text-slate-500', bg: 'bg-slate-100' },
-                { icon: '🤖', label: 'Anthropic Claude', status: anthropicApiKey ? 'Key Configured' : 'Key Not Set', detail: 'Background AI Tiering', color: anthropicApiKey ? 'text-emerald-600' : 'text-amber-600', bg: anthropicApiKey ? 'bg-emerald-50' : 'bg-amber-50' },
+                { icon: '🤖', label: 'Anthropic Claude', status: apiKeyConfigured ? 'Key Configured' : 'Key Not Set', detail: 'Background AI Tiering', color: apiKeyConfigured ? 'text-emerald-600' : 'text-amber-600', bg: apiKeyConfigured ? 'bg-emerald-50' : 'bg-amber-50' },
                 { icon: '📄', label: 'react-pdf/renderer', status: 'Active', detail: 'Report Generation Engine', color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 { icon: '🗄️', label: 'PostgreSQL', status: 'Connected', detail: 'Prisma ORM Managed', color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map(item => (

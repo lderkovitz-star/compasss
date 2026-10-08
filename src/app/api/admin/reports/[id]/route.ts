@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
 
 // GET — full report data (admin only)
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const sessionId = params.id;
 
   try {

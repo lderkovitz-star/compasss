@@ -13,6 +13,7 @@ function fail(lines: string[]): never {
 
 // Checked here so a missing setting stops the build with a clear message at the
 // top of the log, instead of a "Failed to collect page data" error later on.
+const vercelEnv = process.env.VERCEL_ENV; // 'production' | 'preview' | 'development'
 const missing: string[] = [];
 if (!process.env.DATABASE_URL) {
   missing.push('  DATABASE_URL - connect a Neon Postgres database from the Storage tab (Step 2)');
@@ -21,7 +22,17 @@ if (!process.env.AUTH_SECRET) {
   missing.push('  AUTH_SECRET  - add it under Settings -> Environment Variables (Step 4)');
 }
 if (missing.length > 0) {
-  fail(['These environment variables are not set:', ...missing]);
+  fail([
+    'These environment variables are not set:',
+    ...missing,
+    ...(vercelEnv && vercelEnv !== 'production'
+      ? [
+          '',
+          `This is a ${vercelEnv} deployment. Environment variables are set per`,
+          'environment in Vercel - tick Preview as well as Production when adding them.',
+        ]
+      : []),
+  ]);
 }
 
 // Schema changes need a direct (unpooled) connection. Neon provides one as
@@ -33,6 +44,21 @@ function run(command: string) {
 }
 
 async function main() {
+  // Preview builds share whatever DATABASE_URL the Preview environment holds,
+  // which is usually the production one. Pushing the schema or seeding from a
+  // feature branch would then alter live data, so those steps are production
+  // only. Set ALLOW_PREVIEW_DB_WRITES=1 if previews ever get their own branch
+  // database.
+  const mayWriteSchema =
+    !vercelEnv || vercelEnv === 'production' || process.env.ALLOW_PREVIEW_DB_WRITES === '1';
+
+  if (!mayWriteSchema) {
+    console.log(
+      `${vercelEnv} deployment - skipping schema push and seeding so the production database is left alone.`
+    );
+    return;
+  }
+
   run('npx prisma db push --skip-generate');
 
   const prisma = new PrismaClient({ datasourceUrl: directUrl });
