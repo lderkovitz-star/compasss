@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import { PrismaClient } from '@prisma/client';
+import { backfillLegacyTenant } from './backfill/001-legacy-tenant';
 
 // Runs during the Vercel build (see "vercel-build" in package.json), before
 // `next build`. Checks the required settings, creates or updates the database
@@ -105,6 +106,9 @@ async function main() {
   }
 
   run('npx prisma migrate deploy');
+
+  // Idempotent; gives rows that predate multi-tenancy an owner.
+  await backfillLegacyTenant(prisma);
 
   const [admins, dimensions, packages, users] = await Promise.all([
     prisma.admin.count(),
