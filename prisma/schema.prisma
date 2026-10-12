@@ -15,9 +15,15 @@ model User {
   hobbiesSkills    String?             @map("hobbies_skills")
   resumeFileUrl    String?             @map("resume_file_url")
   resumeUploadedAt DateTime?           @map("resume_uploaded_at")
+  resumeText       String?             @map("resume_text")
+  // Nullable in this migration; made required once every row is backfilled.
+  clientAccountId  String?             @map("client_account_id")
+  clientAccount    ClientAccount?      @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
   createdAt        DateTime            @default(now()) @map("created_at")
   sessions         AssessmentSession[]
+  resumeDocuments  ResumeDocument[]
 
+  @@index([clientAccountId, createdAt])
   @@map("users")
 }
 
@@ -31,8 +37,12 @@ model ScenarioPackage {
   createdAt        DateTime            @default(now()) @map("created_at")
   deletedAt        DateTime?           @map("deleted_at")
   backdropImageUrl String?             @map("backdrop_image_url") // Swappable scenario background per package
+  visibility       String              @default("GLOBAL") // GLOBAL | PRIVATE
+  sourceFormat     String?             @map("source_format") // JSON | CSV | SEED
   scenarios        Scenario[]
   sessions         AssessmentSession[]
+  invites          AssessmentInvite[]
+  assignedTo       ClientAccount[]
 
   @@map("scenario_packages")
 }
@@ -55,7 +65,10 @@ model Scenario {
   packageId        String             @map("package_id")
   package          ScenarioPackage    @relation(fields: [packageId], references: [id], onDelete: Cascade)
   sequenceOrder    Int                @map("sequence_order")
+  title            String?
   narrativeText    String             @map("narrative_text")
+  decisionPoint    String?            @map("decision_point")
+  externalRef      String?            @map("external_ref")
   timeLimitSec     Int                @default(60) @map("time_limit_sec")
   deletedAt        DateTime?          @map("deleted_at")
   backdropImageUrl String?            @map("backdrop_image_url") // Per-scenario backdrop override
@@ -64,6 +77,7 @@ model Scenario {
   snapshots        ScoreSnapshot[]
   biometrics       BiometricReading[]
 
+  @@unique([packageId, externalRef])
   @@map("scenarios")
 }
 
@@ -73,6 +87,8 @@ model ScenarioOption {
   scenario   Scenario      @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
   optionCode String        @map("option_code") // 'A', 'B', 'C', 'D'
   optionText String        @map("option_text")
+  title      String?
+  sortOrder  Int           @default(0) @map("sort_order")
   scores     OptionScore[]
   responses  Response[]
 
@@ -91,26 +107,50 @@ model OptionScore {
 }
 
 model AssessmentSession {
-  id                 String             @id @default(uuid())
-  userId             String             @map("user_id")
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  packageId          String             @map("package_id")
-  package            ScenarioPackage    @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  status             String             @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
-  startedAt          DateTime           @default(now()) @map("started_at")
-  completedAt        DateTime?          @map("completed_at")
-  currentScenarioIdx Int                @default(0) @map("current_scenario_idx")
+  id                 String               @id @default(uuid())
+  userId             String               @map("user_id")
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId          String               @map("package_id")
+  package            ScenarioPackage      @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  status             String               @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  startedAt          DateTime             @default(now()) @map("started_at")
+  completedAt        DateTime?            @map("completed_at")
+  currentScenarioIdx Int                  @default(0) @map("current_scenario_idx")
   // Deterministic 3-trait rubric scores (Decisiveness, RiskTolerance, ResourcePreservation)
-  traitScores        Json?              @map("trait_scores")
+  traitScores        Json?                @map("trait_scores")
   // Coordinator human overrides on trait scores: { [trait]: { value, overriddenBy, note, updatedAt } }
-  humanOverrides     Json?              @map("human_overrides")
+  humanOverrides     Json?                @map("human_overrides")
   // Anthropic AI tiering result: { tier, rationale, evaluatedAt }
-  aiEvaluation       Json?              @map("ai_evaluation")
+  aiEvaluation       Json?                @map("ai_evaluation")
+  // null for practice runs, which belong to no employer
+  clientAccountId    String?              @map("client_account_id")
+  clientAccount      ClientAccount?       @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  kind               String               @default("OFFICIAL") // OFFICIAL | PRACTICE
+  jobContextId       String?              @map("job_context_id")
+  jobContext         JobContext?          @relation(fields: [jobContextId], references: [id])
+  sessionDepth       Int?                 @map("session_depth")
+  // Frozen at session start so later edits to option weights cannot rewrite
+  // the normalisation of a report that has already been issued.
+  scenarioOrder      Json?                @map("scenario_order")
+  scoringBasis       Json?                @map("scoring_basis")
+  scoringVersion     Int                  @default(1) @map("scoring_version")
+  practiceJobText    String?              @map("practice_job_text")
+  practiceEmail      String?              @map("practice_email")
+  practiceName       String?              @map("practice_name")
+  registryOptIn      Boolean              @default(false) @map("registry_opt_in")
+  purgeAfter         DateTime?            @map("purge_after")
   responses          Response[]
   snapshots          ScoreSnapshot[]
   finalScores        FinalScore[]
   biometrics         BiometricReading[]
+  invite             AssessmentInvite?
+  aiEvaluations      AiEvaluation[]
+  syntheses          ArchetypeSynthesis[]
+  resumeDocument     ResumeDocument?
+  registryEntry      TalentRegistryEntry?
 
+  @@index([clientAccountId, kind, status, startedAt])
+  @@index([kind, purgeAfter])
   @@map("assessment_sessions")
 }
 
@@ -153,6 +193,11 @@ model FinalScore {
   dimension      Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
   finalScore     Float             @map("final_score")
   percentileRank Float?            @map("percentile_rank")
+  rawScore       Float?            @map("raw_score")
+  maxScore       Float?            @map("max_score")
+  minScore       Float?            @map("min_score")
+  exercised      Boolean           @default(true)
+  scoringVersion Int               @default(1) @map("scoring_version")
 
   @@unique([sessionId, dimensionId])
   @@map("final_scores")
@@ -173,44 +218,361 @@ model BiometricReading {
 }
 
 model Admin {
-  id               String   @id @default(uuid())
-  email            String   @unique
-  name             String   @default("Admin")
-  role             String   @default("ADMIN") // SUPER_ADMIN, ADMIN, ASSESSOR
-  passwordHash     String   @map("password_hash")
-  profileImageUrl  String?  @map("profile_image_url")
-  isActive         Boolean  @default(true) @map("is_active")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id               String                @id @default(uuid())
+  email            String                @unique
+  name             String                @default("Admin")
+  role             String                @default("ADMIN") // SUPER_ADMIN, ADMIN, ASSESSOR
+  passwordHash     String                @map("password_hash")
+  profileImageUrl  String?               @map("profile_image_url")
+  isActive         Boolean               @default(true) @map("is_active")
+  scope            String                @default("PLATFORM") // PLATFORM (master) | CLIENT
+  lastLoginAt      DateTime?             @map("last_login_at")
+  failedLoginCount Int                   @default(0) @map("failed_login_count")
+  lockedUntil      DateTime?             @map("locked_until")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  memberships      ClientAccountMember[]
 
   @@map("admins")
 }
 
 model PlatformSettings {
-  id                String   @id @default(uuid())
-  platformName      String   @default("Compass") @map("platform_name")
-  supportEmail      String   @default("support@compass.com") @map("support_email")
-  biometricMode     String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
-  antiCheat         Boolean  @default(true) @map("anti_cheat")
-  blindUiMode       Boolean  @default(true) @map("blind_ui_mode")
+  id                      String   @id @default(uuid())
+  platformName            String   @default("Compass") @map("platform_name")
+  supportEmail            String   @default("support@compass.com") @map("support_email")
+  biometricMode           String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
+  antiCheat               Boolean  @default(true) @map("anti_cheat")
+  blindUiMode             Boolean  @default(true) @map("blind_ui_mode")
   // Branding / Media
-  logoUrl           String?  @map("logo_url")
-  defaultBackdropUrl String? @map("default_backdrop_url")
+  logoUrl                 String?  @map("logo_url")
+  defaultBackdropUrl      String?  @map("default_backdrop_url")
   // AI Configuration (Anthropic)
-  anthropicApiKey   String?  @map("anthropic_api_key")
-  aiPromptTemplate  String?  @map("ai_prompt_template")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  anthropicApiKey         String?  @map("anthropic_api_key")
+  aiPromptTemplate        String?  @map("ai_prompt_template")
+  // Which AiProviderConfig the evaluation pipeline uses right now. Switched
+  // from Master Admin without a redeploy.
+  activeAiProviderKey     String?  @map("active_ai_provider_key")
+  // Module B: three independent slots instead of one global isActive flag, so
+  // changing the sandbox can never alter what a client account is running.
+  sandboxPackageId        String?  @map("sandbox_package_id")
+  defaultClientPackageId  String?  @map("default_client_package_id")
+  defaultSessionDepth     Int?     @map("default_session_depth")
+  practiceEnabled         Boolean  @default(true) @map("practice_enabled")
+  storageProvider         String   @default("VERCEL_BLOB") @map("storage_provider")
+  storageConfig           Json?    @map("storage_config")
+  emailProvider           String   @default("NONE") @map("email_provider")
+  emailFrom               String?  @map("email_from")
+  synthesisDailyCallLimit Int      @default(200) @map("synthesis_daily_call_limit")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String
-  linkUrl   String?  @map("link_url")
-  isRead    Boolean  @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String         @id @default(uuid())
+  title           String
+  message         String
+  linkUrl         String?        @map("link_url")
+  isRead          Boolean        @default(false) @map("is_read")
+  clientAccountId String?        @map("client_account_id")
+  clientAccount   ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  audience        String         @default("PLATFORM") // PLATFORM | CLIENT
+  createdAt       DateTime       @default(now()) @map("created_at")
 
+  @@index([clientAccountId, isRead, createdAt])
   @@map("notifications")
+}
+
+// ---------------------------------------------------------------------------
+// Multi-tenancy
+// ---------------------------------------------------------------------------
+
+/// An employer. Every piece of enterprise data hangs off one of these; a null
+/// clientAccountId means the row belongs to the public practice sandbox and is
+/// therefore excluded from every tenant-scoped query by construction.
+model ClientAccount {
+  id                 String           @id @default(uuid())
+  name               String
+  slug               String           @unique
+  contactEmail       String           @map("contact_email")
+  status             String           @default("ACTIVE") // ACTIVE | SUSPENDED | ARCHIVED
+  // Gateway credential, issued as CMP-<prefix>-<secret>. The prefix identifies
+  // the tenant from a single input box; only a bcrypt hash of the secret is kept.
+  accessKeyPrefix    String?          @unique @map("access_key_prefix")
+  accessKeyHash      String?          @map("access_key_hash")
+  accessKeyLast4     String?          @map("access_key_last4")
+  accessKeyRotatedAt DateTime?        @map("access_key_rotated_at")
+  logoUrl            String?          @map("logo_url")
+  // Module B per-company override; falls back to the global default.
+  assignedPackageId  String?          @map("assigned_package_id")
+  assignedPackage    ScenarioPackage? @relation(fields: [assignedPackageId], references: [id])
+  storageConfig      Json?            @map("storage_config")
+  deletedAt          DateTime?        @map("deleted_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  members       ClientAccountMember[]
+  candidates    User[]
+  sessions      AssessmentSession[]
+  jobContexts   JobContext[]
+  invites       AssessmentInvite[]
+  notifications Notification[]
+
+  @@index([status, deletedAt])
+  @@map("client_accounts")
+}
+
+/// Named employer-side admins, as opposed to the shared company access key.
+model ClientAccountMember {
+  id              String        @id @default(uuid())
+  clientAccountId String        @map("client_account_id")
+  clientAccount   ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  adminId         String        @map("admin_id")
+  admin           Admin         @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  role            String        @default("CLIENT_ADMIN") // CLIENT_OWNER | CLIENT_ADMIN | CLIENT_VIEWER
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@unique([clientAccountId, adminId])
+  @@map("client_account_members")
+}
+
+/// The job description an assessment is evaluated against. Pasted by the
+/// employer when generating an invite, and fed to the model verbatim.
+model JobContext {
+  id               String         @id @default(uuid())
+  clientAccountId  String?        @map("client_account_id")
+  clientAccount    ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  title            String
+  roleFamily       String?        @map("role_family")
+  descriptionText  String         @map("description_text")
+  isArchived       Boolean        @default(false) @map("is_archived")
+  createdByAdminId String?        @map("created_by_admin_id")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  invites  AssessmentInvite[]
+  sessions AssessmentSession[]
+
+  @@index([clientAccountId, isArchived])
+  @@map("job_contexts")
+}
+
+/// A single-use candidate link: /assess?token=XYZ. The raw token only ever
+/// exists in the URL; the database holds an HMAC of it.
+model AssessmentInvite {
+  id               String          @id @default(uuid())
+  clientAccountId  String          @map("client_account_id")
+  clientAccount    ClientAccount   @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  packageId        String          @map("package_id")
+  package          ScenarioPackage @relation(fields: [packageId], references: [id])
+  jobContextId     String?         @map("job_context_id")
+  jobContext       JobContext?     @relation(fields: [jobContextId], references: [id])
+  candidateName    String          @map("candidate_name")
+  candidateEmail   String          @map("candidate_email")
+  /// Snapshot, so editing the job context later cannot rewrite what the
+  /// candidate was invited for.
+  targetRole       String?         @map("target_role")
+  tokenHash        String          @unique @map("token_hash")
+  sessionDepth     Int?            @map("session_depth")
+  status           String          @default("PENDING") // PENDING | OPENED | STARTED | COMPLETED | EXPIRED | REVOKED
+  expiresAt        DateTime        @map("expires_at")
+  openedAt         DateTime?       @map("opened_at")
+  consumedAt       DateTime?       @map("consumed_at")
+  revokedAt        DateTime?       @map("revoked_at")
+  createdByAdminId String?         @map("created_by_admin_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  sessionId String?            @unique @map("session_id")
+  session   AssessmentSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([clientAccountId, status])
+  @@index([candidateEmail])
+  @@map("assessment_invites")
+}
+
+/// Server-side sessions, so logging out and expiring a token actually revoke
+/// access instead of relying on the browser dropping a cookie.
+model AuthSession {
+  id              String    @id @default(uuid())
+  tokenHash       String    @unique @map("token_hash")
+  subjectType     String    @map("subject_type") // MASTER | CLIENT | INVITE | PRACTICE
+  adminId         String?   @map("admin_id")
+  clientAccountId String?   @map("client_account_id")
+  inviteId        String?   @map("invite_id")
+  issuedAt        DateTime  @default(now()) @map("issued_at")
+  expiresAt       DateTime  @map("expires_at")
+  lastSeenAt      DateTime  @default(now()) @map("last_seen_at")
+  revokedAt       DateTime? @map("revoked_at")
+  ip              String?
+  userAgent       String?   @map("user_agent")
+
+  @@index([expiresAt])
+  @@index([adminId])
+  @@map("auth_sessions")
+}
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  clientAccountId String?  @map("client_account_id")
+  actorType       String   @map("actor_type") // MASTER | CLIENT | CANDIDATE | SYSTEM
+  actorId         String?  @map("actor_id")
+  actorEmail      String?  @map("actor_email")
+  action          String
+  targetType      String?  @map("target_type")
+  targetId        String?  @map("target_id")
+  ip              String?
+  userAgent       String?  @map("user_agent")
+  meta            Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([clientAccountId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+/// Brute-force defence for the company-key gateway. A table rather than Redis,
+/// because there is no Redis in this stack.
+model RateLimitBucket {
+  id          String   @id @default(uuid())
+  bucketKey   String   @map("bucket_key")
+  windowStart DateTime @map("window_start")
+  count       Int      @default(0)
+
+  @@unique([bucketKey, windowStart])
+  @@index([windowStart])
+  @@map("rate_limit_buckets")
+}
+
+// ---------------------------------------------------------------------------
+// Uploads, AI and the talent registries
+// ---------------------------------------------------------------------------
+
+model ResumeDocument {
+  id              String             @id @default(uuid())
+  clientAccountId String?            @map("client_account_id")
+  userId          String?            @map("user_id")
+  user            User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId       String?            @unique @map("session_id")
+  session         AssessmentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  storageProvider String             @default("VERCEL_BLOB") @map("storage_provider")
+  blobUrl         String             @map("blob_url")
+  pathname        String
+  fileName        String             @map("file_name")
+  contentType     String             @map("content_type")
+  byteSize        Int                @map("byte_size")
+  parsedText      String?            @map("parsed_text")
+  parseStatus     String             @default("PENDING") @map("parse_status") // PENDING | OK | FAILED | SKIPPED
+  parseError      String?            @map("parse_error")
+  parsedAt        DateTime?          @map("parsed_at")
+  uploadedAt      DateTime           @default(now()) @map("uploaded_at")
+
+  @@index([clientAccountId])
+  @@map("resume_documents")
+}
+
+/// One row per configured engine. Provider, model and key are all editable
+/// from Master Admin, so switching engines needs no redeploy.
+model AiProviderConfig {
+  id            String    @id @default(uuid())
+  key           String    @unique
+  label         String
+  providerType  String    @map("provider_type") // ANTHROPIC | OPENAI_COMPATIBLE
+  model         String
+  baseUrl       String?   @map("base_url")
+  apiKeyEnvVar  String?   @map("api_key_env_var")
+  /// AES-256-GCM, never returned to a browser.
+  apiKeyCipher  String?   @map("api_key_cipher")
+  apiKeyLast4   String?   @map("api_key_last4")
+  maxTokens     Int       @default(1024) @map("max_tokens")
+  temperature   Float?
+  extraHeaders  Json?     @map("extra_headers")
+  isEnabled     Boolean   @default(true) @map("is_enabled")
+  lastTestedAt  DateTime? @map("last_tested_at")
+  lastTestError String?   @map("last_test_error")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  evaluations AiEvaluation[]
+
+  @@map("ai_provider_configs")
+}
+
+/// Evaluation history, rather than overwriting a single JSON blob each run.
+model AiEvaluation {
+  id           String            @id @default(uuid())
+  sessionId    String            @map("session_id")
+  session      AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  providerKey  String            @map("provider_key")
+  providerId   String?           @map("provider_id")
+  provider     AiProviderConfig? @relation(fields: [providerId], references: [id])
+  model        String
+  tier         String?
+  rationale    String?
+  promptHash   String?           @map("prompt_hash")
+  inputTokens  Int?              @map("input_tokens")
+  outputTokens Int?              @map("output_tokens")
+  latencyMs    Int?              @map("latency_ms")
+  error        String?
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  @@index([sessionId, createdAt])
+  @@map("ai_evaluations")
+}
+
+/// Sandbox opt-ins and platform-wide candidates, visible only in Master Admin.
+model TalentRegistryEntry {
+  id             String            @id @default(uuid())
+  source         String            @default("SANDBOX") // SANDBOX | LIVE
+  sessionId      String            @unique @map("session_id")
+  session        AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name           String?
+  email          String?
+  jobContextText String?           @map("job_context_text")
+  resumeText     String?           @map("resume_text")
+  decisionScore  Float?            @map("decision_score")
+  percentile     Float?
+  /// Top 10% of the registry. Stays false until the cohort is large enough to
+  /// mean anything - see the 30 entry floor in the ranking job.
+  isHighSignal   Boolean           @default(false) @map("is_high_signal")
+  rankedAt       DateTime?         @map("ranked_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  @@index([source, isHighSignal])
+  @@map("talent_registry_entries")
+}
+
+/// Cached archetype synthesis. The model supplies the historical knowledge, so
+/// there is no archetype table - only the query, the payload and what produced it.
+model ArchetypeSynthesis {
+  id          String            @id @default(uuid())
+  sessionId   String            @map("session_id")
+  session     AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  query       String
+  queryHash   String            @map("query_hash")
+  payload     Json
+  providerKey String            @map("provider_key")
+  model       String
+  latencyMs   Int?              @map("latency_ms")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@unique([sessionId, queryHash, model])
+  @@map("archetype_syntheses")
+}
+
+model EmailLog {
+  id                String    @id @default(uuid())
+  clientAccountId   String?   @map("client_account_id")
+  template          String
+  toAddress         String    @map("to_address")
+  subject           String
+  status            String    @default("QUEUED") // QUEUED | SENT | FAILED
+  attempts          Int       @default(0)
+  lastError         String?   @map("last_error")
+  providerMessageId String?   @map("provider_message_id")
+  payload           Json?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  sentAt            DateTime? @map("sent_at")
+
+  @@index([status, createdAt])
+  @@map("email_logs")
 }
