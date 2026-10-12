@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { resolveBrandName, resolveSupportEmail } from '@/lib/constants/brand';
 
 /**
  * The fields that are safe to hand to an unauthenticated caller.
@@ -19,8 +20,8 @@ export type PublicSettings = {
 export async function getPublicSettings(): Promise<PublicSettings> {
   const settings = await getGlobalSettings();
   return {
-    platformName: settings.platformName,
-    supportEmail: settings.supportEmail,
+    platformName: resolveBrandName(settings.platformName),
+    supportEmail: resolveSupportEmail(settings.supportEmail),
     logoUrl: settings.logoUrl ?? null,
     defaultBackdropUrl: settings.defaultBackdropUrl ?? null,
     biometricMode: settings.biometricMode,
@@ -35,7 +36,7 @@ export async function getGlobalSettings() {
       settings = await prisma.platformSettings.create({
         data: {
           platformName: 'Compass',
-          supportEmail: 'support@compass.com',
+          supportEmail: 'support@continentalworks.com',
           biometricMode: 'optional',
           antiCheat: true,
           blindUiMode: true,
@@ -49,7 +50,7 @@ export async function getGlobalSettings() {
     return {
       id: 'fallback-settings',
       platformName: 'Compass',
-      supportEmail: 'support@compass.com',
+      supportEmail: 'support@continentalworks.com',
       biometricMode: 'optional',
       antiCheat: true,
       blindUiMode: true,

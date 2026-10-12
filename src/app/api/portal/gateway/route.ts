@@ -4,6 +4,7 @@ import { parseAccessKey, verifyAccessKeySecret } from '@/lib/access-key';
 import { createClientSession, CLIENT_COOKIE, CLIENT_SESSION_MAX_AGE } from '@/lib/portal-auth';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
 import { getGlobalSettings } from '@/lib/settings';
+import { resolveSupportEmail } from '@/lib/constants/brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     const { accessKey } = await req.json();
     const settings = await getGlobalSettings();
-    const support = settings.supportEmail || 'support@continentalworks.com';
+    const support = resolveSupportEmail(settings.supportEmail);
     const denied = NextResponse.json(
       { error: `Invalid access key. Contact ${support} to acquire enterprise access.` },
       { status: 401 }
