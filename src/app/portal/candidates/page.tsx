@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../PortalShell';
+import InviteGenerator from './InviteGenerator';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -48,20 +49,52 @@ export default async function PortalCandidatesPage() {
 
   const completed = sessions.filter((s) => s.status === 'COMPLETED').length;
 
+  // Everything the generator offers is scoped to this account: its own saved
+  // roles, and the package resolved by the Module B order - this account's
+  // override first, then the global client default.
+  const [account, settings, savedContexts, packages] = await Promise.all([
+    prisma.clientAccount.findUnique({
+      where: { id: session.clientAccountId },
+      select: { assignedPackageId: true },
+    }),
+    prisma.platformSettings.findFirst({ select: { defaultClientPackageId: true } }),
+    prisma.jobContext.findMany({
+      where: { clientAccountId: session.clientAccountId, isArchived: false },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, title: true },
+      take: 50,
+    }),
+    prisma.scenarioPackage.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  const defaultPackageId =
+    account?.assignedPackageId ?? settings?.defaultClientPackageId ?? packages[0]?.id ?? null;
+
   return (
     <PortalShell company={session.account.name}>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-900">Candidate Ledger</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          {sessions.length} assessment{sessions.length === 1 ? '' : 's'} · {completed} completed
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Candidate Ledger</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            {sessions.length} assessment{sessions.length === 1 ? '' : 's'} · {completed} completed
+          </p>
+        </div>
+        <InviteGenerator
+          packages={packages}
+          savedContexts={savedContexts}
+          defaultPackageId={defaultPackageId}
+        />
       </div>
 
       {sessions.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl p-10 text-center">
           <p className="text-slate-900 font-medium">No candidates yet</p>
           <p className="text-sm text-slate-500 mt-1">
-            Assessments appear here as soon as a candidate opens their invite link.
+            Generate an assessment link to invite your first candidate.
           </p>
         </div>
       ) : (
