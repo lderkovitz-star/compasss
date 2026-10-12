@@ -12,6 +12,9 @@ const PAGE_TITLES: Record<string, { title: string; desc: string }> = {
   '/admin/settings': { title: 'System Settings', desc: 'Configure platform behavior and integrations' },
   '/admin/admins': { title: 'Admins & Team', desc: 'Manage administrator accounts and roles' },
   '/admin/profile': { title: 'My Profile', desc: 'Update your account information' },
+  '/admin/clients': { title: 'Client Accounts', desc: 'Employer workspaces, access keys and package assignment' },
+  '/admin/candidates': { title: 'Candidates', desc: 'Candidate records and assessment history' },
+  '/admin/coordinator': { title: 'Coordinator View', desc: 'Trait scores, human overrides and AI tiering' },
 };
 
 interface AdminHeaderProps {
