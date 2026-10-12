@@ -7,8 +7,8 @@
 export const BRAND_NAME = 'Compass';
 export const BRAND_TAGLINE = 'Executive Simulation & Behavioral Assessment Platform';
 export const BRAND_SHORT = 'Compass';
-export const SUPPORT_EMAIL = 'support@compass.com';
-export const ADMIN_EMAIL_DEFAULT = 'admin@compass.com';
+export const SUPPORT_EMAIL = 'support@continentalworks.com';
+export const ADMIN_EMAIL_DEFAULT = 'admin@continentalworks.com';
 export const BRAND_COPYRIGHT = `© ${new Date().getFullYear()} Compass`;
 
 
@@ -23,4 +23,12 @@ export function resolveBrandName(platformName?: string | null): string {
   const name = platformName?.trim();
   if (!name || LEGACY_BRAND_NAMES.includes(name.toLowerCase())) return BRAND_NAME;
   return name;
+}
+
+const LEGACY_SUPPORT_EMAILS = ['support@cognitiveedge.com', 'support@compass.com'];
+
+export function resolveSupportEmail(supportEmail?: string | null): string {
+  const email = supportEmail?.trim();
+  if (!email || LEGACY_SUPPORT_EMAILS.includes(email.toLowerCase())) return SUPPORT_EMAIL;
+  return email;
 }
