@@ -239,7 +239,7 @@ model Admin {
 model PlatformSettings {
   id                      String   @id @default(uuid())
   platformName            String   @default("Compass") @map("platform_name")
-  supportEmail            String   @default("support@compass.com") @map("support_email")
+  supportEmail            String   @default("support@continentalworks.com") @map("support_email")
   biometricMode           String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
   antiCheat               Boolean  @default(true) @map("anti_cheat")
   blindUiMode             Boolean  @default(true) @map("blind_ui_mode")
