@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StealthEntry from "./StealthEntry";
 import { getGlobalSettings } from "@/lib/settings";
 import { resolveBrandName } from "@/lib/constants/brand";
 import { Fraunces, IBM_Plex_Mono } from 'next/font/google';
@@ -226,7 +227,7 @@ export default async function Home() {
       {/* FOOTER */}
       <footer className="border-t border-white/10 py-6 sm:py-7">
         <div className="max-w-[1180px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs sm:text-[12.5px] text-[#5B6580] text-center sm:text-left">
-          <span>© 2026 {resolveBrandName(settings.platformName)}</span>
+          <StealthEntry label={`© 2026 ${resolveBrandName(settings.platformName)}`} />
           <span className={plexMono.className}>v2.0 — executive platform</span>
         </div>
       </footer>

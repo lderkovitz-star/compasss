@@ -41,7 +41,7 @@ export default function AdminSidebar({
   async function handleLogout() {
     setLoggingOut(true);
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin-login');
+    router.push('/master-admin');
     router.refresh();
   }
 

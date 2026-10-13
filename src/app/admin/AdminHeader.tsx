@@ -52,7 +52,7 @@ export default function AdminHeader({ adminEmail, adminName, adminRole, adminIma
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin-login');
+    router.push('/master-admin');
     router.refresh();
   }
 
