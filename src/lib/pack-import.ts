@@ -672,6 +672,9 @@ export async function previewPack(
 export class PackConflictError extends Error {
   constructor(message: string) {
     super(message);
+    // See the note on ProviderError: subclassing Error loses instanceof under
+    // an ES5 target, and the route maps this class to a 409.
+    Object.setPrototypeOf(this, PackConflictError.prototype);
     this.name = 'PackConflictError';
   }
 }

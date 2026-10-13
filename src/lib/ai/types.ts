@@ -39,6 +39,9 @@ export class ProviderError extends Error {
 
   constructor(message: string, options: { status?: number | null; retryable?: boolean } = {}) {
     super(message);
+    // Restores instanceof, which subclassing a built-in loses when this is
+    // compiled down to ES5 - and the retry decision below depends on it.
+    Object.setPrototypeOf(this, ProviderError.prototype);
     this.name = 'ProviderError';
     this.status = options.status ?? null;
     this.retryable = options.retryable ?? false;
