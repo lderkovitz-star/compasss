@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import PackageSwitcher from "./PackageSwitcher";
+import AssignmentMatrix from "./AssignmentMatrix";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 
@@ -11,8 +12,21 @@ async function getPackages() {
   });
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function PackagesPage() {
-  const packages = await getPackages();
+  const [packages, settings, accountCount, overrideCount] = await Promise.all([
+    getPackages(),
+    prisma.platformSettings.findFirst({
+      select: {
+        sandboxPackageId: true,
+        defaultClientPackageId: true,
+        defaultSessionDepth: true,
+      },
+    }),
+    prisma.clientAccount.count({ where: { deletedAt: null } }),
+    prisma.clientAccount.count({ where: { deletedAt: null, assignedPackageId: { not: null } } }),
+  ]);
 
   return (
     <>
@@ -26,16 +40,19 @@ export default async function PackagesPage() {
             View Trash
           </Link>
         </div>
-        {/* Info Banner */}
-        <div className="alert-info flex items-start gap-3 mb-6">
-          <svg className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <div>
-            <p className="text-sm font-semibold text-blue-900">Zero-Downtime Package Switching</p>
-            <p className="text-xs text-blue-700 mt-0.5">Only one package can be active at a time. Existing in-progress sessions are not affected by switching.</p>
-          </div>
-        </div>
+        <AssignmentMatrix
+          packages={packages.map((p) => ({
+            id: p.id,
+            name: p.name,
+            code: p.code,
+            scenarioCount: p._count.scenarios,
+          }))}
+          sandboxPackageId={settings?.sandboxPackageId ?? null}
+          defaultClientPackageId={settings?.defaultClientPackageId ?? null}
+          defaultSessionDepth={settings?.defaultSessionDepth ?? null}
+          accountCount={accountCount}
+          overrideCount={overrideCount}
+        />
 
         {/* Packages Grid */}
         <PackageSwitcher
