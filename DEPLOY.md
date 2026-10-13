@@ -116,9 +116,9 @@ route list that starts with:
 ┌ ƒ /
 ```
 
-## Step 6 — Sign in to the admin panel
+## Step 6 — Sign in to the master console
 
-1. Go to `https://<your-domain>/admin-login`.
+1. Go to `https://<your-domain>/master-admin`.
 2. Sign in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` from Step 4.
 
 Your account is created as a **Super Admin** the first time you sign in. From
@@ -127,27 +127,76 @@ password under **Profile**.
 
 The starter content includes:
 
-- the **Cabin in the Woods: Survival Protocol** assessment (active, so
-  candidates can start right away),
-- a second package, **Corporate Crisis**, which is inactive, and
+- the **Cabin in the Woods: Survival Protocol** assessment, five scenarios,
+- a second package, **Corporate Crisis**, with no scenarios in it yet, and
 - one sample candidate, **Alex Mercer**, so the reports have something to
   show. You can delete this candidate from **Candidates** whenever you like.
+
+Your own 50-scenario **Cabin in the Woods** pack is included separately and
+can be imported from **Scenarios → Import**.
 
 ## Your site's pages
 
 Opening your domain shows the **public side** for candidates, not the admin
 panel.
 
-| Address | What it shows |
+| Address | Who it is for |
 |---|---|
-| `https://<your-domain>/` | The public homepage, with a **Begin assessment** button |
-| `https://<your-domain>/intake` | The candidate sign-up form — the homepage button leads here |
-| `https://<your-domain>/admin-login` | The admin sign-in page |
-| `https://<your-domain>/admin` | The admin panel — sends you to sign-in first if you aren't signed in |
+| `https://<your-domain>/` | The public homepage |
+| `https://<your-domain>/practice` | Anyone who wants a practice run. No employer sees these |
+| `https://<your-domain>/intake` | The open candidate form |
+| `https://<your-domain>/assess?token=…` | An invited candidate. The link comes from an employer |
+| `https://<your-domain>/portal` | Employers — their own candidates and nobody else's |
+| `https://<your-domain>/master-admin` | You. Not linked from anywhere a candidate or employer looks |
 
-The homepage has no link to the admin panel, so candidates never see it. To
-reach it, type `/admin` or `/admin-login` after your domain. Every admin page
-and admin action requires signing in.
+The homepage links to the practice run and the employer sign-in, and to
+nothing of yours. The master console opens from `/master-admin`, or by
+clicking the copyright line in the footer five times, or with Ctrl+Shift+M.
+
+That path is kept quiet for tidiness, not for safety: the console is
+protected by its sign-in, and would be equally protected if the address were
+printed on the homepage.
+
+## After you deploy — three things to set
+
+Nothing below breaks the site if you skip it, but the platform does less
+until it is done.
+
+**1. Choose which assessment runs where.** Master console → **Scenario
+Packages**. Three separate slots: the public practice run, the default for new
+employer accounts, and an override on any single account. Assigning one never
+changes another, and a link already sent to a candidate keeps the assessment
+it was issued with.
+
+**2. Add an AI provider key.** Master console → **Settings** → provider panel.
+Pick Anthropic, OpenAI, or any OpenAI-compatible endpoint, paste the key, type
+the model id, and press **Test connection** — that makes one cheap call and
+tells you straight away if the key or model id is wrong. Without a key, the
+assessment and reports work normally; only the written evaluation is missing.
+
+**3. Verify your sending domain.** Until DNS records for
+`continentalworks.com` are in place, no email is sent — invitations and
+report-ready notices are written and held, viewable under **Settings →
+Outbound Email**. Mail from an unverified domain is filtered as spam, which is
+worse than not sending it. Meanwhile employers copy the invitation link from
+the portal, and see an in-app notification when a report is ready.
+
+## Uploading your own assessment
+
+Master console → **Scenarios** → **Import**. Drop in a `.json` or `.csv` and
+the uploader tells you what it found — how many scenarios and options, the
+weight scale, which dimensions already exist and which would be created, and
+any row it could not read — before anything is saved.
+
+The format, with a downloadable template for each, is in
+[docs/scenario-pack-format.md](docs/scenario-pack-format.md).
+
+One thing worth knowing when you author a pack: a dimension is only as
+reliable as the number of scenarios that can move it. If a dimension is scored
+in just one scenario, a candidate's result on it is a single choice — they
+score 0 or 100 and nothing between. Reports show that count and leave thinly
+covered dimensions out of the headline figure, so it is visible rather than
+misleading.
 
 ---
 

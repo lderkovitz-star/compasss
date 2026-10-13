@@ -12,7 +12,10 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:seed-admin": "ts-node prisma/seed-admin.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate deploy",
+    "db:backfill": "ts-node prisma/backfill/001-legacy-tenant.ts",
+    "db:rank-registries": "ts-node --compiler-options {\"module\":\"commonjs\"} scripts/rank-registries.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
