@@ -53,9 +53,27 @@ export async function backfillLegacyTenant(prisma: PrismaClient): Promise<void> 
     }
   }
 
+  // Say so either way. Running this and seeing nothing leaves you unsure
+  // whether it did its job or failed to find the database.
   if (candidates || sessions) {
     console.log(
       `Backfill: assigned ${candidates} candidate(s) and ${sessions} session(s) to ${account.name}.`
     );
+  } else {
+    console.log(`Backfill: nothing to assign - every row already belongs to a tenant.`);
   }
+}
+
+// Also runnable on its own, which is how it is used when migrating an
+// existing database by hand: `npm run db:backfill`. Guarded, so importing
+// this from prepare-db.ts does not run it a second time.
+if (require.main === module) {
+  const prisma = new PrismaClient();
+  backfillLegacyTenant(prisma)
+    .then(() => prisma.$disconnect())
+    .catch(async (error) => {
+      console.error(error);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
 }
