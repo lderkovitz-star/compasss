@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-// Vercel rejects request bodies over 4.5 MB before they ever reach this
-// handler, and the browser reports that as "Failed to fetch". Stay under it.
-const MAX_RESUME_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,30 +10,21 @@ export async function POST(req: NextRequest) {
     let email = '';
     let targetRole: string | null = null;
     let hobbiesSkills: string | null = null;
-    let resumeFile: File | null = null;
 
-    const contentType = req.headers.get('content-type') || '';
-
-    if (contentType.includes('application/json')) {
-      const body = await req.json();
-      name = body.name?.trim() || '';
-      email = body.email?.trim() || '';
-      targetRole = body.targetRole ? String(body.targetRole).trim() : null;
-      hobbiesSkills =
-        body.hobbiesSkills !== undefined && body.hobbiesSkills !== null ? String(body.hobbiesSkills) : null;
-    } else {
-      const formData = await req.formData();
-      name = (formData.get('name') as string)?.trim() || '';
-      email = (formData.get('email') as string)?.trim() || '';
-      const rawTargetRole = formData.get('targetRole') as string | null;
-      targetRole = rawTargetRole ? rawTargetRole.trim() : null;
-      const rawHobbies = formData.get('hobbiesSkills') as string | null;
-      hobbiesSkills = rawHobbies !== null && rawHobbies !== undefined ? rawHobbies : null;
-      const rawResume = formData.get('resume');
-      if (rawResume && typeof rawResume === 'object' && 'arrayBuffer' in rawResume) {
-        resumeFile = rawResume as File;
-      }
+    // The resume is uploaded straight to storage by the browser and registered
+    // through /api/uploads/confirm, so only its id arrives here. Nothing large
+    // passes through this handler, which is what the 4.5 MB body limit used to
+    // break - and it broke with a bare "Failed to fetch".
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Expected a JSON body.' }, { status: 400 });
     }
+    name = typeof body.name === 'string' ? body.name.trim() : '';
+    email = typeof body.email === 'string' ? body.email.trim() : '';
+    targetRole = typeof body.targetRole === 'string' ? body.targetRole.trim() : null;
+    hobbiesSkills = typeof body.hobbiesSkills === 'string' ? body.hobbiesSkills : null;
+    const resumeDocumentId =
+      typeof body.resumeDocumentId === 'string' ? body.resumeDocumentId : null;
 
     // Validate required fields (target role is no longer collected)
     if (!name || !email) {
@@ -50,41 +36,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
     }
 
+    // Attach the document the candidate uploaded, if any. Its text was
+    // extracted when it was registered, so it is ready for the evaluation.
     let resumeFileUrl: string | null = null;
     let resumeUploadedAt: Date | null = null;
+    let resumeText: string | null = null;
 
-    if (resumeFile && resumeFile.size > 0) {
-      const validTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      ];
-      const fileNameLower = (resumeFile.name || '').toLowerCase();
-      const isAllowedExt = fileNameLower.endsWith('.pdf') || fileNameLower.endsWith('.docx');
-
-      if (!validTypes.includes(resumeFile.type) && !isAllowedExt) {
-        return NextResponse.json({ error: 'Resume must be a PDF or DOCX file.' }, { status: 400 });
-      }
-
-      if (resumeFile.size > MAX_RESUME_BYTES) {
-        return NextResponse.json({ error: 'Resume must be under 4MB.' }, { status: 400 });
-      }
-
-      // Stored in Vercel Blob: the filesystem on Vercel is read-only, so
-      // writing into public/ would throw and lose the file.
-      try {
-        const ext = resumeFile.name.split('.').pop() || 'pdf';
-        const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase() || 'candidate';
-        const blob = await put(`resumes/${Date.now()}-${sanitizedName}.${ext}`, resumeFile, {
-          access: 'public',
-          addRandomSuffix: true,
-        });
-
-        resumeFileUrl = blob.url;
-        resumeUploadedAt = new Date();
-      } catch (fileErr) {
-        // Never block the candidate over an optional attachment. Both fields
-        // stay null so the admin panel does not claim a resume that is absent.
-        console.error('[intake] resume upload failed:', fileErr);
+    if (resumeDocumentId) {
+      const document = await prisma.resumeDocument.findFirst({
+        where: { id: resumeDocumentId, clientAccountId: null },
+        select: { blobUrl: true, parsedText: true, uploadedAt: true },
+      });
+      if (document) {
+        resumeFileUrl = document.blobUrl;
+        resumeUploadedAt = document.uploadedAt;
+        resumeText = document.parsedText;
       }
     }
 
@@ -99,6 +65,7 @@ export async function POST(req: NextRequest) {
           hobbiesSkills: hobbiesSkills || null,
           resumeFileUrl,
           resumeUploadedAt,
+          resumeText,
         },
       });
     } else {
@@ -108,13 +75,21 @@ export async function POST(req: NextRequest) {
           name,
           ...(targetRole !== null ? { targetRole } : {}),
           hobbiesSkills: hobbiesSkills || null,
-          ...(resumeFileUrl ? { resumeFileUrl, resumeUploadedAt } : {}),
+          ...(resumeFileUrl ? { resumeFileUrl, resumeUploadedAt, resumeText } : {}),
         },
       });
     }
 
-    // Get active assessment package
-    const activePackage = await prisma.scenarioPackage.findFirst({ where: { isActive: true } });
+    // Which pack this open sitting runs. Resolved through the assignment slots
+    // rather than the retired isActive flag, which one switch used to control
+    // for every candidate at once.
+    const settings = await prisma.platformSettings.findFirst({
+      select: { sandboxPackageId: true, defaultClientPackageId: true, defaultSessionDepth: true },
+    });
+    const preferredId = settings?.sandboxPackageId ?? settings?.defaultClientPackageId ?? null;
+    const activePackage = preferredId
+      ? await prisma.scenarioPackage.findFirst({ where: { id: preferredId, deletedAt: null } })
+      : await prisma.scenarioPackage.findFirst({ where: { isActive: true, deletedAt: null } });
     if (!activePackage) {
       return NextResponse.json(
         { error: 'No active assessment package configured. Please contact platform support.' },
@@ -129,8 +104,18 @@ export async function POST(req: NextRequest) {
         packageId: activePackage.id,
         status: 'IN_PROGRESS',
         currentScenarioIdx: 0,
+        sessionDepth: settings?.defaultSessionDepth ?? null,
       },
+      select: { id: true },
     });
+
+    // Tie the uploaded document to this sitting so the evaluation can find it.
+    if (resumeDocumentId && resumeFileUrl) {
+      await prisma.resumeDocument.update({
+        where: { id: resumeDocumentId },
+        data: { sessionId: session.id, userId: user.id },
+      });
+    }
 
     return NextResponse.json({ sessionId: session.id, userId: user.id }, { status: 201 });
   } catch (err: unknown) {

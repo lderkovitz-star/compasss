@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { uploadResume, RESUME_MAX_BYTES } from '@/lib/upload-resume';
 
 interface FormState {
   name: string;
@@ -24,6 +25,8 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [stage, setStage] = useState('');
 
   const displayBrand = platformName || 'Compass';
 
@@ -37,10 +40,8 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
       setError('Please upload a PDF or DOCX file.');
       return;
     }
-    // Vercel rejects request bodies over 4.5 MB before they reach the server,
-    // which the browser reports as "Failed to fetch".
-    if (f.size > 4 * 1024 * 1024) {
-      setError('File must be under 4MB.');
+    if (f.size > RESUME_MAX_BYTES) {
+      setError(`That file is ${(f.size / 1024 / 1024).toFixed(1)} MB. The limit is 25 MB.`);
       return;
     }
     setFile(f);
@@ -71,19 +72,26 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const fd = new FormData();
-      fd.append('name', trimmedName);
-      fd.append('email', trimmedEmail);
-      if (form.hobbiesSkills) {
-        fd.append('hobbiesSkills', form.hobbiesSkills);
-      }
+      // The resume goes straight to storage from the browser, so this request
+      // carries only its id and stays well under any body limit.
+      let resumeDocumentId: string | undefined;
       if (file) {
-        fd.append('resume', file);
+        setStage('Uploading your resume…');
+        const uploaded = await uploadResume(file, { prefix: 'intake/resumes' });
+        resumeDocumentId = uploaded.documentId;
+        if (uploaded.message) setNotice(uploaded.message);
       }
 
+      setStage('Setting up your assessment…');
       const res = await fetch('/api/intake', {
         method: 'POST',
-        body: fd,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          hobbiesSkills: form.hobbiesSkills || null,
+          resumeDocumentId,
+        }),
         signal: controller.signal,
       });
 
@@ -174,6 +182,12 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <span className="font-medium">{error}</span>
+            </div>
+          )}
+
+          {notice && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4 text-xs sm:text-[14px] text-amber-300 backdrop-blur-md">
+              <span className="font-medium">{notice}</span>
             </div>
           )}
 
@@ -298,7 +312,7 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
-                  Initializing simulation…
+                  {stage || 'Initializing simulation…'}
                 </>
               ) : (
                 <>
