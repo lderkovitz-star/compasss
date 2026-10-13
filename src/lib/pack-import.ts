@@ -663,6 +663,19 @@ export async function previewPack(
   };
 }
 
+/**
+ * A pack that cannot be written because of what is already stored - an
+ * existing package code, or an option that has been answered. The caller's
+ * file is the thing to change, so this is reported as a conflict rather than
+ * a server fault.
+ */
+export class PackConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PackConflictError';
+  }
+}
+
 const CHUNK = 500;
 
 async function createInChunks<T>(
@@ -746,7 +759,7 @@ export async function writePack(
 
       if (found) {
         if (!opts.replaceExisting) {
-          throw new Error(
+          throw new PackConflictError(
             `Package code "${pack.package.code}" already exists. Choose a different code, or confirm replacing its contents.`
           );
         }
@@ -780,6 +793,7 @@ export async function writePack(
         select: {
           id: true,
           externalRef: true,
+          sequenceOrder: true,
           deletedAt: true,
           options: {
             select: { id: true, optionCode: true, _count: { select: { responses: true } } },
@@ -787,8 +801,22 @@ export async function writePack(
         },
       });
 
+      // Identity for "the same scenario, edited". externalRef is the explicit
+      // one; failing that, position in the pack, which the format requires to
+      // be unique. Without the fallback, re-uploading a corrected CSV would
+      // retire every scenario and insert fresh copies, which is correct but
+      // loses the link from finished reports to the scenario they were about.
       const byRef = new Map<string, (typeof current)[number]>();
-      for (const sc of current) if (sc.externalRef) byRef.set(sc.externalRef, sc);
+      const bySequence = new Map<number, (typeof current)[number]>();
+      for (const sc of current) {
+        if (sc.externalRef) byRef.set(sc.externalRef, sc);
+      }
+      // Position only identifies a scenario that is still live; matching a
+      // retired one would resurrect it and retire the current copy in its place.
+      for (const sc of current) {
+        if (sc.deletedAt) continue;
+        if (!bySequence.has(sc.sequenceOrder)) bySequence.set(sc.sequenceOrder, sc);
+      }
 
       const matched = new Set<string>();
       let scenariosUpdated = 0;
@@ -823,7 +851,13 @@ export async function writePack(
       };
 
       for (const incoming of pack.scenarios) {
-        const existing = incoming.externalRef ? byRef.get(incoming.externalRef) : undefined;
+        let existing = incoming.externalRef ? byRef.get(incoming.externalRef) : undefined;
+        if (!existing) {
+          const bySeq = bySequence.get(incoming.sequenceOrder);
+          // Only when that position is not already claimed by an explicit
+          // reference, and not already matched by an earlier scenario.
+          if (bySeq && !bySeq.externalRef && !matched.has(bySeq.id)) existing = bySeq;
+        }
 
         if (!existing) {
           const scenarioId = crypto.randomUUID();
@@ -859,6 +893,7 @@ export async function writePack(
           where: { id: existing.id },
           data: {
             sequenceOrder: incoming.sequenceOrder,
+            externalRef: incoming.externalRef,
             title: incoming.title,
             narrativeText: incoming.narrativeText,
             decisionPoint: incoming.decisionPoint,
@@ -899,8 +934,8 @@ export async function writePack(
         for (const old of existing.options) {
           if (incomingCodes.has(old.optionCode)) continue;
           if (old._count.responses > 0) {
-            throw new Error(
-              `Scenario "${incoming.externalRef}" option ${old.optionCode} has ${old._count.responses} recorded response(s), so it cannot be removed by re-import. Keep the option, or publish this as a new package code.`
+            throw new PackConflictError(
+              `Scenario ${incoming.sequenceOrder}${incoming.externalRef ? ` ("${incoming.externalRef}")` : ''} option ${old.optionCode} has ${old._count.responses} recorded response${old._count.responses === 1 ? '' : 's'}, so removing it would delete those answers. Keep the option, or publish this revision under a new package code.`
             );
           }
           await tx.scenarioOption.delete({ where: { id: old.id } });
