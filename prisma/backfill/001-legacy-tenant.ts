@@ -23,15 +23,14 @@ export async function backfillLegacyTenant(prisma: PrismaClient): Promise<void> 
   // Candidates and their sessions. `kind` already defaults to OFFICIAL, and
   // practice runs are created with clientAccountId left null, so filtering on
   // null here cannot capture anything that should have stayed unowned.
+  //
+  // Raw SQL on purpose. This has to run before the migration that makes
+  // users.client_account_id NOT NULL, and once that migration has been
+  // generated the typed client no longer admits `clientAccountId: null` as a
+  // filter - it describes the shape after the change, not before it.
   const [candidates, sessions] = await Promise.all([
-    prisma.user.updateMany({
-      where: { clientAccountId: null },
-      data: { clientAccountId: account.id },
-    }),
-    prisma.assessmentSession.updateMany({
-      where: { clientAccountId: null, kind: 'OFFICIAL' },
-      data: { clientAccountId: account.id },
-    }),
+    prisma.$executeRaw`UPDATE users SET client_account_id = ${account.id} WHERE client_account_id IS NULL`,
+    prisma.$executeRaw`UPDATE assessment_sessions SET client_account_id = ${account.id} WHERE client_account_id IS NULL AND kind = 'OFFICIAL'`,
   ]);
 
   // Module B replaces the single global isActive flag with three independent
@@ -54,9 +53,9 @@ export async function backfillLegacyTenant(prisma: PrismaClient): Promise<void> 
     }
   }
 
-  if (candidates.count || sessions.count) {
+  if (candidates || sessions) {
     console.log(
-      `Backfill: assigned ${candidates.count} candidate(s) and ${sessions.count} session(s) to ${account.name}.`
+      `Backfill: assigned ${candidates} candidate(s) and ${sessions} session(s) to ${account.name}.`
     );
   }
 }

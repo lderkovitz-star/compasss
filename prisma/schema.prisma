@@ -9,20 +9,22 @@ generator client {
 
 model User {
   id               String              @id @default(uuid())
-  email            String              @unique
+  email            String
   name             String
   targetRole       String?             @map("target_role")
   hobbiesSkills    String?             @map("hobbies_skills")
   resumeFileUrl    String?             @map("resume_file_url")
   resumeUploadedAt DateTime?           @map("resume_uploaded_at")
   resumeText       String?             @map("resume_text")
-  // Nullable in this migration; made required once every row is backfilled.
-  clientAccountId  String?             @map("client_account_id")
-  clientAccount    ClientAccount?      @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  // Required: a candidate row with no owning tenant is a row no employer
+  // query would exclude. Open intake writes into the legacy tenant.
+  clientAccountId  String              @map("client_account_id")
+  clientAccount    ClientAccount       @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
   createdAt        DateTime            @default(now()) @map("created_at")
   sessions         AssessmentSession[]
   resumeDocuments  ResumeDocument[]
 
+  @@unique([clientAccountId, email])
   @@index([clientAccountId, createdAt])
   @@map("users")
 }
@@ -108,8 +110,10 @@ model OptionScore {
 
 model AssessmentSession {
   id                 String               @id @default(uuid())
-  userId             String               @map("user_id")
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Null for practice runs, which have no candidate record at all - there is
+  // nobody to create an account for, and nothing to keep afterwards.
+  userId             String?              @map("user_id")
+  user               User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   packageId          String               @map("package_id")
   package            ScenarioPackage      @relation(fields: [packageId], references: [id], onDelete: Cascade)
   status             String               @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED

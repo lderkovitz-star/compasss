@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { computeAndStoreScoreSnapshot, computeFinalScores, DecisionEvent } from '@/lib/scoring';
 import { getGlobalSettings } from '@/lib/settings';
+import { recordRegistryEntry } from '@/lib/talent-registry';
 
 // GET — fetch current blind scenario (no scores, no dimension data)
 export async function GET(
@@ -177,16 +178,27 @@ export async function POST(
     if (answeredCount >= totalScenarios) {
       await computeFinalScores(sessionId);
 
-      // Create a notification for admins
-      await prisma.notification.create({
-        data: {
-          title: 'Assessment Completed',
-          message: `${session.user?.name || 'A candidate'} has completed the ${session.package?.name || 'Assessment'} simulation.`,
-          linkUrl: session.clientAccountId ? `/portal/reports/${sessionId}` : `/admin/reports/${sessionId}`,
-          clientAccountId: session.clientAccountId,
-          audience: session.clientAccountId ? 'CLIENT' : 'PLATFORM',
+      if (session.kind === 'PRACTICE') {
+        // Nobody is waiting on a practice result, so there is nothing to
+        // notify about. If the person asked to join the registry, that entry
+        // is the one thing their run leaves behind.
+        if (session.registryOptIn) {
+          await recordRegistryEntry(sessionId);
         }
-      });
+      } else {
+        await prisma.notification.create({
+          data: {
+            title: 'Assessment Completed',
+            message: `${session.user?.name || 'A candidate'} has completed the ${session.package?.name || 'Assessment'} simulation.`,
+            linkUrl: session.clientAccountId ? `/portal/reports/${sessionId}` : `/admin/reports/${sessionId}`,
+            clientAccountId: session.clientAccountId,
+            audience: session.clientAccountId ? 'CLIENT' : 'PLATFORM',
+          }
+        });
+
+        // The platform-wide registry covers real sittings across every tenant.
+        await recordRegistryEntry(sessionId);
+      }
 
       return NextResponse.json({ completed: true });
     }

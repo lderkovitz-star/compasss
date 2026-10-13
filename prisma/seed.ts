@@ -156,9 +156,26 @@ async function main() {
   console.log(`Created ${scenariosList.length} scenarios for primary package.`);
 
   // 4. Create Sample Demo User & Assessment Session (Module C & A Demo Data)
+  //
+  // Every candidate belongs to a tenant, so the demo data needs one. This is
+  // the same account the legacy backfill creates, so seeding a fresh database
+  // and migrating an existing one land in the same place.
+  const demoAccount = await prisma.clientAccount.upsert({
+    where: { slug: 'continental-works' },
+    update: {},
+    create: {
+      name: 'Continental Works',
+      slug: 'continental-works',
+      contactEmail: 'support@continentalworks.com',
+      status: 'ACTIVE',
+    },
+    select: { id: true },
+  });
+
   const demoUser = await prisma.user.create({
     data: {
       name: 'Alex Mercer',
+      clientAccountId: demoAccount.id,
       email: 'alex.mercer@apex-executive.com',
       targetRole: 'Chief Risk Officer & Crisis Commander',
       hobbiesSkills: 'System Dynamics, Chess Grandmaster, Alpine Wilderness Rescue',
@@ -170,7 +187,9 @@ async function main() {
   const demoSession = await prisma.assessmentSession.create({
     data: {
       userId: demoUser.id,
+      clientAccountId: demoAccount.id,
       packageId: activePkg.id,
+      kind: 'OFFICIAL',
       status: 'COMPLETED',
       startedAt: new Date(Date.now() - 3600000),
       completedAt: new Date(Date.now() - 600000),

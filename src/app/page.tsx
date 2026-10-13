@@ -62,6 +62,12 @@ export default async function Home() {
             <Link href="/intake" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-colors">
               Start candidate assessment
             </Link>
+            <Link href="/practice" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold border border-white/15 bg-white/5 text-white hover:bg-white/10 transition-colors">
+              Take a practice run
+            </Link>
+            <Link href="/portal" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold text-[#97A2BE] hover:text-white transition-colors">
+              Employer sign in
+            </Link>
           </div>
 
           <div className="relative mt-8 sm:mt-12 md:mt-[72px] h-14 sm:h-20 md:h-[92px]">

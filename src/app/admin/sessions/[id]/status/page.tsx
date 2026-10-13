@@ -40,7 +40,9 @@ export default async function SessionLiveStatusPage({ params }: { params: { id: 
         </Link>
         <div>
           <h1 className="text-base font-bold text-slate-900">Live Session Status</h1>
-          <p className="text-xs text-slate-400">Monitoring real-time progress for {session.user.name}</p>
+          <p className="text-xs text-slate-400">
+            Monitoring real-time progress for {session.user?.name ?? 'a practice run'}
+          </p>
         </div>
       </div>
 
@@ -48,7 +50,9 @@ export default async function SessionLiveStatusPage({ params }: { params: { id: 
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">{session.user.name}</h2>
+              <h2 className="text-2xl font-bold text-slate-900">
+                {session.user?.name ?? 'Practice run'}
+              </h2>
               <p className="text-sm text-slate-500 mt-1">
                 <strong>Package:</strong> {session.package.name} ({session.package.code})
               </p>

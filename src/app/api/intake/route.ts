@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { resolveDefaultTenantId } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -54,13 +55,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Find or create candidate user
-    let user = await prisma.user.findUnique({ where: { email } });
+    // Every candidate row has an owning tenant. Open intake is the original
+    // single-tenant entry point, so its candidates belong to the account the
+    // backfill created for everything that predates tenancy.
+    const clientAccountId = await resolveDefaultTenantId();
+
+    // The same person may be a candidate at more than one employer, so look
+    // them up within the tenant rather than globally by email.
+    let user = await prisma.user.findFirst({ where: { email, clientAccountId } });
     if (!user) {
       user = await prisma.user.create({
         data: {
           name,
           email,
+          clientAccountId,
           targetRole: targetRole || null,
           hobbiesSkills: hobbiesSkills || null,
           resumeFileUrl,
@@ -101,7 +109,9 @@ export async function POST(req: NextRequest) {
     const session = await prisma.assessmentSession.create({
       data: {
         userId: user.id,
+        clientAccountId,
         packageId: activePackage.id,
+        kind: 'OFFICIAL',
         status: 'IN_PROGRESS',
         currentScenarioIdx: 0,
         sessionDepth: settings?.defaultSessionDepth ?? null,
