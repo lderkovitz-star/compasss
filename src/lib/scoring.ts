@@ -125,7 +125,12 @@ export async function computeAndStoreScoreSnapshot(
   }
 }
 
-type DimensionRange = { min: number; max: number };
+type DimensionRange = {
+  min: number;
+  max: number;
+  /** How many of the answered scenarios could move this dimension at all. */
+  scenarios: number;
+};
 
 /**
  * The score range each dimension could have reached across the scenarios this
@@ -169,9 +174,14 @@ export async function computeScoringBasis(
     for (const [dimensionId, weights] of Object.entries(perDimension)) {
       const contributions =
         weights.length < scenario.options.length ? [...weights, 0] : [...weights];
-      basis[dimensionId] ??= { min: 0, max: 0 };
-      basis[dimensionId].max += Math.max(...contributions);
-      basis[dimensionId].min += Math.min(...contributions);
+      const best = Math.max(...contributions);
+      const worst = Math.min(...contributions);
+      basis[dimensionId] ??= { min: 0, max: 0, scenarios: 0 };
+      basis[dimensionId].max += best;
+      basis[dimensionId].min += worst;
+      // A scenario where every option scores the dimension the same cannot
+      // distinguish anything, so it is not counted as evidence.
+      if (best !== worst) basis[dimensionId].scenarios += 1;
     }
   }
 
@@ -216,6 +226,7 @@ export async function computeFinalScores(sessionId: string) {
       rawScore: raw,
       maxScore: range?.max ?? null,
       minScore: range?.min ?? null,
+      scenariosScored: range?.scenarios ?? 0,
       exercised,
       scoringVersion: 2,
     };

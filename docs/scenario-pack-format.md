@@ -76,6 +76,18 @@ The scale is yours, as long as it is consistent within a pack. A pack scored
 −10…+10 and a pack scored 0…100 both work, because normalisation is computed
 per dimension from the range the pack itself makes achievable.
 
+### Give every dimension enough coverage
+
+A dimension is only as reliable as the number of scenarios that can move it.
+If one scenario is the only place a dimension is scored, the candidate's result
+on it is a single choice - they will score 0 or 100 and nothing in between.
+
+Reports show the count next to any dimension drawn from fewer than three
+scenarios, and leave those out of the headline figure, so a thinly covered
+dimension is visible rather than misleading. Aim to score each dimension you
+declare across a good spread of the pack; drop the ones you do not want to
+measure rather than declaring them and scoring them once.
+
 If a pack needs dimensions that do not exist yet, declare them:
 
 ```json

@@ -41,6 +41,7 @@ export default async function PortalReportPage({
           finalScore: true,
           percentileRank: true,
           exercised: true,
+          scenariosScored: true,
           dimension: { select: { name: true, category: true } },
         },
       },
@@ -51,9 +52,16 @@ export default async function PortalReportPage({
   if (!report) notFound();
 
   const scored = report.finalScores.filter((s) => s.exercised);
-  const overall = scored.length
-    ? Math.round(scored.reduce((sum, s) => sum + s.finalScore, 0) / scored.length)
+  // A dimension only one scenario could move is a single choice, not a
+  // measurement. It is still shown, flagged, but kept out of the headline
+  // average so one answer cannot swing the overall figure.
+  const THIN_EVIDENCE = 3;
+  const wellEvidenced = scored.filter((s) => s.scenariosScored >= THIN_EVIDENCE);
+  const forAverage = wellEvidenced.length ? wellEvidenced : scored;
+  const overall = forAverage.length
+    ? Math.round(forAverage.reduce((sum, s) => sum + s.finalScore, 0) / forAverage.length)
     : null;
+  const thinCount = scored.length - wellEvidenced.length;
 
   return (
     <PortalShell company={session.account.name}>
@@ -119,6 +127,13 @@ export default async function PortalReportPage({
               {scored.length} dimension{scored.length === 1 ? '' : 's'} scored
             </span>
           </h2>
+          {thinCount > 0 && wellEvidenced.length > 0 && (
+            <p className="mt-1 text-xs text-slate-500">
+              {thinCount} of these {thinCount === 1 ? 'is' : 'are'} drawn from fewer than{' '}
+              {THIN_EVIDENCE} scenarios and {thinCount === 1 ? 'is' : 'are'} marked below. The
+              overall figure uses the {wellEvidenced.length} with broader coverage.
+            </p>
+          )}
         </div>
         {scored.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-slate-500">
@@ -129,7 +144,17 @@ export default async function PortalReportPage({
             {scored.map((s, i) => (
               <div key={i} className="px-5 py-3 flex items-center gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-900">{s.dimension.name}</div>
+                  <div className="text-sm font-medium text-slate-900">
+                    {s.dimension.name}
+                    {s.scenariosScored > 0 && s.scenariosScored < THIN_EVIDENCE && (
+                      <span
+                        className="ml-2 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                        title={`Only ${s.scenariosScored} answered scenario${s.scenariosScored === 1 ? '' : 's'} could move this dimension, so treat it as indicative rather than measured.`}
+                      >
+                        {s.scenariosScored} scenario{s.scenariosScored === 1 ? '' : 's'}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-slate-500">{s.dimension.category}</div>
                 </div>
                 <div className="w-32 sm:w-48 bg-slate-100 rounded-full h-2 overflow-hidden">

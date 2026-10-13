@@ -196,6 +196,10 @@ model FinalScore {
   rawScore       Float?            @map("raw_score")
   maxScore       Float?            @map("max_score")
   minScore       Float?            @map("min_score")
+  // How many of the answered scenarios could actually move this dimension.
+  // A score drawn from one scenario is a single choice, not a measurement, and
+  // the report says so rather than presenting it like the rest.
+  scenariosScored Int              @default(0) @map("scenarios_scored")
   exercised      Boolean           @default(true)
   scoringVersion Int               @default(1) @map("scoring_version")
 
