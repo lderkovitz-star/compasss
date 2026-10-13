@@ -13,14 +13,9 @@ interface FormState {
 interface IntakeClientProps {
   platformName: string;
   logoUrl?: string | null;
-  biometricMode: string;
 }
 
-export default function IntakeClient({
-  platformName,
-  logoUrl,
-  biometricMode,
-}: IntakeClientProps) {
+export default function IntakeClient({ platformName, logoUrl }: IntakeClientProps) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -29,30 +24,8 @@ export default function IntakeClient({
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [biometricConnected, setBiometricConnected] = useState(false);
 
   const displayBrand = platformName || 'Compass';
-
-  async function connectBiometrics() {
-    try {
-      const nav = typeof navigator !== 'undefined' ? (navigator as unknown as { bluetooth?: { requestDevice: (opts: unknown) => Promise<{ name?: string }> } }) : null;
-      if (!nav?.bluetooth) {
-        setError('Bluetooth is not supported in this browser. Use Chrome or Edge.');
-        return;
-      }
-      
-      const device = await nav.bluetooth.requestDevice({
-        filters: [{ services: ['heart_rate'] }],
-        acceptAllDevices: false
-      });
-      console.log('Bluetooth Device connected:', device.name);
-      setBiometricConnected(true);
-      setError('');
-    } catch (err: unknown) {
-      console.error('Bluetooth error:', err);
-      setError('Failed to connect to biometric device. Please ensure Bluetooth is enabled and you selected a device.');
-    }
-  }
 
   function handleFile(f: File | null) {
     if (!f) return;
@@ -93,11 +66,6 @@ export default function IntakeClient({
       setError('Please provide a valid email address.');
       return;
     }
-    if (biometricMode === 'required' && !biometricConnected) {
-      setError('Biometric connection is required to proceed. Please connect your Heart Rate Monitor.');
-      return;
-    }
-
     setLoading(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
@@ -272,46 +240,6 @@ export default function IntakeClient({
             </div>
           </div>
 
-          {/* Biometric Integration */}
-          {biometricMode !== 'disabled' && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xl animate-fade-in">
-              <div className="border-b border-white/10 pb-3 sm:pb-4 mb-4 sm:mb-5 flex items-center justify-between">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#35E0C8]">Biometric Telemetry</h2>
-                <span className={`text-[10px] font-medium uppercase tracking-[0.08em] px-2 py-0.5 sm:py-1 rounded-md ${biometricMode === 'required' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-white/5 text-[#97A2BE] border border-white/10'}`}>
-                  {biometricMode === 'required' ? 'Required' : 'Optional'}
-                </span>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                <div className="flex-1 text-center sm:text-left">
-                  <p className="text-xs sm:text-[13px] text-[#97A2BE] leading-relaxed mb-4">
-                    Connect a Bluetooth Low Energy (BLE) Heart Rate Monitor. This telemetry data is used to analyze stress responses and cognitive load during high-pressure scenarios.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={connectBiometrics}
-                    className={`px-5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex items-center justify-center sm:justify-start gap-2 w-full sm:w-auto ${
-                      biometricConnected 
-                        ? 'bg-[#35E0C8]/20 text-[#35E0C8] border border-[#35E0C8]/30 cursor-default'
-                        : 'bg-[#2E63F6] text-white hover:bg-[#5B8CFF] shadow-[0_4px_14px_0_rgba(46,99,246,0.39)]'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    {biometricConnected ? 'Telemetry Stream Active' : 'Connect BLE Device'}
-                  </button>
-                </div>
-                {biometricConnected && (
-                  <div className="h-14 w-14 sm:h-16 sm:w-16 flex-shrink-0 flex items-center justify-center rounded-full bg-[#35E0C8]/10 border border-[#35E0C8]/30 shadow-[0_0_15px_rgba(53,224,200,0.2)]">
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#35E0C8] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Resume Upload */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-xl">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#5B8CFF] border-b border-white/10 pb-4 mb-5">Resume / CV</h2>
@@ -361,7 +289,7 @@ export default function IntakeClient({
             <button
               id="submit-intake"
               type="submit"
-              disabled={loading || (biometricMode === 'required' && !biometricConnected)}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-all duration-200 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2E63F6] disabled:active:scale-100"
             >
               {loading ? (

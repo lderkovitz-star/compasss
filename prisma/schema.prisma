@@ -207,6 +207,9 @@ model FinalScore {
   @@map("final_scores")
 }
 
+// Nothing reads this. Biometrics were removed from the product; the table and
+// the biometricMode setting stay because dropping columns is a destructive
+// migration for no benefit, and both are needed if the add-on returns.
 model BiometricReading {
   id         String            @id @default(uuid())
   sessionId  String            @map("session_id")
@@ -244,7 +247,7 @@ model PlatformSettings {
   id                      String   @id @default(uuid())
   platformName            String   @default("Compass") @map("platform_name")
   supportEmail            String   @default("support@continentalworks.com") @map("support_email")
-  biometricMode           String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
+  biometricMode           String   @default("disabled") @map("biometric_mode") // Unread; see BiometricReading
   antiCheat               Boolean  @default(true) @map("anti_cheat")
   blindUiMode             Boolean  @default(true) @map("blind_ui_mode")
   // Branding / Media

@@ -13,7 +13,6 @@ export default function AdminSettingsPage() {
   // General Settings
   const [platformName, setPlatformName] = useState('Compass');
   const [supportEmail, setSupportEmail] = useState('support@compass.com');
-  const [biometricMode, setBiometricMode] = useState('disabled');
 
   // Media / Branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -44,7 +43,6 @@ export default function AdminSettingsPage() {
         if (settingsData && !settingsData.error) {
           setPlatformName(settingsData.platformName ?? 'Compass');
           setSupportEmail(settingsData.supportEmail ?? 'support@compass.com');
-          setBiometricMode(settingsData.biometricMode ?? 'disabled');
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
           // The key is write-only server-side; we only learn whether one is set.
@@ -69,7 +67,6 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ 
           platformName, 
           supportEmail, 
-          biometricMode, 
           logoUrl, 
           defaultBackdropUrl: backdropUrl, 
           ...updates 
@@ -96,7 +93,7 @@ export default function AdminSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          platformName, supportEmail, biometricMode,
+          platformName, supportEmail,
           ...(anthropicApiKey.trim() ? { anthropicApiKey } : {}),
           aiPromptTemplate,
         }),
@@ -600,7 +597,7 @@ export default function AdminSettingsPage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500">
-                  Uses <strong className="text-violet-700">Claude 3 Haiku</strong> — fast, cost-effective batch model.
+                  The model and provider are set below. Nothing is sent to a provider until a key is saved.
                 </p>
                 <button
                   onClick={handleAISave}

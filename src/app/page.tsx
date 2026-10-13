@@ -56,7 +56,7 @@ export default async function Home() {
             Decision-making,<br/>measured under <em className="italic text-[#5B8CFF] font-medium">real pressure.</em>
           </h1>
           <p className="mt-4 sm:mt-[26px] max-w-[560px] mx-auto text-sm sm:text-base md:text-[17px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
-            Scenario-driven crisis simulations, an 11-dimension psychological profile, and live biometric telemetry — read candidates the way a room full of assessors would, minus the room.
+            Scenario-driven crisis simulations, a dimension profile defined by your own scenario pack, and decision telemetry down to the millisecond — read candidates the way a room full of assessors would, minus the room.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3.5 mt-8 sm:mt-10">
             <Link href="/intake" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-colors">
@@ -90,8 +90,8 @@ export default async function Home() {
               <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Crisis scenarios</div>
             </div>
             <div className="p-4 sm:p-[26px_20px] md:border-r border-white/10 text-center">
-              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#35E0C8]">BLE</div>
-              <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Biometric telemetry</div>
+              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#35E0C8]">ms</div>
+              <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Decision latency</div>
             </div>
             <div className="p-4 sm:p-[26px_20px] text-center">
               <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#F5B95C]">100%</div>
@@ -149,12 +149,12 @@ export default async function Home() {
 
             <div className="bg-[#10192E] p-6 sm:p-9 relative border-t border-white/10">
               <span className={`text-[11px] text-[#5B6580] tracking-[0.08em] mb-3 sm:mb-[22px] block ${plexMono.className}`}>MODULE D</span>
-              <div className="text-lg sm:text-[19px] font-semibold text-white tracking-tight">Biometric telemetry</div>
+              <div className="text-lg sm:text-[19px] font-semibold text-white tracking-tight">Decision telemetry</div>
               <div className="mt-2.5 text-xs sm:text-[13.5px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
-                Heart rate streams from a paired BLE device, timestamped against every decision, mapped to stress spikes in the executive report.
+                How long each call took, which options were revisited, and where the candidate hesitated — recorded per decision and carried into the executive report.
               </div>
               <span className="inline-block mt-4 sm:mt-5 text-[10.5px] font-semibold tracking-[0.06em] uppercase px-2.5 py-1.5 rounded-md text-[#35E0C8] bg-[#35E0C8]/10 border border-[#35E0C8]/25">
-                Real-time BPM
+                Per-decision timing
               </span>
             </div>
           </div>
