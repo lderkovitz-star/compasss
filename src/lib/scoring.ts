@@ -125,6 +125,59 @@ export async function computeAndStoreScoreSnapshot(
   }
 }
 
+type DimensionRange = { min: number; max: number };
+
+/**
+ * The score range each dimension could have reached across the scenarios this
+ * candidate actually answered.
+ *
+ * Per scenario we take the best and worst contribution available for that
+ * dimension. An option that does not mention a dimension contributes zero, so
+ * zero counts as a possible contribution whenever some option in the scenario
+ * leaves it out. Negative weights are kept rather than clamped - they are how a
+ * pack penalises a choice, and treating them as zero would quietly inflate
+ * every score.
+ */
+export async function computeScoringBasis(
+  sessionId: string
+): Promise<Record<string, DimensionRange>> {
+  const responses = await prisma.response.findMany({
+    where: { sessionId },
+    select: { scenarioId: true },
+  });
+  const scenarioIds = Array.from(new Set(responses.map((r) => r.scenarioId)));
+  if (scenarioIds.length === 0) return {};
+
+  const scenarios = await prisma.scenario.findMany({
+    where: { id: { in: scenarioIds } },
+    select: {
+      id: true,
+      options: { select: { scores: { select: { dimensionId: true, weightScore: true } } } },
+    },
+  });
+
+  const basis: Record<string, DimensionRange> = {};
+
+  for (const scenario of scenarios) {
+    const perDimension: Record<string, number[]> = {};
+    for (const option of scenario.options) {
+      for (const score of option.scores) {
+        (perDimension[score.dimensionId] ??= []).push(score.weightScore);
+      }
+    }
+
+    for (const [dimensionId, weights] of Object.entries(perDimension)) {
+      const contributions =
+        weights.length < scenario.options.length ? [...weights, 0] : [...weights];
+      basis[dimensionId] ??= { min: 0, max: 0 };
+      basis[dimensionId].max += Math.max(...contributions);
+      basis[dimensionId].min += Math.min(...contributions);
+    }
+  }
+
+  return basis;
+}
+
 export async function computeFinalScores(sessionId: string) {
   // Get all snapshots for this session, latest per dimension
   const snapshots = await prisma.scoreSnapshot.findMany({
@@ -139,18 +192,38 @@ export async function computeFinalScores(sessionId: string) {
     }
   }
 
-  // Upsert final dimension scores
-  for (const [dimensionId, score] of Object.entries(latestPerDim)) {
-    const normalized = Math.min(100, Math.round((score / 500) * 100));
+  // Normalise each dimension against what was actually achievable in this
+  // session, rather than the old `/500` constant - which assumed exactly five
+  // scenarios at a maximum weight of 100. Above five scenarios every dimension
+  // saturated at 100; below five, every score was deflated; and a pack authored
+  // on a different scale (the client's runs -10..+10) came out meaningless.
+  const basis = await computeScoringBasis(sessionId);
+
+  for (const [dimensionId, raw] of Object.entries(latestPerDim)) {
+    const range = basis[dimensionId];
+    // A dimension no served option could move has no meaningful score. Record
+    // it as unexercised instead of reporting a misleading zero.
+    const exercised = Boolean(range) && range.max > range.min;
+    const normalized = exercised
+      ? Math.max(0, Math.min(100, Math.round(((raw - range.min) / (range.max - range.min)) * 100)))
+      : 0;
+
+    const data = {
+      finalScore: normalized,
+      // Left null until cohort percentiles are computed; the previous value was
+      // just the score again, which is not a percentile.
+      percentileRank: null,
+      rawScore: raw,
+      maxScore: range?.max ?? null,
+      minScore: range?.min ?? null,
+      exercised,
+      scoringVersion: 2,
+    };
+
     await prisma.finalScore.upsert({
       where: { sessionId_dimensionId: { sessionId, dimensionId } } as never,
-      update: { finalScore: normalized, percentileRank: Math.min(99, normalized) },
-      create: {
-        sessionId,
-        dimensionId,
-        finalScore: normalized,
-        percentileRank: Math.min(99, normalized),
-      },
+      update: data,
+      create: { sessionId, dimensionId, ...data },
     });
   }
 
@@ -183,6 +256,12 @@ export async function computeFinalScores(sessionId: string) {
       status: 'COMPLETED',
       completedAt: new Date(),
       traitScores: traitScores as any,
+      // Marks which normalisation produced this report. v1 numbers came from
+      // the fixed /500 divisor and are not comparable with v2.
+      scoringVersion: 2,
+      // The ranges these scores were normalised against, kept so a later edit
+      // to option weights cannot silently restate a finished report.
+      scoringBasis: basis as any,
     },
   });
 }

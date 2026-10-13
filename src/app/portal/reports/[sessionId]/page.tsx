@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../../PortalShell';
+import ScoringVersionNotice from '@/components/ScoringVersionNotice';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,6 +31,7 @@ export default async function PortalReportPage({
       startedAt: true,
       completedAt: true,
       traitScores: true,
+      scoringVersion: true,
       user: { select: { name: true, email: true, targetRole: true } },
       package: { select: { name: true, code: true } },
       jobContext: { select: { title: true } },
@@ -72,6 +74,9 @@ export default async function PortalReportPage({
               {' · '}
               {report.package?.name}
             </p>
+            <div className="mt-2">
+              <ScoringVersionNotice version={report.scoringVersion} />
+            </div>
           </div>
           {overall !== null && (
             <div className="text-right">

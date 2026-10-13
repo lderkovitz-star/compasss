@@ -53,7 +53,9 @@ export default function ReportCharts({ dimensionScores, biometricData }: Props) 
         {/* Radar */}
         <div className="card-p">
           <h3 className="text-sm font-bold text-slate-900 mb-1">Psychological Radar</h3>
-          <p className="text-xs text-slate-400 mb-4">11-dimension cognitive profile</p>
+          <p className="text-xs text-slate-400 mb-4">
+            {dimensionScores.length}-dimension cognitive profile
+          </p>
           <ResponsiveContainer width="100%" height={280}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="#E2E8F0" />

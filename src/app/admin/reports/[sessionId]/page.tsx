@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import dynamic from "next/dynamic";
 import ExportButtons from "./ExportButtons";
+import ScoringVersionNotice from "@/components/ScoringVersionNotice";
 
 const ReportCharts = dynamic(() => import("./ReportCharts"), { 
   ssr: false,
@@ -133,6 +134,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                   {session.status === "COMPLETED"
                     ? <span className="badge-green text-xs">Completed</span>
                     : <span className="badge-amber text-xs">In Progress</span>}
+                  <ScoringVersionNotice version={session.scoringVersion} />
                 </div>
               </div>
             </div>
