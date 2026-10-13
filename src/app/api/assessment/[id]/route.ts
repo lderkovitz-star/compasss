@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { computeAndStoreScoreSnapshot, computeFinalScores, DecisionEvent } from '@/lib/scoring';
 import { getGlobalSettings } from '@/lib/settings';
 import { recordRegistryEntry } from '@/lib/talent-registry';
+import { queueEmail } from '@/lib/email';
 
 // GET — fetch current blind scenario (no scores, no dimension data)
 export async function GET(
@@ -198,6 +199,29 @@ export async function POST(
 
         // The platform-wide registry covers real sittings across every tenant.
         await recordRegistryEntry(sessionId);
+
+        // Tell the employer their report is ready. Queued rather than sent for
+        // as long as the sending domain is unverified; the in-app notification
+        // above is what they actually see meanwhile.
+        if (session.clientAccountId) {
+          const account = await prisma.clientAccount.findUnique({
+            where: { id: session.clientAccountId },
+            select: { name: true, contactEmail: true },
+          });
+          if (account?.contactEmail) {
+            await queueEmail({
+              template: 'REPORT_READY',
+              to: account.contactEmail,
+              clientAccountId: session.clientAccountId,
+              data: {
+                candidateName: session.user?.name ?? 'A candidate',
+                companyName: account.name,
+                roleTitle: session.user?.targetRole ?? '',
+                url: `/portal/reports/${sessionId}`,
+              },
+            });
+          }
+        }
       }
 
       return NextResponse.json({ completed: true });

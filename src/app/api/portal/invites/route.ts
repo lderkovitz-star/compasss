@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireClient } from '@/lib/portal-auth';
 import { generateInviteToken, buildInviteUrl } from '@/lib/invite-token';
+import { queueEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,11 +162,35 @@ export async function POST(req: NextRequest) {
     });
 
     const origin = req.nextUrl.origin;
+    const url = buildInviteUrl(origin, token);
+
+    // Queue the invitation. Nothing sends until the sending domain is
+    // verified, so the employer copies the link from the UI meanwhile - but
+    // the message is written now, because the raw token exists only here.
+    //
+    // That does mean a queued invitation holds a working link, which hashing
+    // tokenHash was meant to avoid. It is bounded the same way the email
+    // itself would be: the link expires, it works once, and it can be
+    // revoked. Draining the queue is what closes the window.
+    const employer = await prisma.clientAccount.findUnique({
+      where: { id: portal.clientAccountId },
+      select: { name: true },
+    });
+    await queueEmail({
+      template: 'CANDIDATE_INVITE',
+      to: candidateEmail,
+      clientAccountId: portal.clientAccountId,
+      data: {
+        candidateName,
+        companyName: employer?.name ?? 'the company',
+        roleTitle: context?.title ?? '',
+        url,
+        expiresAt: invite.expiresAt.toISOString().slice(0, 10),
+      },
+    });
+
     // The only time the raw token is readable.
-    return NextResponse.json(
-      { invite, url: buildInviteUrl(origin, token) },
-      { status: 201 }
-    );
+    return NextResponse.json({ invite, url }, { status: 201 });
   } catch (error) {
     console.error('[invites POST]', error);
     return NextResponse.json({ error: 'Failed to generate the invite link.' }, { status: 500 });

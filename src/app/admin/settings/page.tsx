@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import AiProviderPanel from './AiProviderPanel';
+import EmailQueuePanel from './EmailQueuePanel';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -602,6 +603,18 @@ export default function AdminSettingsPage() {
 
         {/* Right Column: System Status */}
         <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-sm font-bold text-slate-900">Outbound Email</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                What would be sent, and why it is being held.
+              </p>
+            </div>
+            <div className="p-5">
+              <EmailQueuePanel />
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
               <h2 className="text-sm font-bold text-slate-900">System Integrations</h2>
