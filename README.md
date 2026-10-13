@@ -66,7 +66,13 @@ has migration history will drift from it silently.
 npm run db:migrate            # apply pending migrations
 npm run db:backfill           # assign pre-tenancy rows to the legacy tenant
 npm run db:rank-registries    # recompute talent registry percentiles
+npm run db:purge-expired      # delete practice runs past their retention date
 ```
+
+`prepare-db.ts` runs the migration, the backfill and the purge in that order on
+every deploy, so a regularly deployed instance needs no scheduler. The purge
+keeps any practice run that joined the talent registry - the person asked for
+it to be kept, and the registry entry cascades from the sitting.
 
 `20261013084247_tenant_scoped_candidates` is the one migration that can fail
 on existing data rather than only adding to it. It checks its own assumptions

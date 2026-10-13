@@ -110,6 +110,19 @@ async function main() {
   // Idempotent; gives rows that predate multi-tenancy an owner.
   await backfillLegacyTenant(prisma);
 
+  // Practice runs carry a retention date; something has to honour it. Doing it
+  // here means a regularly deployed instance needs no scheduler.
+  try {
+    const { purgeExpiredPracticeRuns } = await import('../src/lib/retention');
+    const { deleted, kept } = await purgeExpiredPracticeRuns();
+    if (deleted || kept) {
+      console.log(`Purge: deleted ${deleted} expired practice run(s); kept ${kept} that joined the registry.`);
+    }
+  } catch (error) {
+    // Retention is housekeeping. It must never fail a deploy.
+    console.warn('Purge skipped:', error instanceof Error ? error.message : error);
+  }
+
   const [admins, dimensions, packages, users] = await Promise.all([
     prisma.admin.count(),
     prisma.dimension.count(),
