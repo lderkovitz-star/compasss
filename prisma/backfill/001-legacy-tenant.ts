@@ -53,6 +53,19 @@ export async function backfillLegacyTenant(prisma: PrismaClient): Promise<void> 
     }
   }
 
+  // The seeded package description promised "biometric emotional stability",
+  // which the product no longer measures. Fixing the seed file only helps a
+  // fresh database; this corrects the installs that already have it. Scoped to
+  // that exact phrase so nothing an operator has written since is touched.
+  const reworded = await prisma.$executeRaw`
+    UPDATE scenario_packages
+    SET description = replace(description, 'and biometric emotional stability', 'and composure')
+    WHERE description LIKE '%and biometric emotional stability%'
+  `;
+  if (reworded) {
+    console.log(`Backfill: reworded ${reworded} package description(s) that still mentioned biometrics.`);
+  }
+
   // Say so either way. Running this and seeing nothing leaves you unsure
   // whether it did its job or failed to find the database.
   if (candidates || sessions) {
