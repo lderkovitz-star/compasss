@@ -105,6 +105,10 @@ model OptionScore {
   dimension   Dimension      @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
   weightScore Float          @map("weight_score")
 
+  // One weight per option per dimension. Without this, a second row for the
+  // same pair is silently added to the first when scores are summed, so an
+  // import that ran twice would inflate a candidate's score.
+  @@unique([optionId, dimensionId])
   @@map("option_scores")
 }
 

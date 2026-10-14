@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { computeAndStoreScoreSnapshot, computeFinalScores, DecisionEvent } from '@/lib/scoring';
+import { resolveScenarioOrder, loadScenariosInOrder } from '@/lib/session-scenarios';
 import { getGlobalSettings } from '@/lib/settings';
 import { recordRegistryEntry } from '@/lib/talent-registry';
 import { queueEmail } from '@/lib/email';
@@ -29,26 +30,12 @@ export async function GET(
       );
     }
 
-    // Get scenarios in order. deletedAt was missing here, so scenarios sent to
-    // the trash were still being served to live candidates and still counted
-    // toward completion.
-    const allScenarios = await prisma.scenario.findMany({
-      where: { packageId: session.packageId, deletedAt: null },
-      orderBy: { sequenceOrder: 'asc' },
-      include: {
-        options: {
-          select: { id: true, optionCode: true, optionText: true, title: true },
-          orderBy: [{ sortOrder: 'asc' }, { optionCode: 'asc' }],
-        },
-      },
-    });
-
-    // A campaign can run a shorter sitting of a long pack - "quick 5" against a
-    // 50-scenario suite. The cut is taken from the front of the ordered pack so
-    // it is the same five for every candidate on that invite.
-    const depth = session.sessionDepth ?? null;
-    const scenarios =
-      depth && depth > 0 ? allScenarios.slice(0, depth) : allScenarios;
+    // Fixed on first use and read back afterwards, so editing the pack does
+    // not change what a candidate part-way through is served. Trashed
+    // scenarios are excluded when the list is first chosen - that filter was
+    // missing, so they were being served to live candidates.
+    const order = await resolveScenarioOrder(session);
+    const scenarios = await loadScenariosInOrder(order);
 
     if (scenarios.length === 0) {
       return NextResponse.json({ error: 'No scenarios found for this package.' }, { status: 404 });
@@ -163,17 +150,11 @@ export async function POST(
       data: { currentScenarioIdx: { increment: 1 } },
     });
 
-    // Check if this was the last scenario
-    // Must mirror the GET side: trashed scenarios excluded, and a shorter
-    // sitting honoured, or the candidate is asked for answers that will never
-    // arrive and the session never completes.
-    const availableScenarios = await prisma.scenario.count({
-      where: { packageId: session.packageId, deletedAt: null },
-    });
-    const totalScenarios =
-      session.sessionDepth && session.sessionDepth > 0
-        ? Math.min(session.sessionDepth, availableScenarios)
-        : availableScenarios;
+    // Was that the last one? Counted from the same frozen list the GET side
+    // serves, or the two can disagree - and if this side thinks there are
+    // more, the candidate is asked for answers that never arrive and the
+    // sitting never completes.
+    const totalScenarios = (await resolveScenarioOrder(session)).length;
     const answeredCount = await prisma.response.count({ where: { sessionId } });
 
     if (answeredCount >= totalScenarios) {
