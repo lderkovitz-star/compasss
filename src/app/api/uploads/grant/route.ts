@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getCurrentAdmin } from '@/lib/auth';
 import { getClientSession } from '@/lib/portal-auth';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
+import { getStorage } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,8 @@ type Grant = {
 
 /** Resolves the caller to a storage prefix, or null if they may not upload. */
 async function authorize(clientPayload: string | null): Promise<Grant | null> {
+  // The folder comes from the adapter, never from the browser.
+  const storage = await getStorage();
   // An invited candidate: anonymous, but holding a link we issued.
   let inviteToken: string | null = null;
   if (clientPayload) {
@@ -65,7 +68,7 @@ async function authorize(clientPayload: string | null): Promise<Grant | null> {
       invite.clientAccount.status === 'ACTIVE'
     ) {
       return {
-        prefix: `tenants/${invite.clientAccountId}/resumes`,
+        prefix: storage.prefixFor({ kind: 'tenant', clientAccountId: invite.clientAccountId }),
         clientAccountId: invite.clientAccountId,
         inviteId: invite.id,
       };
@@ -76,7 +79,7 @@ async function authorize(clientPayload: string | null): Promise<Grant | null> {
   const portal = await getClientSession();
   if (portal) {
     return {
-      prefix: `tenants/${portal.clientAccountId}/resumes`,
+      prefix: storage.prefixFor({ kind: 'tenant', clientAccountId: portal.clientAccountId }),
       clientAccountId: portal.clientAccountId,
       inviteId: null,
     };
@@ -84,11 +87,11 @@ async function authorize(clientPayload: string | null): Promise<Grant | null> {
 
   const admin = await getCurrentAdmin();
   if (admin) {
-    return { prefix: 'admin/resumes', clientAccountId: null, inviteId: null };
+    return { prefix: storage.prefixFor({ kind: 'admin' }), clientAccountId: null, inviteId: null };
   }
 
   // Open intake, which anyone may use. Kept separate from any tenant's folder.
-  return { prefix: 'intake/resumes', clientAccountId: null, inviteId: null };
+  return { prefix: storage.prefixFor({ kind: 'intake' }), clientAccountId: null, inviteId: null };
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

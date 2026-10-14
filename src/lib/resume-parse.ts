@@ -97,24 +97,3 @@ export async function extractResumeText(
     };
   }
 }
-
-/** Fetches an already-uploaded document and extracts its text. */
-export async function parseResumeFromUrl(
-  blobUrl: string,
-  contentType: string,
-  fileName: string
-): Promise<ParseOutcome> {
-  try {
-    const res = await fetch(blobUrl);
-    if (!res.ok) {
-      return { status: 'FAILED', text: null, error: `Could not download the file (${res.status}).` };
-    }
-    return extractResumeText(await res.arrayBuffer(), contentType, fileName);
-  } catch (err) {
-    return {
-      status: 'FAILED',
-      text: null,
-      error: err instanceof Error ? err.message : 'Could not download the file.',
-    };
-  }
-}

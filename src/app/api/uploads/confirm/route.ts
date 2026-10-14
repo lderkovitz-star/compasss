@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { head } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 import { getCurrentAdmin } from '@/lib/auth';
 import { getClientSession } from '@/lib/portal-auth';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
-import { parseResumeFromUrl, isSupportedResume } from '@/lib/resume-parse';
+import { extractResumeText, isSupportedResume } from '@/lib/resume-parse';
+import { getStorage, StorageConfigError } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -30,6 +30,7 @@ type Caller =
   | { kind: 'intake'; prefix: string };
 
 async function identify(inviteToken: string | null): Promise<Caller | null> {
+  const storage = await getStorage();
   if (inviteToken) {
     if (!isWellFormedInviteToken(inviteToken)) return null;
     const invite = await prisma.assessmentInvite.findUnique({
@@ -53,7 +54,7 @@ async function identify(inviteToken: string | null): Promise<Caller | null> {
     }
     return {
       kind: 'invite',
-      prefix: `tenants/${invite.clientAccountId}/resumes`,
+      prefix: storage.prefixFor({ kind: 'tenant', clientAccountId: invite.clientAccountId }),
       clientAccountId: invite.clientAccountId,
       inviteId: invite.id,
     };
@@ -63,15 +64,15 @@ async function identify(inviteToken: string | null): Promise<Caller | null> {
   if (portal) {
     return {
       kind: 'portal',
-      prefix: `tenants/${portal.clientAccountId}/resumes`,
+      prefix: storage.prefixFor({ kind: 'tenant', clientAccountId: portal.clientAccountId }),
       clientAccountId: portal.clientAccountId,
     };
   }
 
   const admin = await getCurrentAdmin();
-  if (admin) return { kind: 'admin', prefix: 'admin/resumes' };
+  if (admin) return { kind: 'admin', prefix: storage.prefixFor({ kind: 'admin' }) };
 
-  return { kind: 'intake', prefix: 'intake/resumes' };
+  return { kind: 'intake', prefix: storage.prefixFor({ kind: 'intake' }) };
 }
 
 export async function POST(req: NextRequest) {
@@ -97,10 +98,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Storage is the authority on what was actually uploaded.
-    let meta: Awaited<ReturnType<typeof head>>;
+    // Storage is the authority on what was actually uploaded - not the
+    // browser, which could claim any size or type it liked.
+    const storage = await getStorage();
+    let meta;
     try {
-      meta = await head(blobUrl);
+      meta = await storage.describe(blobUrl);
     } catch {
       return NextResponse.json(
         { error: 'That upload could not be found. Please try attaching the file again.' },
@@ -113,12 +116,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'That upload does not belong to you.' }, { status: 403 });
     }
 
-    const contentType = meta.contentType ?? 'application/octet-stream';
+    const contentType = meta.contentType;
     if (!isSupportedResume(contentType, fileName)) {
       return NextResponse.json({ error: 'A resume must be a PDF or DOCX file.' }, { status: 400 });
     }
 
-    const parsed = await parseResumeFromUrl(blobUrl, contentType, fileName);
+    let parsed;
+    try {
+      parsed = await extractResumeText(await storage.read(blobUrl), contentType, fileName);
+    } catch (err) {
+      parsed = {
+        status: 'FAILED' as const,
+        text: null,
+        error: err instanceof Error ? err.message : 'The file could not be read.',
+      };
+    }
 
     const document = await prisma.resumeDocument.create({
       data: {
@@ -127,7 +139,7 @@ export async function POST(req: NextRequest) {
         pathname: meta.pathname,
         fileName,
         contentType,
-        byteSize: meta.size,
+        byteSize: meta.byteSize,
         parsedText: parsed.text,
         parseStatus: parsed.status,
         parseError: parsed.error,
@@ -151,6 +163,11 @@ export async function POST(req: NextRequest) {
             'The file was saved but its text could not be read. Your evaluator will still receive the document.',
     });
   } catch (error) {
+    if (error instanceof StorageConfigError) {
+      // Nothing the candidate did; say what is actually wrong.
+      console.error('[uploads confirm] storage misconfigured:', error.message);
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
     console.error('[uploads confirm]', error);
     return NextResponse.json({ error: 'The upload could not be registered.' }, { status: 500 });
   }
