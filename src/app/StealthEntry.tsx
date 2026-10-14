@@ -29,7 +29,12 @@ export default function StealthEntry({ label }: { label: string }) {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'm') {
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
+      const key = event.key.toLowerCase();
+      // C is the binding that was asked for, and the one the browser claims
+      // for inspect element - it usually wins, so M is the reliable one and C
+      // is attempted in case the browser lets it through.
+      if (key === 'm' || key === 'c') {
         event.preventDefault();
         router.push('/master-admin');
       }

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../../PortalShell';
 import ScoringVersionNotice from '@/components/ScoringVersionNotice';
+import ReportExportButtons from '@/components/ReportExportButtons';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -45,7 +46,15 @@ export default async function PortalReportPage({
           dimension: { select: { name: true, category: true } },
         },
       },
-      responses: { select: { id: true } },
+      responses: {
+        orderBy: { submittedAt: 'asc' },
+        select: {
+          id: true,
+          timeSpentMs: true,
+          scenario: { select: { sequenceOrder: true, narrativeText: true } },
+          option: { select: { optionCode: true, optionText: true } },
+        },
+      },
     },
   });
 
@@ -86,14 +95,40 @@ export default async function PortalReportPage({
               <ScoringVersionNotice version={report.scoringVersion} />
             </div>
           </div>
-          {overall !== null && (
-            <div className="text-right">
-              <div className="text-3xl font-bold text-slate-900">{overall}</div>
-              <div className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">
-                Overall
+          <div className="flex items-start gap-5">
+            {overall !== null && (
+              <div className="text-right">
+                <div className="text-3xl font-bold text-slate-900">{overall}</div>
+                <div className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">
+                  Overall
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            <ReportExportButtons
+              candidateName={report.user?.name ?? 'Candidate'}
+              candidateEmail={report.user?.email ?? ''}
+              targetRole={report.jobContext?.title ?? report.user?.targetRole ?? ''}
+              packageName={report.package?.name ?? ''}
+              overallScore={overall ?? 0}
+              sessionId={report.id}
+              status={report.status}
+              startedAt={report.startedAt ? report.startedAt.toISOString() : null}
+              completedAt={report.completedAt ? report.completedAt.toISOString() : null}
+              dimensionScores={scored.map((s) => ({
+                name: s.dimension.name,
+                code: s.dimension.name,
+                category: s.dimension.category,
+                score: Math.round(s.finalScore),
+                percentile: Math.round(s.percentileRank ?? 0),
+              }))}
+              responses={report.responses.map((r) => ({
+                id: r.id,
+                scenario: r.scenario,
+                option: r.option,
+                timeSpentMs: r.timeSpentMs,
+              }))}
+            />
+          </div>
         </div>
         <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           <div>

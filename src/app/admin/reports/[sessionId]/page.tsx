@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import dynamic from "next/dynamic";
-import ExportButtons from "./ExportButtons";
+import ExportButtons from "@/components/ReportExportButtons";
 import ScoringVersionNotice from "@/components/ScoringVersionNotice";
 
 const ReportCharts = dynamic(() => import("./ReportCharts"), { 

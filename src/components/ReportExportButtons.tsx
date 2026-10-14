@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 
+/**
+ * Downloads a finished report as PDF or Excel.
+ *
+ * Used by the master console and by the employer portal. The employer side
+ * was the point of it - they asked to be able to download a candidate's
+ * report, and until this moved out of the admin folder they could only read
+ * it on screen. Everything is rendered in the browser from props, so no
+ * report data passes through a second endpoint to be exported.
+ */
+
 interface DimensionScore {
   name: string;
   code: string;

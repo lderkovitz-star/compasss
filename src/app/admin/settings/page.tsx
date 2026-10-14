@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { SUPPORT_EMAIL, resolveSupportEmail } from '@/lib/constants/brand';
 import AiProviderPanel from './AiProviderPanel';
 import EmailQueuePanel from './EmailQueuePanel';
 
@@ -14,7 +15,7 @@ export default function AdminSettingsPage() {
 
   // General Settings
   const [platformName, setPlatformName] = useState('Compass');
-  const [supportEmail, setSupportEmail] = useState('support@compass.com');
+  const [supportEmail, setSupportEmail] = useState(SUPPORT_EMAIL);
 
   // Media / Branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export default function AdminSettingsPage() {
       .then(([settingsData, packagesData, profileData, aiData]) => {
         if (settingsData && !settingsData.error) {
           setPlatformName(settingsData.platformName ?? 'Compass');
-          setSupportEmail(settingsData.supportEmail ?? 'support@compass.com');
+          setSupportEmail(resolveSupportEmail(settingsData.supportEmail));
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
@@ -242,7 +243,7 @@ export default function AdminSettingsPage() {
                   type="email"
                   value={supportEmail}
                   onChange={e => setSupportEmail(e.target.value)}
-                  placeholder="support@compass.com"
+                  placeholder={SUPPORT_EMAIL}
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-slate-900 bg-white font-medium placeholder:text-slate-400 shadow-sm"
                 />
               </div>
