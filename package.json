@@ -16,7 +16,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:backfill": "ts-node prisma/backfill/001-legacy-tenant.ts",
     "db:rank-registries": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/rank-registries.ts",
-    "db:purge-expired": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/purge-expired.ts"
+    "db:purge-expired": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/purge-expired.ts",
+    "check:tenant-scoping": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/check-tenant-scoping.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
