@@ -157,6 +157,49 @@ That path is kept quiet for tidiness, not for safety: the console is
 protected by its sign-in, and would be equally protected if the address were
 printed on the homepage.
 
+## Giving previews their own database
+
+Every push to a branch builds a preview. By default that preview talks to the
+**production** database, because Vercel gives the Preview environment the same
+`DATABASE_URL` unless you say otherwise. So the build refuses to migrate or
+seed from a preview — testing a branch must not alter live data.
+
+Point previews at their own database and they become fully testable, and you
+can review a branch properly before it reaches production.
+
+**1. Create the branch in Neon.** Neon console → your project → **Branches** →
+**New branch**. Branch from `main` (or `production`), and name it something you
+will recognise, e.g. `preview`. Neon copies the data as it stands, so the
+preview starts with realistic content and nothing is shared with production
+afterwards — writes on one do not touch the other.
+
+**2. Copy its connection strings.** On the new branch, open **Connect** and
+copy both the pooled and the direct (unpooled) connection strings.
+
+**3. Point Vercel's Preview environment at it.** Vercel → project →
+**Settings → Environment Variables**. For each of these, set the value and tick
+**Preview only** — leave Production as it is:
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | the branch's pooled connection string |
+| `DATABASE_URL_UNPOOLED` | the branch's direct connection string |
+| `ALLOW_PREVIEW_DB_WRITES` | a distinctive part of the branch's host, e.g. `ep-quiet-moon-12345` |
+
+That third one is the safety catch. It does not just say "yes" — it names the
+database the preview is allowed to prepare. If `DATABASE_URL` is ever left
+pointing at production, the value will not match and the build stops before
+touching anything. Setting it to `1` also works but checks nothing, and the
+build log will say so.
+
+**4. Redeploy the branch.** The build log will say
+`preview deployment - preparing its own database (…)` and name the host. Check
+that the host is the branch, not production. If it says *leaving … untouched*,
+one of the three variables is missing from the Preview scope.
+
+Everything after that behaves normally on previews: migrations apply, the
+retention purge runs, and starter content loads only if the branch is empty.
+
 ## After you deploy — three things to set
 
 Nothing below breaks the site if you skip it, but the platform does less

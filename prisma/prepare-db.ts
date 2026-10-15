@@ -44,21 +44,74 @@ function run(command: string) {
   execSync(command, { stdio: 'inherit', env: { ...process.env, DATABASE_URL: directUrl } });
 }
 
+/** Host and database name, for the log. Never the credentials. */
+function describeDatabase(url: string | undefined): string {
+  if (!url) return 'unknown';
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return 'unparseable';
+  }
+}
+
 async function main() {
-  // Preview builds share whatever DATABASE_URL the Preview environment holds,
-  // which is usually the production one. Pushing the schema or seeding from a
+  const target = describeDatabase(directUrl);
+
+  // Preview builds get whatever DATABASE_URL the Preview environment holds,
+  // which by default is the production one. Migrating or seeding from a
   // feature branch would then alter live data, so those steps are production
-  // only. Set ALLOW_PREVIEW_DB_WRITES=1 if previews ever get their own branch
-  // database.
-  const mayWriteSchema =
-    !vercelEnv || vercelEnv === 'production' || process.env.ALLOW_PREVIEW_DB_WRITES === '1';
+  // only unless previews have been given their own database.
+  //
+  // Opting in names the database rather than just saying yes: set
+  // ALLOW_PREVIEW_DB_WRITES to a distinctive part of the preview database's
+  // host, and if DATABASE_URL has not actually been repointed, the value will
+  // not match and the build stops. Enabling the flag and forgetting to change
+  // the URL is the mistake worth engineering against, because it is silent and
+  // it lands on production.
+  const previewOptIn = process.env.ALLOW_PREVIEW_DB_WRITES?.trim();
+  const isPreview = Boolean(vercelEnv) && vercelEnv !== 'production';
+
+  let mayWriteSchema = !vercelEnv || vercelEnv === 'production';
+
+  if (isPreview && previewOptIn) {
+    if (previewOptIn === '1') {
+      mayWriteSchema = true;
+      console.warn(
+        [
+          '',
+          `WARNING: this ${vercelEnv} build will migrate and seed ${target}.`,
+          'ALLOW_PREVIEW_DB_WRITES is set to "1", which does not check which',
+          'database that is. Set it to a distinctive part of the preview',
+          "database's host instead, and this will refuse to run if the URL is",
+          'ever pointed somewhere else.',
+          '',
+        ].join('\n')
+      );
+    } else if (target.includes(previewOptIn)) {
+      mayWriteSchema = true;
+      console.log(`${vercelEnv} deployment - preparing its own database (${target}).`);
+    } else {
+      fail([
+        `This ${vercelEnv} deployment is set up to prepare its own database,`,
+        `but DATABASE_URL points at ${target}, which does not contain`,
+        `"${previewOptIn}".`,
+        '',
+        'Either DATABASE_URL has not been repointed at the preview branch, or',
+        'ALLOW_PREVIEW_DB_WRITES names the wrong one. Nothing has been changed.',
+      ]);
+    }
+  }
 
   if (!mayWriteSchema) {
     console.log(
-      `${vercelEnv} deployment - skipping schema push and seeding so the production database is left alone.`
+      `${vercelEnv} deployment - leaving ${target} untouched. ` +
+        'Give previews their own database and set ALLOW_PREVIEW_DB_WRITES to part of its host to change that.'
     );
     return;
   }
+
+  console.log(`Preparing ${target}.`);
 
   const prisma = new PrismaClient({ datasourceUrl: directUrl });
 
