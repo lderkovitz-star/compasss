@@ -56,6 +56,34 @@ function describeDatabase(url: string | undefined): string {
 }
 
 /**
+ * Why a connection string could not be read, in words the person who pasted
+ * it can act on. Neon's Connect panel offers a ready-made `psql` command, and
+ * copying the whole line - command, quotes and all - is the usual cause.
+ */
+function explainUnparseable(name: string, value: string): string[] {
+  const trimmed = value.trim();
+  if (/^psql\b/i.test(trimmed)) {
+    return [
+      `${name} starts with "psql", so the whole command line was copied.`,
+      'In Neon, use the connection string on its own - not the psql command.',
+    ];
+  }
+  if (/^["']|["']$/.test(trimmed)) {
+    return [
+      `${name} has quotes around it. Vercel stores the value literally, so the`,
+      'quotes became part of the string. Paste it without them.',
+    ];
+  }
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    return [
+      `${name} does not begin with postgresql:// - it looks like a hostname`,
+      'rather than a full connection string.',
+    ];
+  }
+  return [`${name} is not a connection string this can read.`];
+}
+
+/**
  * The same database, whether reached through the pooler or directly.
  *
  * Neon gives the two connections different hostnames - the pooled one carries
@@ -77,6 +105,26 @@ function sameDatabase(a: string | undefined, b: string | undefined): boolean {
 
 async function main() {
   const target = describeDatabase(directUrl);
+
+  // A value that cannot be read at all is its own problem, and reporting it
+  // as "two different databases" sends someone looking for the wrong thing.
+  for (const name of ['DATABASE_URL', 'DATABASE_URL_UNPOOLED'] as const) {
+    const value = process.env[name];
+    if (!value) continue;
+    try {
+      new URL(value);
+    } catch {
+      fail([
+        ...explainUnparseable(name, value),
+        '',
+        'It should look like:',
+        '  postgresql://user:password@host.neon.tech/neondb?sslmode=require',
+        '',
+        `Set it under Vercel -> Settings -> Environment Variables, scoped to`,
+        `${vercelEnv ?? 'this environment'}. Nothing has been changed.`,
+      ]);
+    }
+  }
 
   // Prisma's datasource reads DATABASE_URL; only migrations here use
   // DATABASE_URL_UNPOOLED. If the two name different databases, the schema
