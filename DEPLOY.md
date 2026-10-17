@@ -157,6 +157,31 @@ That path is kept quiet for tidiness, not for safety: the console is
 protected by its sign-in, and would be equally protected if the address were
 printed on the homepage.
 
+## If a push stops deploying
+
+A private repository makes Vercel check who authored each commit. If the
+deployment status reads:
+
+> Git author &lt;name&gt; must have access to the project on Vercel to create
+> deployments
+
+then the commit's author name does not resolve to an account on the Vercel
+project — and nothing deploys until it does. Confusingly the repository still
+accepts the push; only the build is refused, so the last successful deployment
+stays live and it looks like the new code did nothing.
+
+Two things to check, in this order:
+
+1. **The author name on the commit**, not the email. `git log -1 --format='%an
+   <%ae>'`. It has to match the GitHub account that has access. A commit made
+   with a different `user.name` — a GitHub username rather than the name on
+   the account, say — is refused even when the email is right.
+2. **Project access.** Vercel → Settings → Git, or add the account to the
+   team.
+
+A deploy hook does not get round this: it builds the branch it is bound to,
+and that branch's HEAD commit is checked the same way.
+
 ## Giving previews their own database
 
 Every push to a branch builds a preview. By default that preview talks to the
