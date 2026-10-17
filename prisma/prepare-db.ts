@@ -55,8 +55,47 @@ function describeDatabase(url: string | undefined): string {
   }
 }
 
+/**
+ * The same database, whether reached through the pooler or directly.
+ *
+ * Neon gives the two connections different hostnames - the pooled one carries
+ * a `-pooler` suffix on the endpoint - so they have to be compared with that
+ * removed, or every correct setup looks like a mismatch.
+ */
+function sameDatabase(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return true;
+  const normalise = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return `${parsed.host.replace('-pooler', '')}${parsed.pathname}`;
+    } catch {
+      return url;
+    }
+  };
+  return normalise(a) === normalise(b);
+}
+
 async function main() {
   const target = describeDatabase(directUrl);
+
+  // Prisma's datasource reads DATABASE_URL; only migrations here use
+  // DATABASE_URL_UNPOOLED. If the two name different databases, the schema
+  // gets changed in one place while the application reads another - the
+  // application then fails against a database that was never migrated, and
+  // nothing says why. Easy to do by accident when setting up a preview
+  // branch, so it is checked rather than trusted.
+  if (!sameDatabase(process.env.DATABASE_URL, process.env.DATABASE_URL_UNPOOLED)) {
+    fail([
+      'DATABASE_URL and DATABASE_URL_UNPOOLED point at different databases:',
+      '',
+      `  DATABASE_URL          ${describeDatabase(process.env.DATABASE_URL)}   (what the app reads)`,
+      `  DATABASE_URL_UNPOOLED ${describeDatabase(process.env.DATABASE_URL_UNPOOLED)}   (what migrations would change)`,
+      '',
+      'They must be the pooled and direct connections of the same database.',
+      'This usually means one of them was given a preview branch while the',
+      'other still points somewhere else. Nothing has been changed.',
+    ]);
+  }
 
   // Preview builds get whatever DATABASE_URL the Preview environment holds,
   // which by default is the production one. Migrating or seeding from a
