@@ -136,8 +136,16 @@ async function main() {
         `but DATABASE_URL points at ${target}, which does not contain`,
         `"${previewOptIn}".`,
         '',
-        'Either DATABASE_URL has not been repointed at the preview branch, or',
-        'ALLOW_PREVIEW_DB_WRITES names the wrong one. Nothing has been changed.',
+        'Nothing has been changed. To fix it, in Vercel:',
+        '',
+        '  Settings -> Environment Variables -> DATABASE_URL',
+        `  Scope: ${vercelEnv} only. Value: the pooled connection string of the`,
+        `  "${previewOptIn}" branch, from Neon -> Branches -> Connect.`,
+        '',
+        '  DATABASE_URL_UNPOOLED, same scope, is that branch\'s direct string.',
+        '',
+        'If instead this deployment should use the database it already has,',
+        'remove ALLOW_PREVIEW_DB_WRITES and it will leave it untouched.',
       ]);
     }
   }
