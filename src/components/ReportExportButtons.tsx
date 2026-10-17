@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 
+/**
+ * Downloads a finished report as PDF or Excel.
+ *
+ * Used by the master console and by the employer portal. The employer side
+ * was the point of it - they asked to be able to download a candidate's
+ * report, and until this moved out of the admin folder they could only read
+ * it on screen. Everything is rendered in the browser from props, so no
+ * report data passes through a second endpoint to be exported.
+ */
+
 interface DimensionScore {
   name: string;
   code: string;
@@ -30,7 +40,6 @@ interface ExportButtonsProps {
   candidateNotes?: string | null;
   dimensionScores: DimensionScore[];
   responses: Response[];
-  biometricData?: any[];
 }
 
 export default function ExportButtons({
@@ -46,7 +55,6 @@ export default function ExportButtons({
   candidateNotes,
   dimensionScores,
   responses,
-  biometricData,
 }: ExportButtonsProps) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false);
@@ -173,134 +181,6 @@ export default function ExportButtons({
       // @ts-ignore
       y = (doc as any).lastAutoTable.finalY + 15;
 
-      // ── Biometric Graph ──────────────────────────────────────
-      if (biometricData && biometricData.length > 0) {
-        if (y > pageH - 80) { doc.addPage(); y = 20; }
-
-        doc.setTextColor(15, 23, 42);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("Biometric Stress Timeline", margin, y);
-        doc.setFontSize(8);
-        doc.setTextColor(100, 116, 139);
-        doc.setFont("helvetica", "normal");
-        doc.text("Heart rate correlated to assessment decision points", margin, y + 5);
-
-        y += 12;
-        const chartHeight = 40;
-        const chartWidth = pageW - margin * 2;
-        const chartX = margin;
-        const chartY = y;
-
-        // Draw axes and grid
-        doc.setLineWidth(0.2);
-        doc.setFont("helvetica", "normal");
-
-        const yMax = 140;
-        const yMin = 50;
-        const yRange = yMax - yMin;
-
-        [50, 75, 100, 140].forEach(val => {
-          const ly = chartY + chartHeight - ((val - yMin) / yRange) * chartHeight;
-          doc.setDrawColor(226, 232, 240); // slate-200
-          doc.setLineDashPattern([], 0);
-          doc.line(chartX, ly, chartX + chartWidth, ly);
-          doc.setTextColor(100, 116, 139);
-          doc.setFontSize(7);
-          const txt = val.toString();
-          const tw = doc.getTextWidth(txt);
-          doc.text(txt, chartX - tw - 2, ly + 2.5);
-        });
-
-        // Threshold line at 94 explicitly
-        const threshY = chartY + chartHeight - ((94 - yMin) / yRange) * chartHeight;
-        doc.setDrawColor(252, 165, 165);
-        doc.setLineDashPattern([1, 1], 0);
-        doc.line(chartX, threshY, chartX + chartWidth, threshY);
-        doc.setLineDashPattern([], 0);
-
-        // Draw Line
-        doc.setDrawColor(59, 130, 246); // blue-500
-        doc.setLineWidth(0.5);
-
-        const xStep = chartWidth / (biometricData.length - 1 || 1);
-
-        // 1. Draw Connecting Line
-        biometricData.forEach((d, i) => {
-          const px = chartX + i * xStep;
-          const clampedBpm = Math.max(yMin, Math.min(yMax, d.bpm));
-          const py = chartY + chartHeight - ((clampedBpm - yMin) / yRange) * chartHeight;
-
-          if (i > 0) {
-            const prevD = biometricData[i - 1];
-            const prevClamped = Math.max(yMin, Math.min(yMax, prevD.bpm));
-            const prevPx = chartX + (i - 1) * xStep;
-            const prevPy = chartY + chartHeight - ((prevClamped - yMin) / yRange) * chartHeight;
-            doc.line(prevPx, prevPy, px, py);
-          }
-        });
-
-        // 2. Draw Clean Spaced X-Axis Timestamps (Prevents overlapping)
-        const totalPoints = biometricData.length;
-        const tickCount = Math.min(6, totalPoints);
-        const tickIndices: number[] = [];
-        for (let t = 0; t < tickCount; t++) {
-          const idx = Math.round((t * (totalPoints - 1)) / (tickCount - 1));
-          if (!tickIndices.includes(idx)) {
-            tickIndices.push(idx);
-          }
-        }
-
-        doc.setTextColor(100, 116, 139);
-        doc.setFontSize(6);
-        doc.setFont("helvetica", "normal");
-        tickIndices.forEach((i) => {
-          const d = biometricData[i];
-          const px = chartX + i * xStep;
-
-          // Small tick mark
-          doc.setDrawColor(203, 213, 225);
-          doc.setLineWidth(0.2);
-          doc.line(px, chartY + chartHeight, px, chartY + chartHeight + 1.2);
-
-          // Time label
-          const tw = doc.getTextWidth(d.time);
-          doc.text(d.time, px - tw / 2, chartY + chartHeight + 4.5);
-        });
-
-        // 3. Draw Dots and Exact Values on Top of EVERY Dot
-        doc.setFontSize(5);
-        biometricData.forEach((d, i) => {
-          const px = chartX + i * xStep;
-          const clampedBpm = Math.max(yMin, Math.min(yMax, d.bpm));
-          const py = chartY + chartHeight - ((clampedBpm - yMin) / yRange) * chartHeight;
-          const isSpike = d.bpm > 94;
-
-          if (isSpike) {
-            doc.setFillColor(239, 68, 68); // red-500
-            doc.circle(px, py, 1.2, "F");
-            doc.setTextColor(220, 38, 38); // red-600
-          } else {
-            doc.setFillColor(59, 130, 246); // blue-500
-            doc.circle(px, py, 1, "F");
-            doc.setTextColor(59, 130, 246); // blue-500
-          }
-
-          const bpmText = String(Math.round(d.bpm));
-          const twBpm = doc.getTextWidth(bpmText);
-          doc.text(bpmText, px - twBpm / 2, py - 1.8);
-        });
-
-        // Legend
-        doc.setFillColor(239, 68, 68);
-        doc.circle(margin + 1, chartY + chartHeight + 11, 1.2, "F");
-        doc.setTextColor(100, 116, 139);
-        doc.setFontSize(7);
-        doc.text("Red dots = stress spikes (>94 BPM) correlated with decision pressure.", margin + 4, chartY + chartHeight + 12);
-
-        y = chartY + chartHeight + 20;
-      }
-
       // ── Response Log table ──────────────────────────────────
       if (responses.length > 0) {
         if (y > pageH - 40) { doc.addPage(); y = 20; }
@@ -378,14 +258,6 @@ export default function ExportButtons({
         bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
         right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
       };
-
-      // Biometric stats calculations
-      const bpms = (biometricData || []).map((b: any) => b.bpm);
-      const avgBpm = bpms.length > 0 ? Math.round(bpms.reduce((a: number, b: number) => a + b, 0) / bpms.length) : 72;
-      const peakBpm = bpms.length > 0 ? Math.max(...bpms) : 72;
-      const minBpm = bpms.length > 0 ? Math.min(...bpms) : 72;
-      const stressSpikeThreshold = avgBpm + 20;
-      const stressSpikeCount = (biometricData || []).filter((b: any) => b.bpm > stressSpikeThreshold).length;
 
       // ════════════════════════════════════════════════════════════════════
       // ── TAB 1: Assessment Summary & Dimension Scores ────────────────────
@@ -555,19 +427,6 @@ export default function ExportButtons({
 
       wsSummary.addRow([]); // Blank spacer
 
-      // Biometric Overview Section
-      if (biometricData && biometricData.length > 0) {
-        const addBioHeader = wsSummary.addRow(["3. BIOMETRIC STRESS & PHYSIOLOGICAL TELEMETRY OVERVIEW"]);
-        addBioHeader.height = 20;
-        wsSummary.mergeCells(`A${addBioHeader.number}:G${addBioHeader.number}`);
-        addBioHeader.getCell(1).fill = subHeaderFill;
-        addBioHeader.getCell(1).font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-        addBioHeader.getCell(1).border = borderThin;
-
-        addGridRow("Average Baseline BPM", `${avgBpm} BPM`, "Peak Stress BPM", `${peakBpm} BPM`);
-        addGridRow("Minimum Rest BPM", `${minBpm} BPM`, "Stress Spikes Recorded (>94 BPM)", `${stressSpikeCount} Events`);
-      }
-
       // ════════════════════════════════════════════════════════════════════
       // ── TAB 2: Scenario Responses (Full Questions & Answers) ───────────
       // ════════════════════════════════════════════════════════════════════
@@ -642,67 +501,6 @@ export default function ExportButtons({
           cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
           cell.fill = subHeaderFill;
           if (colNum === 6) cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        });
-      }
-
-      // ════════════════════════════════════════════════════════════════════
-      // ── TAB 3: Biometric Telemetry Stream ───────────────────────────────
-      // ════════════════════════════════════════════════════════════════════
-      if (biometricData && biometricData.length > 0) {
-        const wsBio = wb.addWorksheet("Biometric Telemetry", {
-          views: [{ showGridLines: true }]
-        });
-
-        wsBio.columns = [
-          { header: "Data Point #", key: "step", width: 14 },
-          { header: "Timeline Offset", key: "time", width: 18 },
-          { header: "Heart Rate (BPM)", key: "bpm", width: 20 },
-          { header: "Stress Classification", key: "status", width: 26 },
-          { header: "Variance from Baseline", key: "delta", width: 24 },
-          { header: "Physiological Response State", key: "state", width: 36 }
-        ];
-
-        const bioHeadRow = wsBio.getRow(1);
-        bioHeadRow.height = 24;
-        bioHeadRow.fill = navyHeaderFill;
-        bioHeadRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-        bioHeadRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-        biometricData.forEach((b: any, idx: number) => {
-          const isSpike = b.bpm > 94;
-          const delta = Math.round(b.bpm - avgBpm);
-          const deltaText = delta > 0 ? `+${delta} BPM` : `${delta} BPM`;
-          const stateText = isSpike
-            ? "High Autonomic Stress Peak"
-            : b.bpm > avgBpm + 8
-              ? "Elevated Engagement"
-              : b.bpm < avgBpm - 8
-                ? "Calm / Recovery"
-                : "Steady Baseline State";
-
-          const row = wsBio.addRow([
-            idx + 1,
-            b.time || `T+${idx}m`,
-            `${Math.round(b.bpm)} BPM`,
-            isSpike ? "CRISIS STRESS SPIKE" : "NORMAL",
-            deltaText,
-            stateText
-          ]);
-          row.height = 18;
-
-          row.eachCell((cell, colNum) => {
-            cell.border = borderThin;
-            cell.alignment = { vertical: 'middle', horizontal: colNum <= 5 ? 'center' : 'left' };
-            cell.font = { name: 'Segoe UI', size: 9 };
-
-            if (colNum === 4) {
-              cell.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: isSpike ? 'FFDC2626' : 'FF16A34A' } };
-            } else if (colNum === 3) {
-              cell.font = { name: 'Segoe UI', size: 9, bold: true, color: { argb: isSpike ? 'FFDC2626' : 'FF2563EB' } };
-            } else {
-              cell.font = { name: 'Segoe UI', size: 9, color: { argb: 'FF334155' } };
-            }
-          });
         });
       }
 

@@ -1,0 +1,2963 @@
+{
+  "package": {
+    "name": "Cabin in the Woods",
+    "code": "CABIN_IN_THE_WOODS",
+    "description": "A 50-scenario wilderness expedition behavioral assessment",
+    "version": "1.0.0"
+  },
+  "dimensions": [
+    {
+      "code": "SELF_RELIANCE",
+      "name": "Self Reliance",
+      "category": "Disposition"
+    },
+    {
+      "code": "MOBILITY",
+      "name": "Mobility",
+      "category": "Disposition"
+    },
+    {
+      "code": "RESOURCE_STEWARDSHIP",
+      "name": "Resource Stewardship",
+      "category": "Disposition"
+    },
+    {
+      "code": "TEAM_FOCUS",
+      "name": "Team Focus",
+      "category": "Disposition"
+    },
+    {
+      "code": "SYSTEMS_THINKING",
+      "name": "Systems Thinking",
+      "category": "Disposition"
+    },
+    {
+      "code": "HISTORICAL_INTEREST",
+      "name": "Historical Interest",
+      "category": "Disposition"
+    },
+    {
+      "code": "SECURITY_FOCUS",
+      "name": "Security Focus",
+      "category": "Disposition"
+    },
+    {
+      "code": "MEANING_SEEKING",
+      "name": "Meaning Seeking",
+      "category": "Disposition"
+    },
+    {
+      "code": "INGENUITY",
+      "name": "Ingenuity",
+      "category": "Disposition"
+    },
+    {
+      "code": "RISK_TOLERANCE",
+      "name": "Risk Tolerance",
+      "category": "Disposition"
+    },
+    {
+      "code": "BOUNDARY_RESPECT",
+      "name": "Boundary Respect",
+      "category": "Disposition"
+    }
+  ],
+  "scenarios": [
+    {
+      "sequenceOrder": 1,
+      "externalRef": "CW-001",
+      "title": "The Outdoor Store",
+      "narrativeText": "You and four friends are at a large outdoor store one week before a two-week, unmapped mountain expedition. The group has finished buying the basics, but the money is gone. You have one final $500 store credit to spend. Your friends are all over the place, arguing about what to grab for the trip. You have the final say on what goes into the cart.",
+      "decisionPoint": "You're holding the $500 credit. What are you pushing the group to buy?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Hiking Upgrade",
+          "text": "You grab professional-grade hiking boots and carbon-fiber trekking poles for yourself. You tell the group, \"If I'm going to handle the terrain and set the pace, I need to know my feet are going to hold up no matter what.\"",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Woodsman's Kit",
+          "text": "You pick up a high-capacity expedition pack with an integrated frame and a heavy-duty, razor-sharp camp axe. You tell the group, \"We need to be able to carry serious weight and process whatever we find out there. This axe is going to do a lot of work.\"",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Recovery Setup",
+          "text": "You load up on a high-end, lightweight cot and a premium sleeping system. You tell the group, \"I don't care how tough we act, if we don't get deep, restorative sleep, we're going to be useless by day three. We need to recover properly.\"",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Kitchen & Sustainment Reserve",
+          "text": "You fill the cart with a top-tier, redundant stove system, extra fuel, and a crate of high-density rations. You tell the group, \"We can deal with a lot, but we aren't going to be worth a damn if we don't have good fuel and hot food to keep us going.\"",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 2,
+      "externalRef": "CW-002",
+      "title": "The Ridge, the Brush, or the Bog",
+      "narrativeText": "It is late afternoon on day two of your expedition, and you need to reach the designated basecamp on the other side of a steep, rugged mountain ridge before nightfall. The direct trail is blocked, leaving you with three distinct paths to get to the exact same destination. To the left, you can take the established valley trail that winds completely around the base of the ridge; it is safe and easy, but it adds two full hours to the march, guaranteeing you will be navigating the final stretch in pitch darkness. Straight ahead, a steep scramble goes directly over the rocky crest; it is the most direct route, but the terrain is incredibly rough, requiring intense physical exertion on loose shale. To the right, a low-lying wetland route cuts along the edge of the lake; it is flat and fast, but the thick brush and deep water mean wading through heavy mud, risking wet gear and hypothermia as the temperature drops.",
+      "decisionPoint": "With daylight fading and the same destination waiting on the other side, which route do you commit the team to take?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Low-Risk Contour",
+          "text": "You choose the long route around the base of the mountain. You argue that keeping your footing on an easy trail is worth burning two extra hours, accepting that the team will have to pitch camp using headlamps in the dark to avoid injury or wet gear.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Ridge Scramble",
+          "text": "You choose the direct route straight over the rough, rocky crest. You argue that taking the high ground keeps the team dry and beats the sunset, betting that the group has the raw physical strength to push through the punishing vertical climb.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Wetland Cut",
+          "text": "You choose the fast route through the low-lying bog. You argue that speed is your best asset to beat the cold, deciding that clearing the thick brush and taking a direct path is worth the risk of getting bogged down in wet mud.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Safe Bivouac",
+          "text": "You refuse to rush the mountain, calling a halt to pitch camp right where you are on the near side. You argue that forcing a tired team through dark trails, rough rocks, or cold water just to reach a specific spot is a trap, choosing instead to conserve your energy and cross safely in the morning.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 3,
+      "externalRef": "CW-003",
+      "title": "The Camp Footprint",
+      "narrativeText": "It is the end of day three, and the team has successfully reached a flat, heavily wooded clearing to establish a semi-permanent basecamp for the next few days. The site is good, but the physical environment presents clear trade-offs in how you arrange your camp footprint as a light drizzle starts and the wind picks up. Your friends are already dropping their packs, exhausted and eager to rest. You need to assign the immediate priorities for setting up before total darkness sets in. One area sits close to a fast-moving stream, offering easy water access that simplifies daily operations but requires significant upfront effort to secure against the weather. Another area is tucked deep under a thick canopy of dead-standing timber, which blocks the rain completely but poses a falling branch hazard if the wind worsens. A third spot is a clean, open rock shelf—perfectly safe from falling limbs but entirely exposed to the elements.",
+      "decisionPoint": "Looking at the clearing as the temperature drops, how do you direct the group to establish the camp?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Efficiency Core",
+          "text": "You order everyone to concentrate all energy on pitching tents immediately on the open rock shelf, exposed to the weather but clear of hazards. You argue that getting shelter up fast is the highest priority, and you can deal with the wind as long as everyone is dry and secure from falling timber.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Infrastructure Model",
+          "text": "You direct the team to invest their remaining energy into securing the stream location, building out structural windbreaks and a stable perimeter right next to your primary water source. You argue that securing an optimal, long-term resource spot is worth the heavy upfront effort to make operations seamless for the next three days.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Recovery Focus",
+          "text": "You pitch camp deep under the thick timber canopy to take immediate advantage of the natural rain shield. You argue that conserving the group's remaining physical energy and staying out of the drizzle outweighs the statistical risk of a falling limb, prioritizing immediate comfort and recovery.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Specialist Protocol",
+          "text": "You assign each person complete responsibility for a distinct domain—water collection, shelter setup, fire preparation, or food storage. Rather than forcing everyone into a single centralized footprint, you allow each member to establish their workspace where they believe it will function best, arguing that decentralized ownership and individual autonomy create a more resilient camp.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 4,
+      "externalRef": "CW-004",
+      "title": "The Midnight Thunder",
+      "narrativeText": "It is 2:00 AM on night three. The light drizzle from earlier has steadily built into a heavy, thundering downpour that echoes through the mountain valley. Lightning flashes in the distance, illuminating the camp through the tent walls, and a steady wind is testing your knots. Everyone is awake, listening to the weather crackling and thundering in the sky above. Inside your shelter, you notice that water has begun to saturate the ground outside, and a slow drip is starting to form over one of the gear storage piles. Your friends are calling out between shelters, checking on each other, and wondering if they need to get up and adjust the camp layout before the storm gets worse.",
+      "decisionPoint": "Listening to the storm hit the shelters in the dark, how do you handle the group's reaction to the weather?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Stay-Put Order",
+          "text": "You tell everyone to stay zipped inside their shelters and ride it out. You argue that getting out into the cold rain to fix minor leaks is a classic mistake that just gets people wet and shivering, betting that your basic shelter setups will hold until morning.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Trenching Detail",
+          "text": "You get out with a flashlight to dig drainage channels around the low-lying areas of the camp and secure the gear line. You argue that letting water pool early creates a cascading mess for the next two days, choosing to put in the uncomfortable midnight maintenance work to protect the footprint.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Welfare Check",
+          "text": "You open up your shelter to check on the rest of the team, passing extra dry layers to anyone dealing with a leak. You argue that keeping tabs on everyone's morale and thermal comfort during a rough night is the highest priority, ensuring nobody is quietly freezing or panicking in the dark.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Individual Status",
+          "text": "You shout back that everyone needs to assess and manage their own immediate shelter footprint. You argue that trying to coordinate a group effort in a midnight downpour is useless, leaving it to each individual to handle their own leaks and secure their personal gear.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 5,
+      "externalRef": "CW-005",
+      "title": "The Compromised Canopy",
+      "narrativeText": "It is now 3:00 AM on night three, and the downpour shows no signs of slowing down. Inside your own shelter, you realize the fabric is completely saturated. There is a well-known reality with single-wall tents: the moment you start touching the wet fabric or moving gear around, you break the surface tension, causing the water to actively seep through and compromise the dryness of your entire space. At the same time, you look out the mesh door and notice the communal supply tarp—where the bulk of the group's food and cooking gear is stored—is beginning to sag heavily under a massive pocket of pooled water. Opening your tent door to fix it means letting the driving rain flood your own dry clothes, but leaving it alone risks a total failure of the food shelter.",
+      "decisionPoint": "Trapped between protecting your personal dry environment and securing the shared supply line, what do you do?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Static Defensive",
+          "text": "You keep your tent zipped tight and refuse to touch the saturated walls, staying perfectly still to preserve your immediate personal dryness. You argue that maintaining your own thermal baseline is your primary duty, and ruining your own gear to save a sagging tarp in the dark creates two problems instead of one.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Exposure Intervention",
+          "text": "You unzip your tent, step out into the downpour, and quickly clear the pooling water off the food tarp before it collapses. You accept that your personal clothes and shelter will get wet, arguing that protecting the collective food supply from a catastrophic soaking is worth the immediate sacrifice of your own comfort.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Coordinated Attempt",
+          "text": "You call out to the closest shelter, trying to coordinate a quick, synchronized push from the inside of their own vestibules to nudge the tarp frame. You accept that blind coordination in a midnight storm is highly uncertain and might fail before the tarp gives way, but you argue that attempting a collective fix is better than rushing out or doing nothing.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Calculated Containment",
+          "text": "You stay inside your tent but use a trekking pole to carefully rearrange your personal gear away from your own walls without touching the fabric. You shout to the group to monitor their own supplies, arguing that each person must focus on stabilizing what is within their reach rather than launching a risky midnight salvage operation.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 6,
+      "externalRef": "CW-006",
+      "title": "The Morning After",
+      "narrativeText": "It is 7:00 AM on morning four. The storm has finally passed, leaving the mountain valley quiet, damp, and freezing cold. As the team crawls out of their shelters, the reality of the night sets in: everyone is exhausted, several sleeping bags are damp, and morale has bottomed out. The immediate task is to get the camp functional, pack up, and prepare for the day's hike. However, energy is low and people are moving slowly, shivering as they try to reorganize. To get the group moving and warm, you need to establish the very first priority of the morning. One option is to immediately build a large, high-energy campfire to dry out gear and raise spirits, though finding dry wood after a downpour will take a concentrated group effort. Another option is to bypass a fire entirely and force everyone to pack their wet gear immediately, using the heavy physical exertion of the march itself to generate body heat and make up for lost time.",
+      "decisionPoint": "Standing in the damp, freezing morning camp with a shivering team, how do you direct the first hour of the day?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Momentum Surge",
+          "text": "You order the group to skip the fire, pack up the damp camp immediately, and get moving on the trail. You argue that sitting around in wet gear waiting for a fire to catch is a trap that breeds stagnation, choosing instead to use the raw physical exertion of hiking to naturally warm the team and clear the valley.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Thermal Restoration",
+          "text": "You halt all packing and mobilize the entire team to hunt for dry standing wood and resinous pine knots to build a massive fire. You argue that forcing people to march while shivering and damp is an operational risk, betting that burning an hour of daylight to dry gear and restore core body heat is an essential investment.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Metabolic Priority",
+          "text": "You direct all immediate energy toward boiling water on the stable camp stoves to distribute hot coffee and high-calorie rations while everyone remains in their shelters. You argue that internal heat and metabolic fueling must come before either heavy physical labor or trail packing, focusing on re-centering the team's internal comfort first.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Parallel Prep",
+          "text": "You refuse to set a single uniform task, telling the team to divide and conquer based on their immediate state—those who are dry start packing group gear, while those who are wet focus entirely on drying out their personal kits. You recognize that self-directed work will likely create inefficiencies, duplicated effort, and uneven standards across the camp, but you accept those costs to give individuals the flexibility to self-correct.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 7,
+      "externalRef": "CW-007",
+      "title": "The Distribution of Weight",
+      "narrativeText": "It is 9:00 AM on day four, and the team is finally packed up and ready to move. However, the midnight storm has left behind a structural problem: three of the group's four-person tents are completely waterlogged, adding an extra eight pounds of dead, saturated weight to each one. This extra group gear must be carried out, but your teammates are starting the day at completely different physical baselines. Two members are visibly exhausted from a sleepless night and shivering, while the other two managed to stay dry and are full of nervous energy. The heavy, wet tents are currently sitting on the ground, and you need to decide how to distribute this uneven burden before the first mile begins.",
+      "decisionPoint": "Looking at the wet gear and the varying physical states of your team, how do you assign the load?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Absolute Equality",
+          "text": "You divide the extra wet weight mathematically down to the ounce, ensuring every single person carries an identical share of the communal burden. You argue that on a team expedition, true solidarity means sharing the pain equally, refusing to let individual performance variances dictate a deviation from uniform standards.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Capability Load",
+          "text": "You assign all the heavy, waterlogged tents to the two dry, fresh team members, leaving the exhausted members with only their personal kits. You argue that leadership requires maximizing systemic efficiency, protecting your vulnerable assets by leveraging the temporary strength of those who are currently at 100%.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Collective Rotation",
+          "text": "You keep the original gear assignments but implement a strict, mandatory time-based rotation, forcing the group to drop packs and swap the heavy wet tents between every single member every sixty minutes. You argue that a rotating burden keeps any one person from burning out entirely, prioritizing long-term group endurance over smooth, continuous pacing.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Autonomy Auction",
+          "text": "You place the wet gear in the center and allow the team to self-select their loads, accepting that some people may underestimate their limits, overestimate their willingness, or quietly avoid the heaviest burdens. You argue that forcing assignments onto adults breaks trust, choosing to protect individual agency even if it results in an uneven or sluggish operation.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 8,
+      "externalRef": "CW-008",
+      "title": "The Pacing Tension",
+      "narrativeText": "It is noon on day four. With the heavy, wet gear distributed, the team has been marching uphill for three hours. The physical division from this morning is now manifesting on the trail as a severe pacing gap. The two fresh, dry team members are moving at an aggressive clip, pulling far ahead and waiting at trail bends, visibly annoyed by the delays. Meanwhile, the two exhausted team members are lagging significantly behind, stopping frequently to adjust their straps and catch their breath. The distance between the front and the back of your line is widening dangerously, stretching out over a quarter-mile of dense, winding mountain trail where sightlines are poor. You are walking in the middle of the gap, and you need to set the pacing strategy for the rest of the afternoon.",
+      "decisionPoint": "Standing between a fractured line as the distance between your front and rear runners widens, how do you handle the team's pace?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Lead Pace",
+          "text": "You command the front runners to maintain their fast speed and tell the lagging members to push their limits to keep up. You argue that slowing down the entire collective unit to match the weakest link burns precious daylight and destroys the momentum needed to clear the ridge before dark.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Anchor Consolidation",
+          "text": "You halt the front runners completely and force them to match the exact pace of the slowest, most exhausted members, keeping the entire team in a tight, single file behind the anchor. You argue that a team is only as fast as its slowest member, prioritizing absolute group cohesion and safety over speed.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Leapfrog Interval",
+          "text": "You instruct the fast front runners to push ahead to a designated landmark one mile out, drop their packs to rest, and then hike back empty-handed to take the heavy gear from the lagging members. You recognize that the repeated backtracking will consume additional energy from your strongest members and may leave them exhausted later in the day, but you argue that using excess capacity to actively buffer struggling units maximizes your total systemic throughput.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Split-Unit Autonomy",
+          "text": "You divide the group into two independent pairs—the fast group moves ahead to set up the next camp early, while you stay behind to manage the slow group at their own comfortable rhythm. You recognize that splitting the team reduces your immediate communication and leaves the trailing group without full camp setup support, but you accept that risk to eliminate interpersonal frustration and let each unit move naturally.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 9,
+      "externalRef": "CW-009",
+      "title": "The Private Stash",
+      "narrativeText": "It is 4:00 PM on day four, and the team has dropped packs at a trail junction for a brief afternoon break. The mood is a bit quiet and road-weary, but stable. While everyone is digging out the standard, uninspiring bulk trail mix from the shared food bags, one team member unzips a side pocket and pulls out a premium energy bar and a specialized sports drink they brought from home. It's nothing major, but it wasn't part of the shared spreadsheet everyone contributed to before the trip. A couple of your teammates notice the upgrade, and while nobody says anything out loud, there is a distinct shift in the air as people watch them snap the bar in half.",
+      "decisionPoint": "Noticing the minor social friction over unpooled personal items, how do you view the situation?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Individual Prep",
+          "text": "You ignore the looks and support the member eating their snack. You argue that personal foresight and individual preference are entirely their own business, and if people wanted premium snacks on the trail, they should have packed them in their personal gear before leaving.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Unified Standard",
+          "text": "You casually suggest that next time, all specialty items should go into the group pool so everyone eats the same tier of rations. You argue that keeping everyone on an identical standard prevents subtle divisions and maintains a consistent, shared experience across the line.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Informal Bridge",
+          "text": "You use the moment to jokingly ask the member if they're willing to trade a bite of the bar for a handful of trail mix, breaking the ice naturally. You recognize that inserting yourself with a joke risks making the moment awkward or drawing even more unwanted attention to the disparity if the humor lands poorly, but you argue that a casual trade is the best way to defuse the tension without creating a formal issue.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Mind-Your-Own Policy",
+          "text": "You keep your head down, focus entirely on re-tying your boots, and stay completely out of it. You argue that policing what people eat or how others react to it is a waste of leadership energy, leaving adults to manage their own personal boundaries and trail habits independently.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 10,
+      "externalRef": "CW-010",
+      "title": "The Blind Fork",
+      "narrativeText": "It is 5:30 PM on day four. The approaching storm front hits the ridge earlier than expected, bringing sudden fog and a driving rain that drops visibility down to twenty feet. Because of the pacing differences earlier, your two fastest members pushed hard to outrace the weather and have completely vanished into the mist ahead. You are walking with the trailing group when the trail hits an unmarked, muddy fork in the dense woods. There is no cell service, the wind is howling too loudly for shouting to work, and you can't tell which path the forward pair took. Pushing forward blindly risks completely separating the two halves of the team in a storm, but halting in the exposed downpour to wait or search will leave everyone freezing.",
+      "decisionPoint": "Standing at a blind fork in a worsening storm with a fractured team, how do you handle the navigation?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Fixed Rendezvous",
+          "text": "You pick the path that looks most established on your map and push the trailing group forward down it to the lake, trusting the forward pair to do the same. You argue that in a storm, everyone must independently execute the original plan and move toward the final objective rather than hesitating at intermediate points.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Hard Anchor",
+          "text": "You order the trailing group to halt completely at the fork, pitch an emergency tarp right where you are, and stay put until the forward pair realizes they lost you and hikes back. You argue that maintaining a known, fixed location is the absolute rule of search and rescue, prioritizing team re-consolidation over trail progress.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Active Scout",
+          "text": "You have the trailing group wait under a tree while you drop your pack and jog a few hundred yards down both paths to look for fresh footprints or broken branches before making a group move. You recognize that splitting yourself from the trailing group in zero visibility carries a high risk of getting disoriented or losing valuable time, but you argue it is the only way to make an informed decision.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Trail Marker",
+          "text": "You pick a path, leave a clear, makeshift arrow out of rocks or branches at the fork for anyone behind you, and continue forward. You argue that creating highly visible navigation cues for the route is more valuable than freezing in place or conducting a blind search, trusting decentralized recovery over forced tracking.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 11,
+      "externalRef": "CW-011",
+      "title": "The Pre-Empted Campsite",
+      "narrativeText": "It is 6:45 PM on day four. The trailing group has finally made it down to the lake basin, and to your immense relief, you have successfully reunited with the forward pair. However, the storm has created a new, immediate bottleneck: the lake basin is heavily flooded, leaving only one small, elevated gravel shelf dry enough to pitch the group's remaining intact tents. The problem is that another independent hiking group of three people arrived from the opposite direction just ten minutes before you did. They are currently shivering in the downpour, unpacking their gear, and preparing to lay claim to the exact same dry shelf. There is physically not enough room on this high ground for both groups' setups, and the surrounding low-lying areas are rapidly turning into ankle-deep mud puddles.",
+      "decisionPoint": "Arriving at the only viable camp real estate to find another party staking a claim, how do you manage the space?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Prior Claim",
+          "text": "You immediately march up to the other group, explain that your team has been tracking toward this specific site all day, and assertively stake your claim to the premium dry ground. You argue that your team's size, exposure level, and physical exhaustion require you to secure the best defensive position possible, refusing to yield critical structural safety out of politeness.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Complete Yield",
+          "text": "You immediately concede the dry shelf to the other group without a dispute and direct your team to start pitching your tents in the muddy, low-lying zone. You argue that entering into a territorial conflict with strangers during a storm introduces severe social risk and chaos, choosing to absorb the physical discomfort of a wet campsite to maintain absolute ethical boundaries and peace.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Compressed Share",
+          "text": "You approach their leader and propose a tightly packed compromise: both groups condense their tent footprints, overlap rainflies, and crowd together to fit all the shelters onto the single dry shelf. You recognize that losing physical separation and mixing camp spaces with strangers will create an cramped, highly inefficient environment for the night, but you argue it minimizes total human exposure.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Alternative Search",
+          "text": "You bypass the shelf entirely, keep your packs on, and immediately push your team another half-mile down an unverified side trail into the woods to find a completely separate clearing. You argue that staying to fight over or crowd into a single site is a high-friction trap, choosing to maintain your unit's total autonomy even if it means marching longer in the dark.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 12,
+      "externalRef": "CW-012",
+      "title": "The Neighbor's Request",
+      "narrativeText": "It is 7:30 PM on day four. The shelters are finally pitched, and the reality of camping in close proximity to the other three-person hiking group has set in. Whether sharing the tight gravel shelf or pitched just within sight in the woods, your camps are structurally entangled. As the rain settles into a steady drizzle, the leader of the other group walks over to your perimeter. They explain that during their frantic scramble to beat the storm, they dropped and broke their only folding camp shovel, and their water filtration system is running incredibly slow due to a clogged filter. They ask if they can borrow your group's primary trowel to dig their sanitation trenches and use your gravity-fed water filter to process their evening supply.",
+      "decisionPoint": "Facing a neighboring unit requesting access to your team's essential operational gear, how do you manage your resources?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Strict Isolation",
+          "text": "You politely but firmly decline their request, stating that your team's gear must remain exclusively within your camp for the night. You argue that lending out essential, high-wear infrastructure like filters and sanitation tools during a multi-day trip introduces an unacceptable risk of equipment breakage or contamination, prioritizing absolute self-reliance.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Open Commons",
+          "text": "You immediately hand over both the trowel and the water filter, telling them to keep the gear for as long as they need it tonight. You argue that in the backcountry, all human assets must pool together during a crisis, choosing to accept the wear-and-tear risks to establish an absolute baseline of cross-camp community and mutual aid.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Monopolized Service",
+          "text": "You decline to let the equipment leave your sight, but you offer a compromise: you or one of your members will personally go over to filter their water for them and dig the necessary trench lines. You recognize that donating your team's physical labor after an exhausting day will heavily drain your members' remaining energy, but you argue it fulfills a moral obligation while keeping total physical custody of your assets.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Transactional Barter",
+          "text": "You agree to lend them the water filter and trowel, but only if they agree to trade something of equal value for the evening—such as a dry bundles of fire-starter wood or a portion of their specialized weather maps. You argue that structural relationships between independent units function best on clear, reciprocal transactions rather than free compliance or top-down charity.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 13,
+      "externalRef": "CW-013",
+      "title": "The Midnight Boundary",
+      "narrativeText": "It is 2:00 AM on night four. The rain has stopped, but the temperature has plummeted, leaving the camp quiet and frozen. You are shaken awake by a team member who points out through the tent mesh: a lone member of the neighboring camp is currently crossing your perimeter with a headlamp, heading directly toward the tarp where your group's specialized ropes and technical packs are stored. In the pitch black, it is impossible to tell if they are simply disoriented, looking to borrow a tool without asking, or sorting through your gear. The rest of your team is fast asleep, and you have only seconds to react before the person steps into your central gear pile.",
+      "decisionPoint": "Spotting a neighboring camper crossing your perimeter toward your critical assets in the dark, how do you engage?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Firm Command",
+          "text": "You immediately un-zip the tent, step outside, shine your flashlight at them, and firmly tell them to stop where they are. You argue that establishing an immediate, unyielding boundary prevents any ambiguity from turning into an incident, choosing to use a strong deterrent to protect your assets even if it risks embarrassing an innocent person.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Quiet Shadow",
+          "text": "You slip out of your shelter silently into the darkness without turning on a light, tracking their movements closely from the shadows to see exactly what they do before making your presence known. You recognize that waiting to gather undeniable evidence of their intent means they may have enough time to access, damage, or remove critical gear before you can stop them, but you argue that moving prematurely destroys your information advantage.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The De-escalating Greeting",
+          "text": "You call out warmly and casually from inside the safety of your tent, asking them if they are lost or if they need help finding their way back to their shelters. You recognize that giving an unknown actor the benefit of the doubt inside your perimeter risks lowering your guard against a bad actor, but you argue it prevents a hostile, dangerous misunderstanding in the dark.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Group Awakening",
+          "text": "You stay low inside the shelter, shake your resting teammates awake to quietly alert them, and form a coordinated line before stepping out together. You recognize that taking the time to wake and organize your sleeping team causes a distinct operational delay that might allow the individual to slip away or handle your gear unhindered, but you accept that cost to ensure you have full collective support and security before a confrontation.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -10,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 14,
+      "externalRef": "CW-014",
+      "title": "The Morning Disclosure",
+      "narrativeText": "It is 7:00 AM on day five. The midnight incident has passed, and as the group prepares breakfast, the leader of the neighboring camp walks into your clearing. They look exhausted and genuinely apologetic, explaining that their teammate who crossed your perimeter last night was severely dehydrated, sleep-deprived, and looking for their own group's water storage bag in a state of confusion. To show goodwill, their leader offers to let your group use their highly detailed, local topographic map coordinates for the upcoming ridge cross—a resource that would let you bypass a notoriously steep, muddy boulder field on today's route. However, you notice that their team is now completely out of fuel canisters, meaning they will have to eat cold, uncooked rations for the remaining three days of their trip unless someone gives them a spare.",
+      "decisionPoint": "Offered a highly valuable navigational asset by a struggling neighbor who clearly needs your team's mechanical resources, how do you handle the exchange?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Transactional Swap",
+          "text": "You accept their topographic coordinates, but only after explicitly offering one of your group's spare fuel canisters in return. You argue that clear, equal reciprocity maintains clean structural boundaries between independent units, refusing to accept high-value favors without paying a fair, balanced price.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Free Advantage",
+          "text": "You gladly take their map coordinates to optimize your route, thank them warmly for their generosity, but keep your spare fuel canisters securely inside your packs without offering them. You argue that your primary duty is to maximize your own team's resource cushion, using their voluntary goodwill to get ahead without exposing your own inventory to depletion.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Generous Assistance",
+          "text": "You give them a spare fuel canister immediately to ensure they can cook hot meals, but you decline to take their topographic coordinates, choosing to stick strictly to your original trail route. You argue that helping a vulnerable neighbor is an absolute human obligation, but you choose to remain entirely self-reliant for your own path rather than changing plans based on outside data.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Complete Disengagement",
+          "text": "You politely decline their map coordinates and keep your fuel canisters to yourself, ending the conversation quickly so your team can focus on packing up. You argue that mixing inventories, trading resources, or altering routes with outside parties on day five introduces unpredictable variables and dependencies, choosing total operational isolation.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -10,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 15,
+      "externalRef": "CW-015",
+      "title": "The Shared Chimney",
+      "narrativeText": "It is 11:30 AM on day five. Having coordinated your departure from camp together this morning, your group and the neighboring three-person team are moving as a combined five-mile-per-hour convoy. You have reached the base of the high mountain pass—a steep, single-file scramble through a treacherous rock chimney where a single misstep can cause a severe fall. As the combined line moves upward, the external team's dehydrated member freezes on a vertical ledge, completely paralyzed by exhaustion and fear. Because the two groups are physically interlinked on the narrow route, this failure instantly stalls the entire column. You are exposed to bitter winds on a steep face, your timeline is evaporating, and you need to resolve the deadlock.",
+      "decisionPoint": "With a combined column stalled on an exposed rock face due to an external partner's failure, how do you manage the bottleneck?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Assertive Overtake",
+          "text": "You direct your team members to carefully climb around the stalled hiker, step over the gap, and continue up the ridge to clear the bottleneck. You argue that your primary duty is to your own group's timeline and safety, and trapping high-performing assets behind a partner's localized collapse invites unnecessary risk for your people.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Integrated Rescue",
+          "text": "You push to the front of the stalled gap yourself, offer to shoulder the frozen hiker's pack, and have your team form a human spotting line to physically guide their feet up the rock face. You recognize that absorbing their dead weight and exposure risk heavily strains your own team's physical reserve, but you argue that an integrated column requires integrated accountability to get through.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Secure Retreat",
+          "text": "You order your team to systematically climb backward down the rock face to a secure, wider ledge below, dropping your packs to wait until the other group manages to clear the obstacle on their own. You argue that crowding a panicked climber on a technical ascent creates a dangerous psychological pressure cooker, choosing to sacrifice a major block of daylight to maintain a safe, clean separation.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Technical Detour",
+          "text": "You pull your team completely off the established route and commit to an unmaintained, loose scree slope to the left to bypass the chimney entirely. You recognize that navigating an unverified gravel field carries a significantly higher risk of an immediate ankle injury, but you accept that physical risk to break the alliance and regain total operational independence.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 16,
+      "externalRef": "CW-016",
+      "title": "The Divided Descent",
+      "narrativeText": "It is 2:30 PM on day five. The intense scramble over the pass is behind you, and the combined column has reached the high plateau where the trail splits for the long descent. The left fork is a steep, rugged drop through a creek bed—it is fast and direct, but punishing on knees and heavy packs. The right fork is a beautifully graded, gentle switchback trail that adds an extra four miles to the journey. The other group's leader notes that because their exhausted hiker spent their absolute last reserves of strength pushing through the chimney with your team, they cannot physically handle the jarring drops of the creek bed and must take the long switchbacks. Furthermore, taking that four-mile detour means they will be caught out after dark without any remaining fuel or hot food. Your own team is highly capable and eager to take the fast route to secure a camp before freezing temperatures set in.",
+      "decisionPoint": "With the shared crisis resolved but your partner heavily compromised by the joint effort, how do you manage the split?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Clean Off-Ramp",
+          "text": "You bid the other group farewell, take your team down the fast creek bed, and let them proceed down the switchbacks alone. You argue that the structural alliance was strictly for the ridge crossing, and once the bottleneck is cleared, a high-performing unit must reclaim its own speed and safety rather than inheriting an external group's long-term liabilities.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Alliance Continuity",
+          "text": "You keep your entire team locked into the combined column, committing everyone to the slow, four-mile switchback detour to escort them all the way down. You argue that because their member exhausted themselves keeping pace with the shared line, you have a lingering structural obligation to ensure they reach the valley safely, prioritizing relationship equity over your own timeline.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -10,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Resource Fractionalization",
+          "text": "You split your own team—letting your two fastest members take the rapid creek bed to secure your next campsite early, while you and your remaining member hike the long switchbacks with the other group. You recognize that fracturing your unit across two different sides of the mountain severely weakens your internal communication and emergency support capabilities, but you argue it balances internal efficiency with external obligation.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Single-Standard Drag",
+          "text": "You insist that both teams must stay together but force the entire column down the fast, rugged creek bed, ordering your strongest members to physically carry the neighbor's heavy gear packs to make it possible for their slow hiker. You argue that keeping all human assets unified on the most direct operational path is the only logical choice, choosing to absorb a massive immediate physical strain to prevent a total separation.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 17,
+      "externalRef": "CW-017",
+      "title": "The Inventory Reconciliation",
+      "narrativeText": "It is 8:30 AM on day six. The descent is behind you, and your team is preparing for the final, twenty-mile push toward the expedition's exit trailhead. As you pull your gear apart to pack up, you discover that a mistake was made during the chaotic, dark reorganization at the plateau yesterday: your team inadvertently packed the neighboring group's high-end, lightweight personal satellite communicator into one of your side pockets, while they mistakenly walked away with your team's heavy, baseline backup radio. You now possess a significantly superior communication asset that isn't yours, while they are stuck with an inferior tool. Turning around to hike back and find them to swap the gear back will cost your team an entire morning of daylight, forcing you to finish the trek in a treacherous canyon after dark.",
+      "decisionPoint": "Discovering an accidental gear swap that leaves your team with a superior asset but delays your schedule if corrected, how do you handle the inventory?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Operational Keepsake",
+          "text": "You slip the superior satellite communicator into your pack, keep moving forward on schedule, and decide to contact the other group to return it only after you have safely finished the expedition. You argue that maintaining your immediate timeline and safety margin overrides a non-critical asset correction on the trail, prioritizing immediate operational momentum over strict property boundaries.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Immediate Reversal",
+          "text": "You halt the entire team, drop packs, and turn around to hike back up the trail until you locate the other group to swap the gear back immediately. You argue that operating with property that is not yours destroys your team's ethical integrity, choosing to absorb a massive time deficit and a hazardous night-hike to ensure absolute equity and clean boundaries.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -10,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Delayed Courier",
+          "text": "You pick your two fastest, unburdened members and send them sprinting backward up the trail to find the other group and make the swap, while you and the remaining members continue walking slowly forward with the heavy gear. You recognize that splitting your team on the final leg reduces your immediate safety net and fractures your unit's collective strength, but you argue it is the only way to correct the mistake without stopping the line.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Fixed Depository",
+          "text": "You leave their satellite communicator inside a weatherproof bag hanging directly from a prominent, marked trail signpost right where you are, hoping they notice the swap and look for it, while you keep moving forward. You argue that you are not responsible for tracking down another group's assets, choosing a passive, systemic compromise that clears your hands of the gear without sacrificing your timeline.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 18,
+      "externalRef": "CW-018",
+      "title": "The Compressed Margin",
+      "narrativeText": "It is 1:30 PM on day six. Your team is moving through a deep river gorge on the final ten-mile leg toward the trailhead when a park ranger coming down the trail flags you down. They explain that an upstream dam release has been moved forward and a flood surge is expected to enter the gorge later this afternoon. Based on your current pace, your safety margin is extremely tight. Beating the water will require pushing the team significantly harder than planned, while delaying could leave you exposed inside the gorge.",
+      "decisionPoint": "Faced with a narrowing safety margin and an approaching flood surge, how do you execute the final leg of the expedition?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Forced Redline",
+          "text": "Ditch all non-essential group gear (stoves, heavy tools, extra tarps) right on the trail and break into an aggressive power-march. You argue that abandoning physical assets is a necessary cost to maximize immediate velocity and beat a hard deadline.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The High-Stain Hold",
+          "text": "Keep packs fully loaded, lock into a tight file, and demand the team endure the grueling, high-speed pace together without stopping. You argue that stripping your inventory leaves you dangerously exposed if you fail to beat the water anyway.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Tiered Extraction",
+          "text": "Transfer the heaviest gear from your two weakest hikers to the two strongest, and order the unburdened group to move at an elevated, aggressive pace. You argue that asymmetrically overloading your peak performers balances team safety with asset preservation.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Calculated Delay",
+          "text": "Reject the race entirely. Halt the team, turn back a quarter-mile to an elevated rock outcrop, and prepare to bivouac for twelve hours until the flood crest subsides. You argue that racing a hard environmental clock in a choke point is an unacceptable gamble.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 19,
+      "externalRef": "CW-019",
+      "title": "The Upper Escarpment",
+      "narrativeText": "It is 3:30 PM on day six. Your team has clawed its way up the slick, muddy paths of the gorge, escaping the rising floodwaters below. While you are above the high-water mark, the terrain is an unstable mix of wet clay and loose shale. The exit is two miles away, but the trail is washed out by a fresh mudslide, leaving a forty-foot gap over a steep drop. You can either spend two hours cutting a safe bypass through dense brush, or carefully cross the mudslide using a single anchored rope to save time.",
+      "decisionPoint": "Faced with a damaged trail just after escaping the gorge flood, how do you navigate?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Aggressive Cross",
+          "text": "Anchor your rope and cross the slide one by one. You argue that maintaining velocity and beating the dropping temperature overrides the risk of a slip.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Deliberate Bypass",
+          "text": "Spend two hours clearing a secure path through the brush. You argue that exposing exhausted assets to an unverified drop is a safety failure.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Distributed Scout",
+          "text": "Send two agile members to verify if the mudslide is stable while the others begin digging the bypass. You argue that you should test the primary option before committing the whole team.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Absolute Halt",
+          "text": "\"Order the team to build an emergency fire and wait until daylight conditions improve or the terrain can be reassessed.\"",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 20,
+      "externalRef": "CW-020",
+      "title": "The Ambiguous Opening",
+      "narrativeText": "It is 4:30 PM. You have cleared the final gorge obstacle. As you climb the last ridge, you spot a semi-concealed opening in the cliffside. It isn't just a cave; you see the faint, geometric lines of cut stone and a rusted iron hinge buried in the mud—a clear sign of human-made infrastructure from a past era. The trailhead is only a mile away. Two members are already moving toward it to investigate, while the others are hesitant, worried that this structure might be unstable, hazardous, or simply an irrelevant distraction from your mission.",
+      "decisionPoint": "Facing an unexpected, man-made opportunity near the finish line, what is your strategic response?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Agile Assessment",
+          "text": "You order a \"quick look\" protocol. You and the lead scout enter for a rapid, five-minute assessment of the structure's nature and stability, while the rest of the team maintains a fixed position at the ridge. You prioritize high-speed information gathering to see if this represents a high-value asset or a dead end.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Collaborative Pivot",
+          "text": "You move the entire team to the entrance and authorize a 20-minute group exploration. You argue that the team's collective intelligence is your greatest asset, and any discovery here (historical, structural, or logistical) should be vetted by the whole unit to ensure all perspectives are represented.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Mission Purist",
+          "text": "You classify the structure as an \"out-of-scope distraction.\" You mandate immediate continuation to the trailhead, arguing that success is defined by delivering the team to the objective on time, not by chasing undocumented curiosities.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Structural Audit",
+          "text": "You treat the find as a potential project of record. You establish a formal 30-minute block to document, photograph, and safely evaluate the exterior and entrance, weighing the potential long-term value of the find against the immediate cost of the delay.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 21,
+      "externalRef": "CW-021",
+      "title": "The Commitment Bottleneck",
+      "narrativeText": "You have officially moved into the investigation phase. The passage has narrowed into a difficult bottleneck. You can see that the corridor continues into a deeper, larger space, but it is obscured—you cannot yet determine what lies beyond or if the passage remains viable for the whole team. Reversing course after committing more people and equipment through this gap will be extremely difficult and time-consuming.",
+      "decisionPoint": "You have passed the initial \"is this worth a look?\" stage. Now you face the \"how deep do we go?\" commitment. How do you advance?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Lead-from-the-Front",
+          "text": "You commit yourself through the bottleneck first to personally vet the environment, setting a standard for the team to follow. You argue that the leader must absorb the initial exposure to risk to provide the group with the confidence to proceed.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Resource-First approach",
+          "text": "You prioritize moving the necessary gear and infrastructure through the gap first, optimizing the environment before moving the personnel. You argue that you should never move people into a high-friction zone until the support systems are fully established.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Risk-Mitigation approach",
+          "text": "You pause and conduct a thorough analysis of the bottleneck's stability and the potential exit routes before moving a single person forward. You argue that \"commitment\" is a function of safety, and you will not move until you have eliminated all avoidable variables.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Probe approach",
+          "text": "You keep the team in a secure, static position and send only a minimal, specialized \"probe\" team forward to confirm the value of the space beyond. You argue that you should never commit the full organization until the return on investment is verified.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 22,
+      "externalRef": "CW-022",
+      "title": "The Internal Discovery",
+      "narrativeText": "** Your commitment strategy has succeeded; you have reached the deeper chamber. It is not a natural cave, but a forgotten, 18th-century subterranean storage facility. It is filled with rotted wooden crates, oxidized iron tools, and what appears to be a cache of historical military supplies. It is a significant find, but the atmosphere is heavy and the floor is uneven. A faint, low-frequency hum vibrates through the floor—likely a distant underground water source or a structural resonance—and you have no clear sense of how long this facility has been sealed.\n**",
+      "decisionPoint": "** You are now inside the \"opportunity.\" How do you allocate your team's limited capacity to maximize this discovery while maintaining operational integrity?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Rapid Documentation",
+          "text": "You order an immediate, high-speed documentation phase. Everyone pulls out their mobile devices to photograph, log, and map the items in place. You argue that capturing the data is the priority; physical contact must be minimized to avoid damaging the site or risking injury.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Surgical Extraction",
+          "text": "You designate a \"primary recovery team\" to select the most historically significant artifacts for immediate transport, while the rest of the team monitors the room's structural stability. You argue that the value of the find is only realized through possession and preservation.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Structural Survey",
+          "text": "You halt all handling of artifacts to focus on mapping the facility's architecture. You believe the true value lies in understanding the engineering and original purpose of the site, arguing that artifacts are secondary to the historical context of the structure itself.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Strategic Exit",
+          "text": "You designate this as a \"protected zone.\" After a quick, baseline visual scan, you order everyone out and seal the entrance as best as possible. You argue that the team is not equipped to curate this site, and full engagement would be a catastrophic drain on your primary mission resources.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 23,
+      "externalRef": "CW-023",
+      "title": "The Prior Claimant",
+      "narrativeText": "As you conclude your mapping of the storage facility, you discover something that stops you cold: a set of maintenance logs and recently replaced equipment. The facility is not a historical relic; it is an active, currently operated site. You are standing in the middle of a competitor's or a prior claimant's active operation. You have not been spotted yet, but your presence is now an unauthorized intrusion into an existing stakeholder's workspace.",
+      "decisionPoint": "The opportunity you identified is already under active management by an unknown party. How do you respond?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Transparent Engagement",
+          "text": "You remain in place and wait for the operators to arrive, intending to initiate a formal introduction. You argue that the most professional approach to a conflict of interest is open communication and seeking a potential partnership or clear resolution.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Quiet Disengagement",
+          "text": "You immediately stop all documentation, erase any trace of your presence, and vacate the site via the route you entered. You argue that once a \"prior claimant\" is identified, the value of the opportunity is negated by the risk of conflict, and the only logical move is to withdraw.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Strategic Pivot",
+          "text": "You exit the facility but mark the perimeter, intending to research who the claimant is before taking further action. You argue that you should never engage or abandon an opportunity until you understand the scale and nature of the opposition.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Measured Observation",
+          "text": "You position the team in a discreet location to observe the site for a limited window to identify the operators and their activities before deciding on a course of action. You argue that intelligence is the most valuable asset in any competitive environment, and you cannot make a rational decision without data.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 24,
+      "externalRef": "CW-024",
+      "title": "The Incumbent's Terms",
+      "narrativeText": "** You opted to observe the facility from a discreet position. You have confirmed that the \"prior claimant\" is a small, professional team utilizing the site for specialized logistics. As you prepare to finalize your departure, they spot you. They do not initiate hostilities, but their security lead approaches your position, clearly expecting an explanation for your presence. They are well-equipped, organized, and hold the clear advantage of being on \"home turf.\"\n**",
+      "decisionPoint": "** You are now in a face-to-face negotiation with an incumbent operator. How do you manage this high-stakes interaction?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Full Transparency Approach",
+          "text": "You immediately disclose your purpose, your discovery of the site, and your plans to leave. You argue that honesty is the only way to establish credibility and minimize the risk of being viewed as a threat or a competitor.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Controlled De",
+          "text": "escalation):** You provide a limited, curated explanation—framing your presence as a navigational error—and request an immediate, mutually agreeable path to exit. You argue that providing just enough truth to be plausible while minimizing shared information is the safest way to disengage.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Assertive Reciprocity",
+          "text": "You treat the encounter as a professional meeting between peers. You acknowledge their operations without asking questions, establish your own credentials, and propose a professional exchange of information or a \"non-interference\" pact. You argue that appearing as a subordinate or a trespasser is a failure of leadership.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Strategic Ambiguity",
+          "text": "You maintain a polite but deliberately vague posture, declining to explain your presence in detail while emphasizing your intent to vacate the area. You argue that revealing your identity, your objectives, or your team's capacity is an unnecessary compromise of your future competitive advantage.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 25,
+      "externalRef": "CW-025",
+      "title": "The Intellectual Property Ultimatum",
+      "narrativeText": "The incumbent security lead clarifies the terms: they are engaged in proprietary geological mining research. They view your presence—and your digital records—as a breach of their trade secrets. They offer you a choice: exit via their high-speed logistical route, provided you surrender your digital storage media (containing your site maps, structural photos, and survey data). Or, exit via the arduous, miles-long original ridge trail, keeping your data intact but leaving your team exposed to exhaustion and the rapidly fading daylight.",
+      "decisionPoint": "You must weigh the value of your proprietary intelligence against the immediate operational safety of your team. What is your call?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Strategic Retention",
+          "text": "You refuse to surrender the data and choose the arduous route. You argue that the research data you've collected is an invaluable strategic asset, and no competitor has the right to demand the surrender of your proprietary findings.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Operational Prioritization",
+          "text": "You surrender the media and take the high-speed route. You argue that the primary mission is the safe, timely extraction of your team; the research data is secondary to the personnel's well-being.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Professional Compromise",
+          "text": "You offer to present your data to them for immediate \"sanitization\"—deleting only the specific geological coordinates—while retaining the rest of your findings. You argue that professional engagement relies on finding a middle path that addresses their security concerns without sacrificing your mission results.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Long-Term Alignment",
+          "text": "You surrender the media in its entirety, but use the extraction time to build rapport with the researchers, viewing the \"loss\" of data as a down payment on a potential future partnership in this territory. You argue that long-term relationships are worth more than a single set of survey data.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 26,
+      "externalRef": "CW-026",
+      "title": "The Integrity of the Return",
+      "narrativeText": "You have successfully departed the mining research site. Whether you walked the long path or took the logistical exit, you are now back on safe, neutral ground as night fully falls. Your team is physically exhausted. As you debrief, the weight of the last few hours hits: if you surrendered the data, your team is safe but your primary objective—the research and documentation—is essentially nullified. If you kept the data, you have a valuable, hard-won asset, but the team is shattered, morale is low, and your relationship with the local operators is permanently adversarial.",
+      "decisionPoint": "Looking back at the cost of the exit, how do you frame this experience to the team to ensure long-term unit cohesion and mission success?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Mission-Centric Briefing",
+          "text": "You validate the sacrifice as necessary for the project. You focus entirely on the data gathered (or the lessons learned), arguing that objective accomplishment is the only metric that matters to the organization.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Human-Centric Briefing",
+          "text": "You emphasize the team's resilience and your decision to prioritize their safety above all else. You argue that the team is the only truly irreplaceable asset, and no objective justifies their destruction or unnecessary endangerment.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Accountability Briefing",
+          "text": "You take full responsibility for the tension between the goal and the risk, openly discussing why the encounter went the way it did. You argue that transparency builds trust, and that acknowledging the difficulty of the call is the best way to prevent resentment.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Future-Oriented Briefing",
+          "text": "You frame the encounter as a \"successful intelligence gathering mission\" regardless of the outcome, shifting the focus to what you learned about the competitor's operations. You argue that framing every challenge as an intelligence win keeps the team focused on the big picture rather than local setbacks.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 27,
+      "externalRef": "CW-027",
+      "title": "The Competitive Lever",
+      "narrativeText": "You have recovered from the encounter and are back in a stable operational environment. You have synthesized your findings: the other team is a well-funded venture operating in a highly contested and poorly understood regulatory environment. You now possess proprietary intelligence regarding their methodology and their presence in the territory. This information gives you significant leverage, but acting on it will inevitably draw you into a long-term competitive struggle.",
+      "decisionPoint": "You now have leverage over a competitor. How do you integrate this knowledge into your long-term strategy?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Institutional Escalation",
+          "text": "You leverage your findings to lobby for formal regulatory clarity in the region, effectively changing the rules of the game to favor your operating model over theirs. You argue that shaping the environment to your advantage is the most effective way to secure a permanent lead.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Partnership Strategy",
+          "text": "You approach the competitor with your findings as a basis for a collaborative venture, arguing that the \"contested\" nature of the region makes cooperation more profitable than conflict. You argue that combining your intelligence with their infrastructure creates a monopoly position.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Strategic Repositioning",
+          "text": "You keep the information private and use it to preemptively occupy adjacent, high-value sectors before the competitor realizes their full potential. You argue that outmaneuvering the competition through superior positioning is better than engaging them in a direct, resource-draining contest.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Strategic Disengagement",
+          "text": "You archive the intelligence for future reference but decide to pivot your organization's efforts toward an entirely different territory. You argue that the complexity and potential for conflict in this region represent an unacceptable drain on your organization's agility and focus.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": -10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 28,
+      "externalRef": "CW-028",
+      "title": "The Transition to the Basin",
+      "narrativeText": "You've successfully cleared the quarry perimeter and are trekking toward the coastal basin. The topography changes from dense, industrial-scarred hills to a wide, winding river delta. It is late afternoon, and the light is playing tricks on the horizon. Ahead, you spot a lone figure in a small, flat-bottomed boat, navigating the shallows with a long pole and a sophisticated, handheld sonar unit. They aren't a researcher or a competitor—they seem to be a local, but they are clearly looking for something specific under the riverbed.",
+      "decisionPoint": "You have a clear line of sight, but the individual has not yet noticed your team on the bank. They are working in a section of the river that, according to your preliminary maps, shouldn't have any commercial value. How do you approach this contact?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Overt Greeting",
+          "text": "You wave and signal to get their attention, walking down to the water's edge to ask about the currents and the area's history. You argue that locals are the most valuable source of \"ground truth\" and that showing open respect is the best way to earn their cooperation.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Low-Profile Observation",
+          "text": "You stay hidden in the brush and observe their patterns. You argue that watching their technique—and seeing what they are actually looking for—tells you more about the region's hidden potential than a conversation ever could.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Tactical Bypass",
+          "text": "You maintain your path, keeping your distance, and ignore them entirely. You argue that any interaction with locals carries unnecessary risk; your mission focus is your priority, and curiosity is a potential distraction.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Strategic Probe",
+          "text": "You send one team member to intercept them at a future point downstream to strike up a casual conversation and compare the information they provide with your team's observations. You argue that indirect inquiry yields the most honest and balanced intelligence.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 29,
+      "externalRef": "CW-029",
+      "title": "The Transition to the Basin",
+      "narrativeText": "You've successfully cleared the quarry perimeter and are trekking toward the coastal basin. The topography changes from dense, industrial-scarred hills to a wide, winding river delta. It is late afternoon, and the light is playing tricks on the horizon. Ahead, you spot a lone figure in a small, flat-bottomed boat, navigating the shallows with a long pole and a sophisticated, handheld sonar unit. They aren't a researcher or a competitor—they seem to be a local, but they are clearly looking for something specific under the riverbed.",
+      "decisionPoint": "You have a clear line of sight, but the individual has not yet noticed your team on the bank. They are working in a section of the river that, according to your preliminary maps, shouldn't have any commercial value. How do you approach this contact?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Overt Greeting",
+          "text": "You wave and signal to get their attention, walking down to the water's edge to ask about the currents and the area's history. You argue that locals are the most valuable source of \"ground truth\" and that showing open respect is the best way to earn their cooperation.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Low-Profile Observation",
+          "text": "You stay hidden in the brush and observe their patterns. You argue that watching their technique—and seeing what they are actually looking for—tells you more about the region's hidden potential than a conversation ever could.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Tactical Bypass",
+          "text": "You maintain your path, keeping your distance, and ignore them entirely. You argue that any interaction with locals carries unnecessary risk; your mission focus is your priority, and curiosity is a potential distraction.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Strategic Probe",
+          "text": "You send one team member to intercept them at a future point downstream to strike up a casual conversation and compare the information they provide with your team's observations. You argue that indirect inquiry yields the most honest and balanced intelligence.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 30,
+      "externalRef": "CW-030",
+      "title": "The General Store Stop",
+      "narrativeText": "You've finally cleared the mud and grit of the quarry, and the sun is finally breaking through the clouds. You're damp, your pack is heavy, and your boots are soaked through. You stumble upon a rustic general store right by the riverbank. It smells like fresh coffee and pine. Inside, the owner sees your state and points to a rack of gear and a stack of life vests. \"Look,\" they say, \"for ten bucks a person, you can rent a canoe right here. It'll take you the rest of the way to the pickup point at the park entrance. It's a lot smoother than hiking the mud, and if you're quiet, you'll see deer, turtles in the bogs, and maybe even a moose near the narrows. Just watch the current if you aren't a strong swimmer.\"",
+      "decisionPoint": "You're standing in the store, looking at your soggy gear and the calm, winding river outside. The canoes are ready, and the river is calling. How do you prepare to launch?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The \"Wildlife Expedition\"",
+          "text": "You prioritize camera gear and binoculars. You're here to see the animals, so you organize the boats to be slow, quiet, and perfect for spotting moose in the brush.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"River Navigators\"",
+          "text": "You prioritize \nspeed and efficiency. You check the current maps and pair up your strongest paddlers to ensure you can handle the bogs and the narrow channels without getting stuck.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Casual Drifters\"",
+          "text": "You grab some extra snacks and drinks from the store and plan to tie the boats together for a relaxing, social drift down to the pickup point. You're here to enjoy the ride, not race it.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The \"Safety-First Crew\"",
+          "text": "You check every life vest twice and put your strongest swimmer in the lead boat to scout for hazards. You want to make sure everyone—especially the less experienced—is confident before you push off.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 31,
+      "externalRef": "CW-031",
+      "title": "The First Bend",
+      "narrativeText": "** You've been on the water for about an hour. The river is peaceful, the sun is warm, and you're just starting to get the rhythm of the paddles. Suddenly, you come around a gentle bend and find your path partially blocked. A local fisherman in a weathered aluminum boat is anchored right in the middle of the narrowest part of the channel, casting lines toward the reeds. He's completely unbothered, humming to himself, and doesn't seem to notice your group approaching. The channel is just wide enough for you to squeeze by if you're careful, but one wrong move could tip a canoe or snag a line.\n**",
+      "decisionPoint": "** You have to navigate past this unexpected \"obstacle\" without ruining his morning—or getting your gear soaked. How do you handle it?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Polite Request",
+          "text": "You call out a friendly, \"Morning, sir! Mind if we slip by?\" You're banking on the fact that a little transparency goes a long way and might even lead to a tip about where the best fishing (or wildlife) is.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Silent Glide",
+          "text": "You instruct the group to stop paddling and just drift silently past him, hugging the opposite bank. You want to avoid interrupting his peace, respecting the \"unspoken code\" of the river.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Curious Conversation",
+          "text": "You slow down and steer closer to strike up a chat. You're genuinely curious about what he's catching, and you figure he's the best person to ask about local conditions, upcoming hazards, or where the moose have been hiding lately ,yet  chatting to him could cost you time.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Tactical Maneuver",
+          "text": "You scan the water for his lines, signal the rest of your canoes to stay in a tight line, and navigate through the narrow gap with precision. You treat it like a minor portage challenge—get through it clean, stay focused, and keep moving.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 32,
+      "externalRef": "CW-032",
+      "title": "The Riverbank Legend",
+      "narrativeText": "** After you drift past the fisherman, he calls out a friendly warning: \"You folks headed toward the lower bogs? Keep your eyes peeled. The fog gets thick down there, and there's a lot of folks who've come back from the narrows swearing they've seen things that don't belong in these woods.\" He chuckles, clearly enjoying the myth-making, but his eyes are serious. As you continue downstream, the atmosphere shifts. The trees grow denser, the light dims, and you hear a strange, rhythmic snapping sound—like heavy branches breaking—coming from the brush just ahead of you on the bank.\n**",
+      "decisionPoint": "** Your team is alert, the silence of the woods is suddenly heavy, and that \"Bigfoot\" legend the fisherman alluded to feels a lot less funny than it did ten minutes ago. How do you react to the unexpected noise?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The \"Call Out\"",
+          "text": "You project your voice clearly: \"Hello? Is someone there?\" You're choosing to humanize the situation immediately, assuming it's another camper or a park ranger, and you want to dispel any tension before it builds.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"Silent Pause\"",
+          "text": "You raise your paddle to signal the rest of the group to stop. You drift silently, listening to see if the sound repeats or if it moves. You're gathering information before you decide whether to proceed or pivot.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Playful Skeptic\"",
+          "text": "You laugh it off, maybe even making a loud, exaggerated Bigfoot call to break the tension. You're betting that it's just a deer or a bear and you want to keep morale high by refusing to let the spooky atmosphere affect the team.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The \"Vigilant Guard\"",
+          "text": "You steer the canoes toward the center of the river, away from the dense bank, keeping your eyes locked on the treeline. You're prepared for a wild animal, and you want to maintain a \"safety buffer\" between your team and the unknown source of the noise.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 33,
+      "externalRef": "CW-033",
+      "title": "The \"Big\" Reveal",
+      "narrativeText": "** You hold your breath as the branches part. Whatever was making that noise is definitely large—you can see the brush shaking violently just ten feet from the water. Suddenly, a massive, shaggy shape bursts out from behind a willow tree and thunders into the shallow water with a splash that nearly swamps your canoe. It's not a cryptid or a monster; it's a bull moose, startled by your drift, shaking water from its coat like a wet dog. It stares at you for a heartbeat—huge, imposing, and completely wild—before turning and wading gracefully into the deep reeds of the bog.\n**",
+      "decisionPoint": "** The adrenaline is still pumping, and the team is buzzing with excitement. This is the highlight of the trip so far, but you're now running slightly behind schedule, and the bog you're approaching is known for being tricky to navigate. How do you capitalize on this moment?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The \"Group Debrief\"",
+          "text": "You pull the canoes into a small eddy and take a ten-minute break to let everyone catch their breath and share the story. You want to cement the memory as a shared team victory before refocusing on the navigation.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"Photographic Sprint\"",
+          "text": "You quickly grab the cameras and scramble to get a few shots of the moose in the distance. You're balancing the thrill of the encounter with the need to keep moving toward the pickup point.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Navigator's Push\"",
+          "text": "You don't stop. You acknowledge the encounter with a cheer, but you keep the paddles moving hard. You're worried that the moose was spooked by *something*—or someone—else nearby, and you want to put distance between your team and the spot.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The \"Nature Study\"",
+          "text": "You move the canoes slowly toward where the moose entered the reeds, looking for tracks or signs. You're curious about the habitat and want to use this as an impromptu learning moment for the team to better understand the river's ecosystem.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 34,
+      "externalRef": "CW-034",
+      "title": "The Bog Labyrinth",
+      "narrativeText": "** The encounter with the bull moose was exhilarating, but it led you into the heart of the \"lower bogs.\" The river has fragmented into a maze of narrow, stagnant channels choked with lily pads and dense, submerged vegetation. The water is glassy and still. The map you have is vague, and the current has virtually vanished. You realize the \"main channel\" is no longer obvious, and the team is starting to drift in different directions. The sun is beginning to drop, casting long, confusing shadows through the reeds.\n**",
+      "decisionPoint": "** You need to find the exit path to the main river before nightfall. How do you re-establish control and route your team?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Scout Ahead",
+          "text": "You send the fastest boat ahead to \"dead-end check\" the different channels while the others hold back. You argue that splitting the labor to find the path is faster than waiting for everyone to agree on a direction.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"Back to Basics\" Consensus",
+          "text": "You call for a stop, gather the boats, and have everyone compare their personal observations—what looked like moving water, where the birds were flying, and the angle of the sun. You argue that collective intelligence is the safest way to navigate an unmapped area.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Systematic Sweep",
+          "text": "You instruct the group to form a line abreast, sweeping through the widest gap together. You're sacrificing speed for safety, ensuring that if one boat hits a dead end or a hidden hazard, the whole group is close enough to pivot immediately.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Environmental Reader",
+          "text": "You steer your canoe to the edge of the reeds to look for \"flow signs\"—bent grass, disturbed silt, or the direction insects are congregating—to identify the path of least resistance. You're betting that the river's natural behavior will point the way out better than a map.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 35,
+      "externalRef": "CW-035",
+      "title": "The Sunset Squeeze",
+      "narrativeText": "** The light is failing fast, turning the bog into a silhouette of tall reeds and dark water. Just as the team is starting to feel the heat of the situation, you spot a break in the vegetation. It leads to a narrow, high-walled passage that wasn't on your map. It's tight—barely enough room for a single canoe—but you can feel a subtle change in the water pressure; it's finally flowing again. However, the passage is lined with jagged, weathered rocks that look like they could easily tear the hull of your rental canoes if you bump them in the gloom.\n**",
+      "decisionPoint": "** You have to commit to this passage before you lose the remaining twilight, but it's a high-risk, high-reward bottleneck. What is your strategy?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Controlled Tether",
+          "text": "You stop and tie all the canoes together into a single, long \"train.\" You put the most experienced paddler in the front and the best rudder in the back. It's slower, but you ensure the entire group stays aligned and protected from the rocks.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Individual Push",
+          "text": "You instruct everyone to take the passage one at a time, spacing them out by thirty seconds. You argue that the risk of a \"pile-up\" in the dark is higher than the risk of an individual hull breach, and you want each boat to have 100% control of their own path.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Bump and Drag\"",
+          "text": "You decide to get out of the canoes and wade through the shallow, muddy edges of the passage, guiding the boats by hand. It's physically exhausting and you'll be covered in mud, but it guarantees zero hull damage and keeps the team together in the dark.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Aggressive Sprint",
+          "text": "You take the lead, paddling hard to hit the passage with enough momentum to keep the canoe straight, signaling the others to follow your exact wake. You argue that speed and precision are the only ways to navigate tight, rocky water without drifting into the hazards.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 0
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 36,
+      "externalRef": "CW-036",
+      "title": "The Hidden Campfire",
+      "narrativeText": "** You navigate the narrow passage safely, the canoes scraping only slightly against the rock. As you emerge, the narrow walls widen suddenly into a hidden, circular cove sheltered by towering pines. It's completely dark now, but your eyes adjust to see the flicker of a warm, inviting campfire on the shore. It's not the pickup point—you're still a few miles from that—but it's an established, unofficial campsite. A small group of people is sitting there, guitars in hand, with the smell of roasting sausages drifting across the water. They look like locals who know exactly where they are.\n**",
+      "decisionPoint": "** You're exhausted, hungry, and the pickup point is still a trek through the dark. You have two choices: push through the final miles or land and ask to share their fire. How do you approach this?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The \"Invite",
+          "text": "Only\" Approach):** You drift near the shore and call out a friendly greeting, asking if they have room for a group of tired paddlers to share the fire for an hour. You figure the social connection is worth the delay in reaching your final destination.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"Shadow Land\"",
+          "text": "You pull your canoes into a dark spot fifty yards down the bank, keeping your light disciplined. You set up your own camp quietly near theirs—close enough to benefit from their light and sense of safety, but far enough to maintain your team's privacy and independence.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Silent Transit\"",
+          "text": "You don't make a sound. You signal the team to keep their paddles in the water and glide past the cove into the darkness of the river. You argue that your team's objective is the pickup point, and unpredictable social encounters late at night are a variable you don't need.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The \"Supply Trade\"",
+          "text": "You pull up and offer a few snacks, coffee, or spare supplies in exchange for a warm spot to dry out and their take on the final stretch of the river. You're looking to make a simple, natural exchange that gets you to the finish line informed and refreshed.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 37,
+      "externalRef": "CW-037",
+      "title": "The Final Push",
+      "narrativeText": "** After your interaction at the campfire, you're back on the water. The river has widened significantly, and the rhythmic sound of your paddles is the only thing cutting through the night. Ahead, you see a faint, artificial glow—the lights of the main park entrance and the rental pickup point. You're close, but the water here is deep and the current is stronger than it looks. You notice a marked channel that takes a long, slow curve around a sandbar, and an \"unofficial\" shortcut that cuts straight through a cluster of pilings from an old, collapsed dock.\n**",
+      "decisionPoint": "** You are minutes away from the end of the journey. Do you play it safe, or do you take the risk to finish the trip faster?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The \"Official Route\"",
+          "text": "You stick to the marked channel. It adds time to your trip, but you've come this far without losing a canoe; you aren't going to risk a puncture on old dock pilings just to save ten minutes.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"Calculated Shortcut\"",
+          "text": "You aim for the gap in the pilings. You trust your night vision and your team's ability to navigate the debris. You argue that if you've handled bogs, moose, and rocky passages, you can handle a little timber in the water.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Night",
+          "text": "Drift Finish\"):** You stop paddling entirely and let the river carry you toward the lights. You want to savor the last few minutes of the trip, letting the current take you home without rushing the end.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The \"Team Coordination\"",
+          "text": "You have the lead boat scout the pilings with a high-lumen flashlight while the rest of the group holds position. You'll only take the shortcut if the scout confirms it's clear, balancing the desire for speed with the reality of the hazards.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 38,
+      "externalRef": "CW-038",
+      "title": "Hours Drift",
+      "narrativeText": "** You've reached the park's main pickup point, but it's crowded, loud, and feels more like a parking lot than a wilderness camp. You're beat, it's pitch black, and the prospect of setting up a tent under a harsh streetlamp is killing your mood. However, the canoe rental contract requires you to drop the boats at this specific landing. You realize that if you push just a mile further downstream, you'll be outside the park's main jurisdiction and into a quiet, secluded stretch of woods where you can have a real campfire. But, you'd be breaking the \"official\" return protocol, and you'd have to hike back or portage the gear in the morning.\n**",
+      "decisionPoint": "** You're standing on the bank with the canoes. The park attendant is busy with another group, and the moon is just bright enough to navigate the next bend. How do you play this?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The \"Rule Follower\"",
+          "text": "You unload and turn in the canoes as instructed. You prioritize the contract and the \"official\" end of the trip, even if it means sacrificing a better camping experience.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": -5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The \"Unauthorized Extension\"",
+          "text": "You decide to keep the canoes for the night, pushing downstream to the quiet woods. You're willing to deal with the minor penalty fees or awkward explanations in the morning because the quality of the camp matters more than the bureaucracy.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": -10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The \"Night Hike\"",
+          "text": "You drop the canoes off, but leave the gear behind and trek into the dark woods on foot to find a better spot, planning to walk back to the pickup point at sunrise to deal with the logistics.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The \"Negotiator\"",
+          "text": "You walk up to the attendant, explain that you're looking for a better spot, and ask if there's a \"grace period\" or a spot they recommend nearby that isn't the main landing. You're trying to find a legal way to get your ideal campsite.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 39,
+      "externalRef": "CW-039",
+      "title": "The Hunting Camp",
+      "narrativeText": "You've pushed downstream to a secluded bend and found a derelict hunting camp. It consists of three small, weathered cabins, each in a different state of decay. On the threshold of the center cabin, there is a hand-carved inscription beginning with the letter \"H,\" but it is oddly, almost jaggedly, carved—as if the person struggled with the wood or was in a hurry. The cabins themselves are distinct:\nThe Collapsed Cabin: A structure with a caved-in roof, but the fieldstone foundation looks remarkably sturdy.\nThe Inscribed Cabin: The center one with the odd \"H\" carving, which feels oddly preserved compared to the others.\nThe Sealed Cabin: A small, windowless hut with a heavy, iron-bound door that looks like it hasn't been opened in decades.",
+      "decisionPoint": "You have limited time and daylight. Where do you focus your attention to learn more about this site?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Architectural Analyst",
+          "text": "You inspect the foundation of the Collapsed Cabin. You're interested in how this place was built and why it failed, believing the structural history—and why the roof collapsed while the foundation held—tells you more about the site than a carving could.",
+          "sortOrder": 0,
+          "scores": {
+            "SYSTEMS_THINKING": 10,
+            "HISTORICAL_INTEREST": 0,
+            "SECURITY_FOCUS": 0,
+            "MEANING_SEEKING": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Historian",
+          "text": "You focus on the Inscribed Cabin. You find yourself looking at that jagged \"H,\" wondering what prompted someone to carve it with such urgency, and what kind of person felt the need to leave that mark behind.",
+          "sortOrder": 1,
+          "scores": {
+            "SYSTEMS_THINKING": 0,
+            "HISTORICAL_INTEREST": 10,
+            "SECURITY_FOCUS": 0,
+            "MEANING_SEEKING": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Structural Investigator",
+          "text": "You approach the Sealed Cabin. You are curious why this was the only building intentionally fortified or sealed, and you want to understand the logic behind why it was treated differently than the other two.",
+          "sortOrder": 2,
+          "scores": {
+            "SYSTEMS_THINKING": 0,
+            "HISTORICAL_INTEREST": 5,
+            "SECURITY_FOCUS": 10,
+            "MEANING_SEEKING": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Site Planner",
+          "text": "You walk the perimeter of the entire camp, ignoring the doors for now. You're looking for the \"why\"—the relationship between the structures, how the camp was oriented toward the river, and how the three buildings once functioned as a single unit.",
+          "sortOrder": 3,
+          "scores": {
+            "SYSTEMS_THINKING": 10,
+            "HISTORICAL_INTEREST": 5,
+            "SECURITY_FOCUS": 5,
+            "MEANING_SEEKING": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 40,
+      "externalRef": "CW-040",
+      "title": "The Gathering Storm",
+      "narrativeText": "The air turns heavy and metallic—the kind of humidity that precedes a massive summer thunderstorm. The wind suddenly shifts. Rain begins hammering the clearing, turning the dry pine needles into a slick mess. You have to get the team under cover, or at least stabilize your camp. You're standing in the clearing with the three structures:\nThe Collapsed Cabin: The roof is gone, but the fieldstone fireplace is massive and intact. You can rig a large, heavy-duty tarp over the remaining walls to create a dry, semi-open-air hearth that will keep the team warm and the gear accessible.\nThe Inscribed Cabin: It is completely enclosed, dry, and smells of aged pine. It appears almost frozen in time, with a small wooden table, a rusted stove, and a neatly stacked pile of split logs remaining. It offers immediate, total shelter, but the space is cramped.\nThe Sealed Cabin: The heavy, iron-bound door appears structurally sound, but no one knows why it was originally sealed. Forcing the door ensures total protection from the elements, but it requires destruction of property and risks exposing the team to unknown structural hazards, wildlife, or hazardous conditions inside.",
+      "decisionPoint": "The storm is hitting with full force. You have mere seconds to decide where to move the team and gear.",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Hearth Strategy",
+          "text": "You commit to the Collapsed Cabin. You're prioritizing the utility of the fireplace and the ability to modify the environment (the tarp) to suit your needs. You prefer to adapt what is already there rather than gamble on the unknown.",
+          "sortOrder": 0,
+          "scores": {
+            "INGENUITY": 10,
+            "RISK_TOLERANCE": 5,
+            "BOUNDARY_RESPECT": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Preservation Strategy",
+          "text": "You choose the Inscribed Cabin. You want the total, dry enclosure of a standing structure, and you're willing to adapt to the cramped, \"frozen-in-time\" atmosphere to ensure everyone is out of the wind and rain immediately.",
+          "sortOrder": 1,
+          "scores": {
+            "INGENUITY": 5,
+            "RISK_TOLERANCE": 0,
+            "BOUNDARY_RESPECT": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Breach Strategy",
+          "text": "You prioritize total security from the elements. You choose the Sealed Cabin, deciding that the uncertainty of what is inside is a risk worth taking to ensure your team is shielded in a structurally sound, fully enclosed building.",
+          "sortOrder": 2,
+          "scores": {
+            "INGENUITY": 5,
+            "RISK_TOLERANCE": 10,
+            "BOUNDARY_RESPECT": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Perimeter Strategy",
+          "text": "You refuse to enter the structures. You trust your own tents and gear more than the integrity of these aging buildings. You'll anchor down in the brush, maintaining your independence and keeping your team entirely self-sufficient, even if it means getting wet while you set up.",
+          "sortOrder": 3,
+          "scores": {
+            "INGENUITY": 0,
+            "RISK_TOLERANCE": 0,
+            "BOUNDARY_RESPECT": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 41,
+      "externalRef": "CW-041",
+      "title": "The Night Watch",
+      "narrativeText": "You've successfully established your base. The storm is raging outside, drumming against the wood and canvas, creating a rhythmic, isolating roar that makes the outside world feel miles away. Inside your chosen shelter—the hearth, the inscribed room, the sealed room, or your own tents—the adrenaline of the storm is beginning to wane, and the reality of your surroundings is setting in. You have a few hours before dawn, and while the team is settling down, you have the watch.\nThe silence inside is different from the chaos outside. You notice subtle details you missed in the rush: a loose floorboard, a draft coming from an impossible angle, or a piece of charcoal on the ground that looks like it was recently dropped.",
+      "decisionPoint": "You are sitting in the dark, listening to the storm. How do you spend the time while the others sleep?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Maintenance Loop",
+          "text": "You focus entirely on the gear. You check the seals on the equipment, dry out damp clothes by the fire (or stove), and organize your kit for a rapid departure at sunrise. You believe the best way to handle the mystery of the night is to ensure the team is ready for any contingency.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Environmental Audit",
+          "text": "You use your light to carefully trace the origin of that draft or look for the source of the loose floorboard. You aren't looking for trouble, but you have a compulsive need to understand the \"physics\" of your temporary home—how it breathes, how it was built, and where it leaks.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Quiet Archive",
+          "text": "You sit still and observe. You're letting the house \"talk.\" You want to see if the building settles in a particular way, if the shadows shift, or if you can detect the faint sounds of the woods outside that aren't drowned out by the rain. You're looking for patterns in the environment.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Security Scan",
+          "text": "You move to the entrance of your shelter to monitor the periphery. You're watching the storm, but your primary concern is the clearing itself. You want to see if anything—or anyone—else is moving out there in the dark, treating your shelter as a position to be defended rather than just a place to rest.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 42,
+      "externalRef": "CW-042",
+      "title": "The Morning Discovery",
+      "narrativeText": "You wake up as the light begins to filter through the cracks in the walls. In the soft, low-angle morning sun, you notice dozens of carvings you completely missed in the dark. They are everywhere—on the interior door frames, the window sills, and the exposed support beams. As you walk between the three cabins, the range of messages becomes clear:\nThe Memorials: Some are simple and poignant—dates, names, and tributes like \"For my father, 1952\" or \"In memory of the long winters.\"\nThe Mundane/Territorial: Others are purely practical or assertive: \"No trespassing,\" lists of gear inventories, or tally marks documenting years of hunting seasons.\nThe Ambiguous/Ritualistic: Scattered among these are strange, complex geometric symbols and recurring patterns that don't look like English—not necessarily \"evil,\" but clearly holding a weight or meaning to the people who carved them.\nThe Youthful/Impulsive: There are also the undeniable marks of boredom—crude drawings, names of local teenagers, and the kind of \"I was here\" vandalism that happens anywhere there's a quiet place to hide.",
+      "decisionPoint": "You have a clear picture of the layer upon layer of human history here. Before you leave, what do you focus on?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Archivist",
+          "text": "You spend extra time photographing and sketching the most significant markings. You feel a responsibility to preserve the human story before weather and decay erase it.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Custodian",
+          "text": "You don't add your own mark, and you carefully leave the cabins exactly as you found them. You erase signs of your stay, believing the site should remain undisturbed.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Contributor",
+          "text": "You carve a small, respectful mark of your own—a date or initials—adding your presence to the long history of people who have passed through the camp.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": -5,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Evaluator",
+          "text": "Rather than focusing on individual carvings, you study what they collectively reveal about the people who occupied the camp across different generations.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 43,
+      "externalRef": "CW-043",
+      "title": "The Pattern Reveal",
+      "narrativeText": "The storm has passed. As the sun rises in the east, the light hitting the clearing exposes a striking detail. By aligning the three cabins, you realize the layout is far from random. The \"Collapsed Cabin,\" the \"Inscribed Cabin,\" and the \"Sealed Cabin\" are all oriented toward distinct landmarks on the far side of the river: a lightning-scarred pine, a jagged rock formation, and a narrow, hidden inlet. The alignment appears intentional. Whatever these cabins were built for, their placement was unlikely to be accidental.\nYou have one last opportunity to examine the interiors with this new understanding of their spatial relationship.",
+      "decisionPoint": "How do you synthesize the evidence to form your theory of the site?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Functional Analysis",
+          "text": "You return to the Collapsed Cabin. You believe that if this site had a practical purpose, the evidence will be found in the material remains: the tools, wear patterns, construction techniques, and discarded materials. You are looking for the \"how\"—the physical work that once occurred here.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Documentary Analysis",
+          "text": "You revisit the Inscribed Cabin. You suspect the carvings, dates, and markings are more than decoration; they are the record-keeping system for the camp. You are searching for a log, a map, or a chronology that explains the \"who\" and the \"when\" of this operation.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Protective Analysis",
+          "text": "You examine the Sealed Cabin. The immense effort required to isolate and reinforce this building suggests it served a unique, critical function. You are interested in the \"why\"—why this specific structure required greater security than the rest of the camp.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Holistic Synthesis",
+          "text": "You don't pick one. You stand in the exact center of the clearing, where the lines of sight between the cabins and the landmarks intersect. You are attempting to visualize the site as a single, integrated instrument, trying to understand how the three buildings functioned in tandem to monitor or manage the landscape across the river.\nWhether it was a survey station, a trapping operation, an early forestry outpost, or something else entirely, one conclusion is unavoidable: every feature of the camp appears to have served a purpose.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 44,
+      "externalRef": "CW-044",
+      "title": "The Final Evidence",
+      "narrativeText": "Before leaving the clearing, you decide to take one last walk through the camp. With your new understanding of the cabins' alignment, small details suddenly begin to fit together. You notice axe marks on certain trees, worn footpaths that don't lead to the river, and subtle differences in the construction of each building. None of these clues answers the mystery outright, but together they point toward a larger purpose. Your team is packed and waiting. You have time to pursue only one final line of inquiry before you leave the site behind.",
+      "decisionPoint": "Where do you focus your final effort?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Material Trail",
+          "text": "You follow the old work paths leading away from the camp, looking for evidence of what resources the occupants were harvesting or transporting.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Human Trail",
+          "text": "You continue studying the inscriptions, initials, dates, and carved messages, hoping the people themselves left the clearest explanation of the camp's purpose.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Defensive Trail",
+          "text": "You inspect the perimeter, searching for old fence lines, lookout positions, caches, or other signs that the camp was designed to protect or control something.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Environmental Trail",
+          "text": "You climb to a nearby overlook and study how the cabins relate to the river, surrounding terrain, and distant landmarks, searching for a broader pattern that can only be seen from outside the camp.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 45,
+      "externalRef": "CW-045",
+      "title": "The Farmer's Field",
+      "narrativeText": "The morning dew still clings to the grass as you and your team finally leave the hunting camp behind. The cabins disappear into the trees behind you. Their purpose remains uncertain, and your notebooks are filled with competing theories rather than definitive answers.\nAs you emerge from the woods into an open hayfield, you hear the low rumble of an old tractor. An elderly farmer notices your group stepping out of the tree line. He slows to a stop, shuts off the engine, and climbs down. For a few moments, neither of you moves. He is studying your group just as carefully as you're studying him.\nEventually, he starts walking toward you.",
+      "decisionPoint": "How do you handle the first unexpected person you've encountered since leaving the cabins?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Open Greeting",
+          "text": "You walk toward him first, introduce yourself, and explain that your group was exploring the old cabins. You believe openness is the fastest way to build trust and learn from local knowledge.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Cautious Wait",
+          "text": "You stay where you are and allow the farmer to make the first move. You don't hide, but you prefer to let him establish the tone of the conversation before revealing why you're there.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Quiet Observation",
+          "text": "Your first instinct is to move back toward the tree line and quietly observe him from a distance. After realizing he's simply curious rather than threatening, you step forward and begin the conversation.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Practical Approach",
+          "text": "Rather than discussing the cabins immediately, you greet him politely and begin with practical questions about the roads, local history, and the quickest route back to the trailhead, letting the conversation naturally develop from there.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 46,
+      "externalRef": "CW-046",
+      "title": "The Farmer's Story",
+      "narrativeText": "The farmer finally reaches your group, glancing between your muddy boots and the notebooks sticking out of your packs.\nHe smiles knowingly.\n\"You boys were up at those cabins, weren't you?\"\nAfter listening to your story, he nods.\n\"Those buildings have been here longer than anybody around here can remember. My grandfather always said they were built over the remains of old longhouses. The carvings? Some of those were left by relatives who used the camp generations ago. Others came from hunters passing through. Over the years hikers, campers, and curious folks all left their own marks. That's why none of it seems to fit together. You're looking at a couple hundred years of different people using the same place for different reasons.\"\nHe pauses before adding,\n\"Most folks go up there looking for one answer. There probably isn't one.\"",
+      "decisionPoint": "How do you respond to this new perspective?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Integrator",
+          "text": "You accept that the site evolved over generations. Rather than searching for a single explanation, you begin seeing it as layers of history built upon one another.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Verifier",
+          "text": "You appreciate the farmer's account, but you want to compare it with historical records, archaeological evidence, and old maps before changing your conclusions.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Skeptic",
+          "text": "You thank him for the story but remain unconvinced. Local traditions are valuable, yet you believe physical evidence should outweigh oral history.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": -5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Inquirer",
+          "text": "His explanation raises even more questions. You continue asking about families, land ownership, old roads, and local traditions, hoping to build a richer understanding of the area's history.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 47,
+      "externalRef": "CW-047",
+      "title": "The Way Home",
+      "narrativeText": "Your conversation with the farmer comes to an end. Looking toward the horizon, you realize just how far you've wandered from where you parked several days ago. The trail back will take hours, and everyone is feeling the weight of the expedition. The farmer notices you glancing down the old dirt road.\nHe tips his hat and says,\n\"Well... if you're headed back toward the state park, I've got to haul feed into town. I could throw your packs in the truck and save you boys a long walk.\"\nYou still have a little cash left from the trip, enough to offer him something for the trouble if you choose.",
+      "decisionPoint": "How do you get back to your vehicle?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Finish on Foot",
+          "text": "You thank the farmer but decline the ride. You committed to the journey on foot, and you intend to finish it the same way.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Fair Exchange",
+          "text": "You offer the farmer some of your remaining cash for the ride. You view it as a fair exchange—he saves you time, and you're happy to compensate him for his help.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Grateful Acceptance",
+          "text": "You gladly accept the ride if he's already headed that way, thanking him for the kindness but not insisting on payment unless he asks. Sometimes accepting generosity is part of traveling.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Practical Compromise",
+          "text": "You ask if he'd be willing to haul the heavy packs while your group hikes the remainder of the distance. That way everyone finishes the journey on foot but without the burden of carrying full loads.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 48,
+      "externalRef": "CW-048",
+      "title": "The Trailhead",
+      "narrativeText": "The familiar outline of your vehicle finally comes into view. After days in the wilderness, it almost feels out of place sitting quietly in the parking lot. Mud covers your boots, your packs are worn, and your body reminds you of every mile you've walked and paddled.\nYou unload your gear, toss your packs into the back, and pause before climbing into the driver's seat. The expedition is officially over. Once you turn the key, life will begin moving at its normal pace again.",
+      "decisionPoint": "Before leaving the trailhead, what do you do?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Final Check",
+          "text": "You perform one last inspection of your gear and vehicle, making sure nothing was left behind and everything is secured before departing. A successful expedition ends with discipline.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Photo Review",
+          "text": "Before driving away, you scroll through the photographs on your camera or phone, reliving the expedition one image at a time while the memories are still fresh.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Quiet Moment",
+          "text": "You sit silently for a few minutes, looking back toward the forest without speaking. You simply allow yourself to appreciate the experience before returning to everyday life.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": -5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Next Adventure",
+          "text": "Before even starting the engine, you begin discussing where the group should go next. The expedition has only increased your desire to explore somewhere new.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 10,
+            "RESOURCE_STEWARDSHIP": 0,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 49,
+      "externalRef": "CW-049",
+      "title": "Returning to Routine",
+      "narrativeText": "Several hours later, you arrive home. The expedition has officially ended. Your equipment is stacked by the door, your notebook is filled with observations, and your camera holds hundreds of photographs documenting the journey. Within the next few days, your attention will shift back to classes, work, deadlines, and daily responsibilities.\nAlthough the environment has changed, the decisions you made throughout the expedition remain fresh in your mind. You recognize that experiences only create value if they influence future performance.",
+      "decisionPoint": "Before fully returning to your normal routine, what do you choose to do first?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "The Reset",
+          "text": "You clean, inspect, and store every piece of equipment. You believe that properly closing one project is the best preparation for the next.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": "The Documentation",
+          "text": "You organize your notes, photographs, maps, and observations into a complete record. You believe accurate documentation preserves knowledge that may become valuable later.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": "The Reflection",
+          "text": "You deliberately set aside uninterrupted time to evaluate the expedition as a whole. You analyze your decisions, assumptions, successes, and mistakes before drawing conclusions.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "D",
+          "title": "The Application",
+          "text": "You immediately begin identifying ways to apply lessons from the expedition to your academic, professional, or personal goals. You view every experience as training for future challenges.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        }
+      ]
+    },
+    {
+      "sequenceOrder": 50,
+      "externalRef": "CW-050",
+      "title": "The Last Entry",
+      "narrativeText": "Late that evening, before putting your field journal back on the shelf, you notice one final blank page. You realize this will be the last thing you write about the expedition. Weeks from now, the details will begin to fade, but whatever you choose to record now will likely become the memory that remains.\nYou pause for a moment, pen in hand.",
+      "decisionPoint": "What do you choose to record?",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": null,
+          "text": "You write a practical summary of the expedition—the route you traveled, the equipment that worked, the mistakes you made, and the logistical lessons that will improve future trips.",
+          "sortOrder": 0,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 0
+          }
+        },
+        {
+          "label": "B",
+          "title": null,
+          "text": "You document the evidence you gathered as objectively as possible, organizing your observations so someone else could independently understand and evaluate the site.",
+          "sortOrder": 1,
+          "scores": {
+            "SELF_RELIANCE": 5,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 10,
+            "TEAM_FOCUS": 5
+          }
+        },
+        {
+          "label": "C",
+          "title": null,
+          "text": "You write about the people you encountered—the researchers, the fisherman, the campers, the farmer—and how each conversation changed your understanding of the landscape.",
+          "sortOrder": 2,
+          "scores": {
+            "SELF_RELIANCE": 0,
+            "MOBILITY": 0,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 10
+          }
+        },
+        {
+          "label": "D",
+          "title": null,
+          "text": "You don't focus on the expedition itself. Instead, you write about how the experience changed the way you think, solve problems, and approach uncertainty.",
+          "sortOrder": 3,
+          "scores": {
+            "SELF_RELIANCE": 10,
+            "MOBILITY": 5,
+            "RESOURCE_STEWARDSHIP": 5,
+            "TEAM_FOCUS": 5
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -14,7 +14,6 @@ export type PublicSettings = {
   supportEmail: string;
   logoUrl: string | null;
   defaultBackdropUrl: string | null;
-  biometricMode: string;
 };
 
 export async function getPublicSettings(): Promise<PublicSettings> {
@@ -24,7 +23,6 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     supportEmail: resolveSupportEmail(settings.supportEmail),
     logoUrl: settings.logoUrl ?? null,
     defaultBackdropUrl: settings.defaultBackdropUrl ?? null,
-    biometricMode: settings.biometricMode,
   };
 }
 
@@ -37,7 +35,6 @@ export async function getGlobalSettings() {
         data: {
           platformName: 'Compass',
           supportEmail: 'support@continentalworks.com',
-          biometricMode: 'optional',
           antiCheat: true,
           blindUiMode: true,
         }
@@ -51,7 +48,6 @@ export async function getGlobalSettings() {
       id: 'fallback-settings',
       platformName: 'Compass',
       supportEmail: 'support@continentalworks.com',
-      biometricMode: 'optional',
       antiCheat: true,
       blindUiMode: true,
       logoUrl: null,

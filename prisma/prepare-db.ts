@@ -44,21 +44,169 @@ function run(command: string) {
   execSync(command, { stdio: 'inherit', env: { ...process.env, DATABASE_URL: directUrl } });
 }
 
+/** Host and database name, for the log. Never the credentials. */
+function describeDatabase(url: string | undefined): string {
+  if (!url) return 'unknown';
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return 'unparseable';
+  }
+}
+
+/**
+ * Why a connection string could not be read, in words the person who pasted
+ * it can act on. Neon's Connect panel offers a ready-made `psql` command, and
+ * copying the whole line - command, quotes and all - is the usual cause.
+ */
+function explainUnparseable(name: string, value: string): string[] {
+  const trimmed = value.trim();
+  if (/^psql\b/i.test(trimmed)) {
+    return [
+      `${name} starts with "psql", so the whole command line was copied.`,
+      'In Neon, use the connection string on its own - not the psql command.',
+    ];
+  }
+  if (/^["']|["']$/.test(trimmed)) {
+    return [
+      `${name} has quotes around it. Vercel stores the value literally, so the`,
+      'quotes became part of the string. Paste it without them.',
+    ];
+  }
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+    return [
+      `${name} does not begin with postgresql:// - it looks like a hostname`,
+      'rather than a full connection string.',
+    ];
+  }
+  return [`${name} is not a connection string this can read.`];
+}
+
+/**
+ * The same database, whether reached through the pooler or directly.
+ *
+ * Neon gives the two connections different hostnames - the pooled one carries
+ * a `-pooler` suffix on the endpoint - so they have to be compared with that
+ * removed, or every correct setup looks like a mismatch.
+ */
+function sameDatabase(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return true;
+  const normalise = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return `${parsed.host.replace('-pooler', '')}${parsed.pathname}`;
+    } catch {
+      return url;
+    }
+  };
+  return normalise(a) === normalise(b);
+}
+
 async function main() {
-  // Preview builds share whatever DATABASE_URL the Preview environment holds,
-  // which is usually the production one. Pushing the schema or seeding from a
+  const target = describeDatabase(directUrl);
+
+  // A value that cannot be read at all is its own problem, and reporting it
+  // as "two different databases" sends someone looking for the wrong thing.
+  for (const name of ['DATABASE_URL', 'DATABASE_URL_UNPOOLED'] as const) {
+    const value = process.env[name];
+    if (!value) continue;
+    try {
+      new URL(value);
+    } catch {
+      fail([
+        ...explainUnparseable(name, value),
+        '',
+        'It should look like:',
+        '  postgresql://user:password@host.neon.tech/neondb?sslmode=require',
+        '',
+        `Set it under Vercel -> Settings -> Environment Variables, scoped to`,
+        `${vercelEnv ?? 'this environment'}. Nothing has been changed.`,
+      ]);
+    }
+  }
+
+  // Prisma's datasource reads DATABASE_URL; only migrations here use
+  // DATABASE_URL_UNPOOLED. If the two name different databases, the schema
+  // gets changed in one place while the application reads another - the
+  // application then fails against a database that was never migrated, and
+  // nothing says why. Easy to do by accident when setting up a preview
+  // branch, so it is checked rather than trusted.
+  if (!sameDatabase(process.env.DATABASE_URL, process.env.DATABASE_URL_UNPOOLED)) {
+    fail([
+      'DATABASE_URL and DATABASE_URL_UNPOOLED point at different databases:',
+      '',
+      `  DATABASE_URL          ${describeDatabase(process.env.DATABASE_URL)}   (what the app reads)`,
+      `  DATABASE_URL_UNPOOLED ${describeDatabase(process.env.DATABASE_URL_UNPOOLED)}   (what migrations would change)`,
+      '',
+      'They must be the pooled and direct connections of the same database.',
+      'This usually means one of them was given a preview branch while the',
+      'other still points somewhere else. Nothing has been changed.',
+    ]);
+  }
+
+  // Preview builds get whatever DATABASE_URL the Preview environment holds,
+  // which by default is the production one. Migrating or seeding from a
   // feature branch would then alter live data, so those steps are production
-  // only. Set ALLOW_PREVIEW_DB_WRITES=1 if previews ever get their own branch
-  // database.
-  const mayWriteSchema =
-    !vercelEnv || vercelEnv === 'production' || process.env.ALLOW_PREVIEW_DB_WRITES === '1';
+  // only unless previews have been given their own database.
+  //
+  // Opting in names the database rather than just saying yes: set
+  // ALLOW_PREVIEW_DB_WRITES to a distinctive part of the preview database's
+  // host, and if DATABASE_URL has not actually been repointed, the value will
+  // not match and the build stops. Enabling the flag and forgetting to change
+  // the URL is the mistake worth engineering against, because it is silent and
+  // it lands on production.
+  const previewOptIn = process.env.ALLOW_PREVIEW_DB_WRITES?.trim();
+  const isPreview = Boolean(vercelEnv) && vercelEnv !== 'production';
+
+  let mayWriteSchema = !vercelEnv || vercelEnv === 'production';
+
+  if (isPreview && previewOptIn) {
+    if (previewOptIn === '1') {
+      mayWriteSchema = true;
+      console.warn(
+        [
+          '',
+          `WARNING: this ${vercelEnv} build will migrate and seed ${target}.`,
+          'ALLOW_PREVIEW_DB_WRITES is set to "1", which does not check which',
+          'database that is. Set it to a distinctive part of the preview',
+          "database's host instead, and this will refuse to run if the URL is",
+          'ever pointed somewhere else.',
+          '',
+        ].join('\n')
+      );
+    } else if (target.includes(previewOptIn)) {
+      mayWriteSchema = true;
+      console.log(`${vercelEnv} deployment - preparing its own database (${target}).`);
+    } else {
+      fail([
+        `This ${vercelEnv} deployment is set up to prepare its own database,`,
+        `but DATABASE_URL points at ${target}, which does not contain`,
+        `"${previewOptIn}".`,
+        '',
+        'Nothing has been changed. To fix it, in Vercel:',
+        '',
+        '  Settings -> Environment Variables -> DATABASE_URL',
+        `  Scope: ${vercelEnv} only. Value: the pooled connection string of the`,
+        `  "${previewOptIn}" branch, from Neon -> Branches -> Connect.`,
+        '',
+        '  DATABASE_URL_UNPOOLED, same scope, is that branch\'s direct string.',
+        '',
+        'If instead this deployment should use the database it already has,',
+        'remove ALLOW_PREVIEW_DB_WRITES and it will leave it untouched.',
+      ]);
+    }
+  }
 
   if (!mayWriteSchema) {
     console.log(
-      `${vercelEnv} deployment - skipping schema push and seeding so the production database is left alone.`
+      `${vercelEnv} deployment - leaving ${target} untouched. ` +
+        'Give previews their own database and set ALLOW_PREVIEW_DB_WRITES to part of its host to change that.'
     );
     return;
   }
+
+  console.log(`Preparing ${target}.`);
 
   const prisma = new PrismaClient({ datasourceUrl: directUrl });
 
@@ -109,6 +257,19 @@ async function main() {
 
   // Idempotent; gives rows that predate multi-tenancy an owner.
   await backfillLegacyTenant(prisma);
+
+  // Practice runs carry a retention date; something has to honour it. Doing it
+  // here means a regularly deployed instance needs no scheduler.
+  try {
+    const { purgeExpiredPracticeRuns } = await import('../src/lib/retention');
+    const { deleted, kept } = await purgeExpiredPracticeRuns();
+    if (deleted || kept) {
+      console.log(`Purge: deleted ${deleted} expired practice run(s); kept ${kept} that joined the registry.`);
+    }
+  } catch (error) {
+    // Retention is housekeeping. It must never fail a deploy.
+    console.warn('Purge skipped:', error instanceof Error ? error.message : error);
+  }
 
   const [admins, dimensions, packages, users] = await Promise.all([
     prisma.admin.count(),

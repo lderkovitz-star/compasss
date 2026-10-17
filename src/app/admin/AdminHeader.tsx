@@ -15,6 +15,7 @@ const PAGE_TITLES: Record<string, { title: string; desc: string }> = {
   '/admin/clients': { title: 'Client Accounts', desc: 'Employer workspaces, access keys and package assignment' },
   '/admin/candidates': { title: 'Candidates', desc: 'Candidate records and assessment history' },
   '/admin/coordinator': { title: 'Coordinator View', desc: 'Trait scores, human overrides and AI tiering' },
+  '/admin/talent': { title: 'Talent Registry', desc: 'Platform-wide candidates and archetype comparison' },
 };
 
 interface AdminHeaderProps {
@@ -51,7 +52,7 @@ export default function AdminHeader({ adminEmail, adminName, adminRole, adminIma
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin-login');
+    router.push('/master-admin');
     router.refresh();
   }
 

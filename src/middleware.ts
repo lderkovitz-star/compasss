@@ -92,9 +92,11 @@ async function verifyHmacToken(token: string): Promise<boolean> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Rewrite /admin/login to the actual login page route
+  // The historical login path resolves to the master console's entry. The
+  // matcher below does not cover /admin-login, which redirects in its own page
+  // component instead.
   if (pathname === '/admin/login') {
-    return NextResponse.rewrite(new URL('/admin-login', req.url));
+    return NextResponse.rewrite(new URL('/master-admin', req.url));
   }
 
   // Protect ALL /admin/* routes (except /admin/login itself)
@@ -109,7 +111,7 @@ export async function middleware(req: NextRequest) {
       if (isAdminApi) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const loginUrl = new URL('/admin/login', req.url);
+      const loginUrl = new URL('/master-admin', req.url);
       loginUrl.searchParams.set('from', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -120,7 +122,7 @@ export async function middleware(req: NextRequest) {
       if (isAdminApi) {
         return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
       }
-      const loginUrl = new URL('/admin/login', req.url);
+      const loginUrl = new URL('/master-admin', req.url);
       loginUrl.searchParams.set('from', pathname);
       const response = NextResponse.redirect(loginUrl);
       response.cookies.delete(COOKIE_NAME);
