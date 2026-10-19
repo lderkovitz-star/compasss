@@ -210,6 +210,12 @@ copy both the pooled and the direct (unpooled) connection strings.
 | `DATABASE_URL` | the branch's pooled connection string |
 | `DATABASE_URL_UNPOOLED` | the branch's direct connection string |
 | `ALLOW_PREVIEW_DB_WRITES` | a distinctive part of the branch's host, e.g. `ep-quiet-moon-12345` |
+| `BLOB_READ_WRITE_TOKEN` | the same value Production uses — tick Preview on the existing variable |
+
+That last one is easy to miss, because Vercel often adds it to Production
+only when you connect the Blob store. Without it the site loads and the
+database works, but any résumé upload fails with *"No read-write token
+found"* — a failure that looks like broken code and is not.
 
 That third one is the safety catch. It does not just say "yes" — it names the
 database the preview is allowed to prepare. If `DATABASE_URL` is ever left
@@ -217,7 +223,9 @@ pointing at production, the value will not match and the build stops before
 touching anything. Setting it to `1` also works but checks nothing, and the
 build log will say so.
 
-**4. Redeploy the branch.** The build log will say
+**4. Redeploy the branch.** Changing environment variables does not affect
+deployments that already exist — they carry the values they were built with —
+so a new build is needed before any of this takes effect. The build log will say
 `preview deployment - preparing its own database (…)` and name the host. Check
 that the host is the branch, not production. If it says *leaving … untouched*,
 one of the three variables is missing from the Preview scope.
