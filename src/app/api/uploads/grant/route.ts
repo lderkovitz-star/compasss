@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { getCurrentAdmin } from '@/lib/auth';
 import { getClientSession } from '@/lib/portal-auth';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
-import { getStorage } from '@/lib/storage';
+import { getStorage, describeBlobToken } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,6 +95,14 @@ async function authorize(clientPayload: string | null): Promise<Grant | null> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // The SDK's own message for a bad token says nothing about which way it is
+  // bad, so check the shape first and say.
+  const tokenProblem = describeBlobToken();
+  if (tokenProblem) {
+    console.error('[uploads grant]', tokenProblem);
+    return NextResponse.json({ error: tokenProblem }, { status: 503 });
+  }
+
   const body = (await req.json()) as HandleUploadBody;
 
   try {

@@ -24,6 +24,31 @@ export class StorageConfigError extends Error {
   }
 }
 
+/**
+ * Vercel Blob tokens look like `vercel_blob_rw_<store>_<secret>`. The SDK's
+ * own complaint for a bad one is "Invalid `token` parameter", which does not
+ * say whether the variable is missing, truncated, or wrapped in quotes - and
+ * those are the three ways it actually goes wrong when someone pastes it into
+ * a dashboard.
+ */
+export function describeBlobToken(): string | null {
+  const raw = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!raw) {
+    return 'BLOB_READ_WRITE_TOKEN is not set for this environment. Vercel often adds it to Production only - tick Preview on the existing variable.';
+  }
+  const value = raw.trim();
+  if (/^["']|["']$/.test(value)) {
+    return 'BLOB_READ_WRITE_TOKEN has quotes around it. The value is stored literally, so paste it without them.';
+  }
+  if (!value.startsWith('vercel_blob_rw_')) {
+    return `BLOB_READ_WRITE_TOKEN does not start with "vercel_blob_rw_", so it is not a Blob read-write token. Copy it from the Blob store's .env.local tab.`;
+  }
+  if (value.length < 50) {
+    return `BLOB_READ_WRITE_TOKEN is only ${value.length} characters, which is too short - it looks truncated. Copy the whole value.`;
+  }
+  return null;
+}
+
 export async function getStorage(): Promise<StorageAdapter> {
   let configured: string | null = null;
   try {
