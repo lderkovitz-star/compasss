@@ -328,6 +328,46 @@ async function loadCandidate(sessionId: string): Promise<Candidate | null> {
 }
 
 /** Calls made today, used to hold a demo session inside a known ceiling. */
+/**
+ * The columns a query asks for, decided once so every row is scored the same
+ * way. Derived from the query rather than a fixed list, which is the point -
+ * ask about tempo and diplomacy and those are the columns you get.
+ */
+export async function deriveAxes(query: string): Promise<string[]> {
+  const provider = await resolveActiveProvider();
+  const result = await complete(provider, {
+    system:
+      'You name the comparison axes implied by a talent search query. Reply with a JSON array of 3 to 5 short axis names and nothing else. Each is at most three words. Name the quality, not the historical figure: "Decision Tempo", not "Jackson".',
+    prompt: `Query: ${query.trim()}`,
+    timeoutMs: 20_000,
+  });
+
+  const start = result.text.indexOf('[');
+  const end = result.text.lastIndexOf(']');
+  if (start === -1 || end <= start) {
+    throw new SynthesisShapeError('The model did not return a list of axes.');
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(result.text.slice(start, end + 1));
+  } catch {
+    throw new SynthesisShapeError('The axis list could not be read.');
+  }
+
+  const axes = Array.isArray(parsed)
+    ? parsed
+        .map((a) => (typeof a === 'string' ? a.trim().slice(0, 40) : ''))
+        .filter(Boolean)
+        .slice(0, 5)
+    : [];
+
+  if (axes.length < 3) {
+    throw new SynthesisShapeError('Fewer than three usable axes came back.');
+  }
+  return axes;
+}
+
 export async function synthesisCallsToday(): Promise<number> {
   const since = new Date();
   since.setHours(0, 0, 0, 0);
@@ -336,7 +376,8 @@ export async function synthesisCallsToday(): Promise<number> {
 
 export async function synthesise(
   sessionId: string,
-  query: string
+  query: string,
+  options: { axes?: string[] } = {}
 ): Promise<SynthesisResult> {
   const trimmed = query.trim();
   if (trimmed.length < 3) {
@@ -344,7 +385,11 @@ export async function synthesise(
   }
 
   const provider = await resolveActiveProvider();
-  const queryHash = hashQuery(trimmed);
+  // Ranking a table needs every candidate scored on the same axes, or the
+  // columns mean different things per row. Fixing them changes the answer, so
+  // they are part of what the cache is keyed on.
+  const axes = options.axes?.length ? options.axes : null;
+  const queryHash = hashQuery(axes ? `${trimmed}::${axes.join('|')}` : trimmed);
 
   // Re-ranking a shortlist means one call per candidate per query, which adds
   // up fast in a demo. The same question about the same person on the same
@@ -390,12 +435,17 @@ export async function synthesise(
   // rather than a configuration problem.
   for (let attempt = 0; attempt < 2 && !payload; attempt++) {
     try {
+      const axisInstruction = axes
+        ? `\n\nUse exactly these radar axes, in this order, and no others: ${axes
+            .map((a) => `"${a}"`)
+            .join(', ')}.`
+        : '';
       const result = await complete(provider, {
         system: SYSTEM_PROMPT,
         prompt:
           attempt === 0
-            ? prompt
-            : `${prompt}\n\nYour previous reply did not match the required JSON shape. Reply with the JSON object only.`,
+            ? prompt + axisInstruction
+            : `${prompt}${axisInstruction}\n\nYour previous reply did not match the required JSON shape. Reply with the JSON object only.`,
       });
       payload = validatePayload(extractJson(result.text));
     } catch (err) {

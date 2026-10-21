@@ -75,11 +75,29 @@ export async function recordRegistryEntry(sessionId: string): Promise<void> {
     decisionScore,
   };
 
-  await prisma.talentRegistryEntry.upsert({
+  const saved = await prisma.talentRegistryEntry.upsert({
     where: { sessionId },
     update: data,
     create: { sessionId, ...data },
+    select: { id: true, name: true, email: true, jobContextText: true, resumeText: true },
   });
+
+  // Embed what this candidate is searchable on. Best effort: an embedding is
+  // a search convenience, and a sitting must not fail because a provider was
+  // slow or unconfigured. Without it the registry matches on words instead.
+  try {
+    const { embed, searchableText } = await import('./ai/embeddings');
+    const text = searchableText(saved);
+    if (text.length >= 40) {
+      const { vectors, model } = await embed([text]);
+      await prisma.talentRegistryEntry.update({
+        where: { id: saved.id },
+        data: { embedding: vectors[0] as never, embeddingModel: model, embeddedAt: new Date() },
+      });
+    }
+  } catch {
+    // Left unembedded; the search falls back and says so.
+  }
 
   // Adding an entry changes everyone else's standing in that cohort.
   await rankRegistry(data.source);

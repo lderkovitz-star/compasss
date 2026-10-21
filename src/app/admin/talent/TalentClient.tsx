@@ -20,6 +20,8 @@ type Entry = {
 
 type Registry = {
   source: 'SANDBOX' | 'LIVE';
+  searchMode: 'similarity' | 'words';
+  searchNote: string | null;
   cohortSize: number;
   percentilesAvailable: boolean;
   minCohortForPercentiles: number;
@@ -44,6 +46,50 @@ export default function TalentClient() {
 
   const [dnaFor, setDnaFor] = useState<Entry | null>(null);
   const [query, setQuery] = useState('');
+
+  // A ranked view replaces the default table: the columns come from the query,
+  // so they cannot be known until it has been run.
+  type RankedRow = {
+    id: string;
+    sessionId: string;
+    name: string | null;
+    email: string | null;
+    scores: (number | null)[];
+    matchScore: number;
+    profileBadge: string;
+    topArchetype: string | null;
+    isHighSignal: boolean;
+  };
+  const [ranked, setRanked] = useState<{ axes: string[]; rows: RankedRow[]; note: string | null } | null>(null);
+  const [ranking, setRanking] = useState(false);
+  const [rankError, setRankError] = useState('');
+
+  async function runRanking() {
+    if (query.trim().length < 3) {
+      setRankError('Describe what you are looking for in a little more detail.');
+      return;
+    }
+    setRanking(true);
+    setRankError('');
+    setRanked(null);
+    try {
+      const res = await fetch('/api/admin/talent/rank', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, query }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setRankError(data.error ?? 'The ranking could not be produced.');
+        return;
+      }
+      setRanked({ axes: data.axes, rows: data.rows, note: data.note ?? null });
+    } catch {
+      setRankError('Could not reach the server.');
+    } finally {
+      setRanking(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,12 +180,40 @@ export default function TalentClient() {
             placeholder="e.g. Stonewall Jackson tempo + Metternich diplomacy for fleet crisis command"
             className="form-input text-slate-900"
           />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              onClick={() => void runRanking()}
+              disabled={ranking}
+              className="btn-primary text-xs px-4 py-2"
+            >
+              {ranking ? 'Ranking…' : 'Rank candidates against this'}
+            </button>
+            {ranked && (
+              <button onClick={() => setRanked(null)} className="btn-ghost text-xs px-3 py-2 text-slate-600">
+                Back to the full registry
+              </button>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-1.5">
-            Typed in free text. Open a candidate&apos;s Cognitive DNA below and this question frames
-            the comparison - the axes come back from the model, not from a fixed list.
+            Typed in free text. Ranking scores every candidate on the axes this question implies, and
+            the table&apos;s columns become those axes - nothing here is a fixed list.
           </p>
+          {rankError && (
+            <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-800">
+              {rankError}
+            </p>
+          )}
         </div>
       </div>
+
+      {registry && search.trim() && (
+        <p className="text-xs text-slate-500">
+          {registry.searchMode === 'similarity'
+            ? 'Matched on meaning, using embeddings of each candidate\u2019s resume and role.'
+            : 'Matched on words. Similarity search needs an OpenAI-compatible provider with a key saved.'}
+          {registry.searchNote ? ` ${registry.searchNote}` : ''}
+        </p>
+      )}
 
       {registry && !registry.percentilesAvailable && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-900">
@@ -154,7 +228,125 @@ export default function TalentClient() {
         </p>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      {ranked && (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200">
+            <h2 className="font-semibold text-slate-900">
+              Ranked for this query
+              <span className="ml-2 text-sm font-normal text-slate-500">
+                {ranked.rows.length} candidate{ranked.rows.length === 1 ? '' : 's'}, re-ordered by match
+              </span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              The columns below came from the question, not from a fixed set.
+            </p>
+            {ranked.note && <p className="text-xs text-amber-700 mt-1">{ranked.note}</p>}
+          </div>
+
+          {ranked.rows.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-slate-500">
+              Nothing in this registry could be scored for that query.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                      Candidate
+                    </th>
+                    {ranked.axes.map((axis) => (
+                      <th
+                        key={axis}
+                        className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-3"
+                      >
+                        {axis}
+                      </th>
+                    ))}
+                    <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                      Profile
+                    </th>
+                    <th className="text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                      Match
+                    </th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {ranked.rows.map((row, index) => (
+                    <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-semibold text-slate-400 w-4">{index + 1}</span>
+                          <div
+                            className="h-8 w-8 flex-shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-[12px] font-semibold text-slate-600"
+                            aria-hidden
+                          >
+                            {(row.name ?? '?').trim().charAt(0).toUpperCase() || '?'}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-slate-900 flex items-center gap-2">
+                              {row.name ?? 'Unnamed'}
+                              {row.isHighSignal && (
+                                <span className="rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                  High signal
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate">{row.email ?? ''}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {row.scores.map((score, i) => (
+                        <td key={i} className="px-3 py-3 text-center">
+                          <div className="text-sm font-semibold text-slate-900">
+                            {score === null ? '—' : Math.round(score)}
+                          </div>
+                        </td>
+                      ))}
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                          {row.profileBadge}
+                        </span>
+                        {row.topArchetype && (
+                          <div className="text-[11px] text-slate-500 mt-1">closest: {row.topArchetype}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-sm font-bold text-slate-900">{row.matchScore}%</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() =>
+                            setDnaFor({
+                              id: row.id,
+                              sessionId: row.sessionId,
+                              name: row.name,
+                              email: row.email,
+                              roleSummary: null,
+                              decisionScore: null,
+                              percentile: null,
+                              isHighSignal: row.isHighSignal,
+                              packageName: null,
+                              employerName: null,
+                              completedAt: '',
+                            })
+                          }
+                          className="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"
+                        >
+                          Cognitive DNA
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden ${ranked ? 'opacity-60' : ''}`}>
         <div className="px-5 py-4 border-b border-slate-200 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold text-slate-900">
             {source === 'LIVE' ? 'Live' : 'Sandbox'} entries

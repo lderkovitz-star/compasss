@@ -550,6 +550,13 @@ model TalentRegistryEntry {
   /// mean anything - see the 30 entry floor in the ranking job.
   isHighSignal   Boolean           @default(false) @map("is_high_signal")
   rankedAt       DateTime?         @map("ranked_at")
+  /// Embedding of this candidate's searchable text, for similarity search.
+  /// Stored as a plain array rather than a vector column so no database
+  /// extension is required; cohorts here are small enough that comparing in
+  /// memory costs less than the operational weight of pgvector.
+  embedding      Json?
+  embeddingModel String?           @map("embedding_model")
+  embeddedAt     DateTime?         @map("embedded_at")
   createdAt      DateTime          @default(now()) @map("created_at")
 
   @@index([source, isHighSignal])
