@@ -40,6 +40,24 @@ if (missing.length > 0) {
 // DATABASE_URL_UNPOOLED; other providers fall back to DATABASE_URL.
 const directUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 
+/**
+ * The client's own 50-scenario pack ships in the repository, so a fresh
+ * database comes up running their assessment rather than the five-scenario
+ * demo. Idempotent, and never allowed to fail the deployment.
+ */
+async function installPack(): Promise<void> {
+  const { PrismaClient: Client } = await import('@prisma/client');
+  const client = new Client({ datasourceUrl: directUrl });
+  try {
+    const { installClientPack } = await import('./install-client-pack');
+    await installClientPack(client);
+  } catch (error) {
+    console.warn('Client pack not installed:', error instanceof Error ? error.message : error);
+  } finally {
+    await client.$disconnect();
+  }
+}
+
 function run(command: string) {
   execSync(command, { stdio: 'inherit', env: { ...process.env, DATABASE_URL: directUrl } });
 }
@@ -294,11 +312,16 @@ async function main() {
   // three are empty, nothing can be lost.
   if (dimensions > 0 || packages > 0 || users > 0) {
     console.log('Database already has data - skipping starter content.');
-    return;
+  } else {
+    console.log('Empty database - loading starter assessment content...');
+    run('npx prisma db seed');
   }
 
-  console.log('Empty database - loading starter assessment content...');
-  run('npx prisma db seed');
+  // After the seed, never before it. The seed only runs against an empty
+  // database, and installing the pack first makes the database look populated
+  // - which skips the seed, and with it the settings row that the pack
+  // assignment writes to.
+  await installPack();
 }
 
 main().catch((e) => {
