@@ -1,5 +1,4 @@
 import Link from "next/link";
-import StealthEntry from "./StealthEntry";
 import { getGlobalSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { resolveBrandName } from "@/lib/constants/brand";
@@ -71,8 +70,11 @@ export default async function Home() {
               <div className="text-[8px] sm:text-[10px] text-[#5B6580] tracking-[0.08em] uppercase leading-tight mt-0.5 font-semibold truncate hidden sm:block">Executive Assessment</div>
             </div>
           </Link>
-          <div className="flex items-center flex-shrink-0">
-            <Link href="/intake" className="bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] py-1.5 sm:py-2.5 rounded sm:rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+            <Link href="/master-admin" className="min-h-[44px] text-[#97A2BE] hover:text-white text-[11px] sm:text-[13.5px] font-semibold px-2.5 sm:px-4 rounded-lg inline-flex items-center whitespace-nowrap border border-white/10 hover:border-white/25 hover:bg-white/5 transition-colors">
+              Admin
+            </Link>
+            <Link href="/intake" className="min-h-[44px] bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
               Begin assessment &rarr;
             </Link>
           </div>
@@ -288,7 +290,15 @@ export default async function Home() {
       {/* FOOTER */}
       <footer className="border-t border-white/10 py-6 sm:py-7">
         <div className="max-w-[1180px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs sm:text-[12.5px] text-[#5B6580] text-center sm:text-left">
-          <StealthEntry label={`© 2026 ${resolveBrandName(settings.platformName)}`} />
+          <span>© 2026 {resolveBrandName(settings.platformName)}</span>
+          <div className="flex items-center gap-1">
+            <Link href="/portal" className="min-h-[44px] inline-flex items-center px-3 rounded-lg hover:text-white hover:bg-white/5 transition-colors">
+              Employer portal
+            </Link>
+            <Link href="/master-admin" className="min-h-[44px] inline-flex items-center px-3 rounded-lg hover:text-white hover:bg-white/5 transition-colors">
+              Admin
+            </Link>
+          </div>
           <span className={plexMono.className}>v2.0 — executive platform</span>
         </div>
       </footer>

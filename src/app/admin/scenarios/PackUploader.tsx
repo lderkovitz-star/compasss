@@ -235,12 +235,12 @@ export default function PackUploader({ onClose }: { onClose: () => void }) {
                   onChange={(e) => accept(e.target.files?.[0])}
                 />
                 <p className="text-sm font-medium text-slate-900">
-                  {file ? file.name : 'Drop a .json or .csv file here'}
+                  {file ? file.name : 'Tap to choose a .json or .csv file'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
                   {file
-                    ? `${(file.size / 1024).toFixed(0)} KB — click to choose a different file`
-                    : 'or click to choose one'}
+                    ? `${(file.size / 1024).toFixed(0)} KB — tap to choose a different file`
+                    : 'or drag one in on a desktop'}
                 </p>
               </div>
 

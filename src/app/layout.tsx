@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "react-hot-toast";
-import StealthHotkey from "./StealthHotkey";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           speed={200}
           shadow="0 0 10px #3B82F6,0 0 5px #3B82F6"
         />
-        <StealthHotkey />
         {children}
         <Toaster 
           position="bottom-right"

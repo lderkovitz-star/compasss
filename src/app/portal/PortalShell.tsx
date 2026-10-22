@@ -34,12 +34,12 @@ export default function PortalShell({
                 Enterprise Admin
               </div>
             </div>
-            <nav className="hidden sm:flex items-center gap-1">
+            <nav className="flex items-center gap-1">
               {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
+                  className={`min-h-[44px] inline-flex items-center px-3 rounded-lg text-[13px] font-medium transition-colors ${
                     pathname === item.href
                       ? 'bg-slate-100 text-slate-900'
                       : 'text-slate-600 hover:bg-slate-50'
@@ -52,7 +52,7 @@ export default function PortalShell({
           </div>
           <button
             onClick={lock}
-            className="text-[13px] font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors whitespace-nowrap"
+            className="min-h-[44px] inline-flex items-center text-[13px] font-medium text-slate-600 hover:text-slate-900 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors whitespace-nowrap"
           >
             Lock ledger
           </button>
