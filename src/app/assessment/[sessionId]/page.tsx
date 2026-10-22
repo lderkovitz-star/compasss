@@ -137,7 +137,9 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
       });
       const data = await res.json();
       if (data.completed) {
-        router.push(`/assessment/complete?session=${sessionId}`);
+        // The server decides where a finished sitting goes: a practice run to
+        // its own result, an employer's candidate to the closing screen.
+        router.push(data.redirect ?? `/assessment/complete?session=${sessionId}`);
         return;
       }
       if (!res.ok) throw new Error(data.error || 'Submission failed');

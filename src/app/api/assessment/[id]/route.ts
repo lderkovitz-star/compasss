@@ -24,8 +24,15 @@ export async function GET(
     }
 
     if (session.status === 'COMPLETED') {
+      // A practice run has no employer and no evaluator - the person who took
+      // it is the one who wanted the result, so they see it.
       return NextResponse.json(
-        { redirect: `/assessment/complete?session=${sessionId}` },
+        {
+          redirect:
+            session.kind === 'PRACTICE'
+              ? `/practice/results/${sessionId}`
+              : `/assessment/complete?session=${sessionId}`,
+        },
         { status: 200 }
       );
     }
@@ -205,7 +212,13 @@ export async function POST(
         }
       }
 
-      return NextResponse.json({ completed: true });
+      return NextResponse.json({
+        completed: true,
+        redirect:
+          session.kind === 'PRACTICE'
+            ? `/practice/results/${sessionId}`
+            : `/assessment/complete?session=${sessionId}`,
+      });
     }
 
     // ⚠️ BLIND UI RULE: Return only progress, never scores
