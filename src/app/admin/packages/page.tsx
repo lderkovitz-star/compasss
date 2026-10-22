@@ -34,7 +34,7 @@ export default async function PackagesPage() {
         <div className="flex justify-end mb-4">
           <Link 
             href="/admin/packages/trash" 
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors shadow-sm"
+            className="flex min-h-[44px] items-center gap-2 px-3 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors shadow-sm"
           >
             <Trash2 className="w-4 h-4" />
             View Trash

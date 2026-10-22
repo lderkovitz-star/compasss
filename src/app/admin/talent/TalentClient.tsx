@@ -421,7 +421,7 @@ export default function TalentClient() {
                   </button>
                   <Link
                     href={`/admin/reports/${entry.sessionId}`}
-                    className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                    className="inline-flex min-h-[44px] items-center px-3 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                   >
                     Report
                   </Link>
