@@ -33,7 +33,7 @@ export default async function PortalCandidatesPage({
   searchParams: { q?: string };
 }) {
   const session = await getClientSession();
-  if (!session) redirect('/portal');
+  if (!session) redirect('/employer');
 
   // Searching happens in the query rather than in the browser, so a long
   // ledger stays usable and the tenant filter is never something the search
@@ -205,7 +205,7 @@ export default async function PortalCandidatesPage({
           Search
         </button>
         {query && (
-          <Link href="/portal/candidates" className="btn-ghost text-sm px-4 py-2 text-slate-600">
+          <Link href="/employer/candidates" className="btn-ghost text-sm px-4 py-2 text-slate-600">
             Clear
           </Link>
         )}
@@ -271,7 +271,7 @@ export default async function PortalCandidatesPage({
                     <td className="px-4 py-3 text-right">
                       {row.status === 'COMPLETED' && row.sessionId ? (
                         <Link
-                          href={`/portal/reports/${row.sessionId}`}
+                          href={`/employer/reports/${row.sessionId}`}
                           className="text-[13px] font-medium text-blue-600 hover:text-blue-700"
                         >
                           View

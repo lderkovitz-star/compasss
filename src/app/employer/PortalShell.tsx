@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 const NAV = [
-  { href: '/portal/candidates', label: 'Candidate Ledger' },
+  { href: '/employer/candidates', label: 'Candidate Ledger' },
 ];
 
 export default function PortalShell({
@@ -19,7 +19,7 @@ export default function PortalShell({
 
   async function lock() {
     await fetch('/api/portal/session', { method: 'DELETE' });
-    router.replace('/portal');
+    router.replace('/employer');
     router.refresh();
   }
 

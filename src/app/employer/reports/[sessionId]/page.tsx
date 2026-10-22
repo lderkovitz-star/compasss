@@ -15,7 +15,7 @@ export default async function PortalReportPage({
   params: { sessionId: string };
 }) {
   const session = await getClientSession();
-  if (!session) redirect('/portal');
+  if (!session) redirect('/employer');
 
   // The tenant filter is part of the lookup, not a check afterwards. A session
   // id belonging to another employer simply does not match, so it 404s the
@@ -75,7 +75,7 @@ export default async function PortalReportPage({
   return (
     <PortalShell company={session.account.name}>
       <Link
-        href="/portal/candidates"
+        href="/employer/candidates"
         className="text-[13px] font-medium text-slate-600 hover:text-slate-900"
       >
         ← Candidate Ledger

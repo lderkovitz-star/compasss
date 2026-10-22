@@ -42,7 +42,7 @@ export default function AdminProfileDropdown() {
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/master-admin');
+    router.push('/admin');
     router.refresh();
   }
 

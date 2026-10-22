@@ -13,7 +13,7 @@ export default async function PortalGatewayPage({
 }) {
   // Already unlocked in this browser - no reason to ask again.
   const session = await getClientSession();
-  if (session) redirect(searchParams.from || '/portal/candidates');
+  if (session) redirect(searchParams.from || '/employer/candidates');
 
   const settings = await getPublicSettings();
 

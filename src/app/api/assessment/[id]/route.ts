@@ -179,7 +179,7 @@ export async function POST(
           data: {
             title: 'Assessment Completed',
             message: `${session.user?.name || 'A candidate'} has completed the ${session.package?.name || 'Assessment'} simulation.`,
-            linkUrl: session.clientAccountId ? `/portal/reports/${sessionId}` : `/admin/reports/${sessionId}`,
+            linkUrl: session.clientAccountId ? `/employer/reports/${sessionId}` : `/admin/reports/${sessionId}`,
             clientAccountId: session.clientAccountId,
             audience: session.clientAccountId ? 'CLIENT' : 'PLATFORM',
           }
@@ -205,7 +205,7 @@ export async function POST(
                 candidateName: session.user?.name ?? 'A candidate',
                 companyName: account.name,
                 roleTitle: session.user?.targetRole ?? '',
-                url: `/portal/reports/${sessionId}`,
+                url: `/employer/reports/${sessionId}`,
               },
             });
           }

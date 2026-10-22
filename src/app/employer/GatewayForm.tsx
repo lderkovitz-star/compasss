@@ -47,7 +47,7 @@ export default function GatewayForm({
       // The authorization lives in an httpOnly cookie, so a full navigation
       // picks it up and it survives tab switches without anything in storage
       // a script could read.
-      router.replace(from || '/portal/candidates');
+      router.replace(from || '/employer/candidates');
       router.refresh();
     } catch (err) {
       if (err instanceof TypeError) {

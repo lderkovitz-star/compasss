@@ -10,12 +10,15 @@ export const metadata = {
 };
 
 /**
- * The master console's entry point.
+ * The console's sign-in screen.
  *
- * Employers sign in at /portal; this is for whoever runs the platform, and it
- * is not linked from anywhere a candidate or employer would look. The security
- * is the login itself - a bcrypt comparison behind a rate limiter - not the
- * obscurity of the path, so this page is deliberately plain about nothing.
+ * Served at /admin, which is the address that gets bookmarked; this file is
+ * the page behind that rewrite, and /master-admin still reaches it so older
+ * bookmarks keep working. Employers sign in at /employer.
+ *
+ * Neither is linked from the landing page - a candidate has no account for
+ * either. The security is the login itself, a bcrypt comparison behind a rate
+ * limiter, not the obscurity of the path.
  */
 export default async function MasterAdminPage() {
   const settings = await getGlobalSettings();

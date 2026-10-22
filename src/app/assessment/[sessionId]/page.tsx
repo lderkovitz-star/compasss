@@ -25,7 +25,6 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
 
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,7 +35,6 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
   const currentBackdropRef = useRef<string | null>(null);
 
   const startTimeRef = useRef<number>(Date.now());
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionPathRef = useRef<DecisionEvent[]>([]);
   const visitedOptionsRef = useRef<Set<string>>(new Set());
 
@@ -69,20 +67,16 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
         }, 500); // Matches the 500ms transition duration in CSS
       }
 
-      // Timer Protection: Use localStorage to prevent timer resets on refresh
-      const storageKey = `timer_start_${sessionId}_${data.id}`;
+      // When this scenario was first shown. Kept in localStorage so a refresh
+      // does not reset it and report a decision as faster than it was - the
+      // latency is what the scoring reads. Nothing about it is shown to the
+      // candidate.
+      const storageKey = `scenario_start_${sessionId}_${data.id}`;
       const storedStart = localStorage.getItem(storageKey);
-      const now = Date.now();
-
-      let startTime = storedStart ? parseInt(storedStart, 10) : now;
+      const startTime = storedStart ? parseInt(storedStart, 10) : Date.now();
       if (!storedStart) {
         localStorage.setItem(storageKey, startTime.toString());
       }
-
-      const elapsedSec = Math.floor((now - startTime) / 1000);
-      const remainingSec = Math.max(0, data.timeLimitSec - elapsedSec);
-
-      setTimeLeft(remainingSec);
       startTimeRef.current = startTime;
 
     } catch (err: unknown) {
@@ -122,7 +116,6 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
   const handleSubmit = useCallback(async (optionId: string) => {
     if (submitting) return;
     setSubmitting(true);
-    if (timerRef.current) clearInterval(timerRef.current);
     const timeSpentMs = Date.now() - startTimeRef.current;
 
     try {
@@ -151,29 +144,9 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
     }
   }, [sessionId, router, submitting, loadScenario]);
 
-  // Timer
-  useEffect(() => {
-    if (!scenario || timeLeft <= 0 || submitting) return;
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) {
-          clearInterval(timerRef.current!);
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timerRef.current!);
-  }, [scenario, timeLeft, submitting]);
-
   const answeredCount = scenario ? scenario.sequenceOrder - 1 : 0;
   const totalCount = scenario ? scenario.totalScenarios : 0;
   const progressPct = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
-
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
   return (
     <div className="min-h-screen bg-[#0B1220] text-[#F3F5FA] selection:bg-[#2E63F6] selection:text-white overflow-x-hidden font-sans relative flex flex-col">
@@ -278,12 +251,6 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Right: Time Indicator */}
-            <div className="flex items-center gap-2 flex-shrink-0 rounded-lg px-3 py-1.5 bg-white/5 border border-white/10 backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-[#35E0C8] animate-pulse" />
-              <span className="text-xs font-mono font-bold text-slate-200">{formattedTime}</span>
             </div>
           </div>
         </header>

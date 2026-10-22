@@ -89,8 +89,37 @@ async function verifyHmacToken(token: string): Promise<boolean> {
   }
 }
 
+/**
+ * Where a signed-out admin lands.
+ *
+ * /admin is the address the client bookmarks, so the login is served *at*
+ * /admin rather than redirecting somewhere else - a bookmark that bounces to
+ * another URL is the thing they asked us to stop doing. Deeper paths still
+ * redirect, so the address bar matches what is on screen.
+ */
+function signedOut(req: NextRequest, pathname: string): NextResponse {
+  if (pathname === '/admin') {
+    return NextResponse.rewrite(new URL('/master-admin', req.url));
+  }
+  const loginUrl = new URL('/admin', req.url);
+  loginUrl.searchParams.set('from', pathname);
+  return NextResponse.redirect(loginUrl);
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Bookmarkable entrances. The two portals live at /admin and /employer, and
+  // nothing on the landing page links to them - a candidate should not be
+  // offered a login they have no account for.
+  //
+  // /portal was the employer path before; keep it working for anything already
+  // bookmarked or sent out.
+  if (pathname === '/portal' || pathname.startsWith('/portal/')) {
+    const moved = new URL(pathname.replace('/portal', '/employer'), req.url);
+    moved.search = req.nextUrl.search;
+    return NextResponse.redirect(moved, 308);
+  }
 
   // The historical login path resolves to the master console's entry. The
   // matcher below does not cover /admin-login, which redirects in its own page
@@ -111,9 +140,7 @@ export async function middleware(req: NextRequest) {
       if (isAdminApi) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const loginUrl = new URL('/master-admin', req.url);
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
+      return signedOut(req, pathname);
     }
 
     // Cryptographically verify the HMAC signature
@@ -122,9 +149,7 @@ export async function middleware(req: NextRequest) {
       if (isAdminApi) {
         return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
       }
-      const loginUrl = new URL('/master-admin', req.url);
-      loginUrl.searchParams.set('from', pathname);
-      const response = NextResponse.redirect(loginUrl);
+      const response = signedOut(req, pathname);
       response.cookies.delete(COOKIE_NAME);
       return response;
     }
@@ -134,7 +159,7 @@ export async function middleware(req: NextRequest) {
   // traffic off the pages; whether the session is still valid, the account
   // still active and which tenant it belongs to is settled by requireClient()
   // in the handlers, which can reach the database. Edge middleware cannot.
-  const isPortalPage = pathname.startsWith('/portal') && pathname !== '/portal';
+  const isPortalPage = pathname.startsWith('/employer') && pathname !== '/employer';
   const isPortalApi =
     pathname.startsWith('/api/portal') &&
     !pathname.startsWith('/api/portal/gateway') &&
@@ -147,7 +172,7 @@ export async function middleware(req: NextRequest) {
       if (isPortalApi) {
         return NextResponse.json({ error: 'Enterprise access required.' }, { status: 401 });
       }
-      const url = new URL('/portal', req.url);
+      const url = new URL('/employer', req.url);
       url.searchParams.set('from', pathname);
       return NextResponse.redirect(url);
     }
@@ -157,5 +182,11 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/portal/:path*', '/api/portal/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/api/admin/:path*',
+    '/employer/:path*',
+    '/portal/:path*',
+    '/api/portal/:path*',
+  ],
 };
