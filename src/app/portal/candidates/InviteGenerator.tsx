@@ -27,6 +27,7 @@ export default function InviteGenerator({
     candidateName: '',
     candidateEmail: '',
     packageId: defaultPackageId ?? '',
+    sessionDepth: '',
     jobContextId: savedContexts[0]?.id ?? '',
     jobTitle: '',
     jobDescription: '',
@@ -37,6 +38,7 @@ export default function InviteGenerator({
       candidateName: '',
       candidateEmail: '',
       packageId: defaultPackageId ?? '',
+      sessionDepth: '',
       jobContextId: savedContexts[0]?.id ?? '',
       jobTitle: '',
       jobDescription: '',
@@ -63,6 +65,9 @@ export default function InviteGenerator({
           candidateName: form.candidateName,
           candidateEmail: form.candidateEmail,
           packageId: form.packageId || undefined,
+          // Explicit null, not undefined: it means "run the whole pack", and
+          // the API would otherwise fall back to the platform default.
+          sessionDepth: form.sessionDepth ? Number(form.sessionDepth) : null,
           ...(useSaved
             ? { jobContextId: form.jobContextId }
             : { jobTitle: form.jobTitle, jobDescription: form.jobDescription }),
@@ -183,6 +188,26 @@ export default function InviteGenerator({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-slate-600 mb-1">
+                  Assessment length
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+                  value={form.sessionDepth}
+                  onChange={(e) => setForm((f) => ({ ...f, sessionDepth: e.target.value }))}
+                >
+                  <option value="">Full pack — every scenario it contains</option>
+                  <option value="5">Quick screen — 5 scenarios</option>
+                  <option value="10">Short — 10 scenarios</option>
+                  <option value="25">Standard — 25 scenarios</option>
+                  <option value="50">Full suite — 50 scenarios</option>
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Set per link. A pack with fewer scenarios than this simply runs all of them.
+                </p>
               </div>
 
               <div>

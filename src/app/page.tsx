@@ -259,7 +259,7 @@ export default async function Home() {
             <div className="flex-1 p-5 sm:p-7 relative border-x border-b md:border-b-y md:border-l md:border-r-0 border-white/10">
               <span className={`text-[11px] text-[#35E0C8] mb-2 sm:mb-3.5 block ${plexMono.className}`}>03</span>
               <div className="text-sm sm:text-[14.5px] font-semibold text-white">Scoring</div>
-              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">11 dimensions weighted server-side against responses.</div>
+              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">{dimensionCount ? `${dimensionCount} dimensions` : 'Every dimension'} weighted server-side against responses.</div>
               <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B1220] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#5B6580" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>

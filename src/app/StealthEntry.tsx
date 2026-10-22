@@ -8,16 +8,13 @@ import { useRouter } from 'next/navigation';
  *
  * The console is not linked from anywhere a candidate or employer would look,
  * so whoever runs the platform needs some way in that is not an advertised
- * "Admin" button. Five clicks on the copyright line, or a keyboard shortcut.
+ * "Admin" button. Five clicks on the copyright line; the keyboard shortcut
+ * lives in StealthHotkey, mounted in the root layout so it works site-wide.
  *
  * This is convenience, not security: the console is protected by its login -
  * a bcrypt comparison behind a rate limiter - and would be just as protected
  * if the path were printed on the homepage. Treating a hidden path as the
  * defence is how people end up with an unprotected one.
- *
- * Note on the shortcut: Ctrl+Shift+C is the browser's own inspect-element
- * binding and the browser usually wins, so the primary is Ctrl+Shift+M, with
- * the clicks as the reliable fallback.
  */
 const CLICKS_REQUIRED = 5;
 const CLICK_WINDOW_MS = 2500;
@@ -26,22 +23,6 @@ export default function StealthEntry({ label }: { label: string }) {
   const router = useRouter();
   const [clicks, setClicks] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
-      const key = event.key.toLowerCase();
-      // C is the binding that was asked for, and the one the browser claims
-      // for inspect element - it usually wins, so M is the reliable one and C
-      // is attempted in case the browser lets it through.
-      if (key === 'm' || key === 'c') {
-        event.preventDefault();
-        router.push('/master-admin');
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [router]);
 
   useEffect(() => {
     return () => {

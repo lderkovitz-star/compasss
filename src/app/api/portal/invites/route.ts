@@ -125,9 +125,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Scenario package not found.' }, { status: 400 });
     }
 
+    // Three cases, and they are different: a number caps the sitting, an
+    // explicit null means "the whole pack" and must not be overridden by the
+    // platform default, and an absent field means the caller did not choose.
     const depth = Number.isInteger(body.sessionDepth) && body.sessionDepth > 0
       ? Number(body.sessionDepth)
-      : settings?.defaultSessionDepth ?? null;
+      : body.sessionDepth === null
+        ? null
+        : settings?.defaultSessionDepth ?? null;
 
     const expiresInDays = Number.isInteger(body.expiresInDays) && body.expiresInDays > 0
       ? Number(body.expiresInDays)
