@@ -62,8 +62,8 @@ export default function PracticeResultCharts({ dimensions }: { dimensions: Dimen
       </ResponsiveContainer>
       {thinCount > 0 && (
         <p className="text-xs text-[#5B6580]">
-          {thinCount} of these points comes from fewer than three scenarios — read it as indicative
-          rather than measured.
+          {thinCount} of these {thinCount === 1 ? 'points comes' : 'points come'} from fewer than
+          three scenarios — read {thinCount === 1 ? 'it' : 'them'} as indicative rather than measured.
         </p>
       )}
     </div>
