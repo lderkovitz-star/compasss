@@ -62,6 +62,53 @@ function run(command: string) {
   execSync(command, { stdio: 'inherit', env: { ...process.env, DATABASE_URL: directUrl } });
 }
 
+/**
+ * `migrate deploy` takes a Postgres advisory lock for the duration of the run.
+ * Two deployments that overlap - a second push while the first is still
+ * building, which is normal when corrections land in quick succession - means
+ * the second one finds the lock held and exits non-zero, failing a build whose
+ * code was fine.
+ *
+ * Waiting is the correct response: the migrations are the same ones, and the
+ * holder is about to finish. Retried a few times with a widening gap, and only
+ * for the errors that mean contention - anything else is a real migration
+ * failure and must still stop the deployment.
+ *
+ * stderr is piped rather than inherited so the failure can be read and
+ * classified; it is echoed either way, so the build log is unchanged.
+ */
+function runMigrations(attempts = 4): void {
+  const CONTENTION =
+    /advisory lock|lock timeout|timed out|ETIMEDOUT|ECONNRESET|Connection terminated|too many connections|P1001|P1002|P1008|P1017/i;
+
+  for (let attempt = 1; ; attempt++) {
+    try {
+      execSync('npx prisma migrate deploy', {
+        stdio: ['inherit', 'inherit', 'pipe'],
+        env: { ...process.env, DATABASE_URL: directUrl },
+      });
+      return;
+    } catch (error) {
+      const stderr =
+        typeof error === 'object' && error !== null && 'stderr' in error
+          ? String((error as { stderr?: Buffer | string }).stderr ?? '')
+          : '';
+      if (stderr) process.stderr.write(stderr);
+
+      if (attempt >= attempts || !CONTENTION.test(stderr)) throw error;
+
+      const waitMs = attempt * 15_000;
+      console.warn(
+        `migrate deploy could not get the database (attempt ${attempt}/${attempts}). ` +
+          `Another deployment is most likely still holding it; waiting ${waitMs / 1000}s.`,
+      );
+      // Deliberately synchronous: this runs inside the build step, before
+      // anything else is allowed to touch the schema.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+    }
+  }
+}
+
 /** Host and database name, for the log. Never the credentials. */
 function describeDatabase(url: string | undefined): string {
   if (!url) return 'unknown';
@@ -271,7 +318,7 @@ async function main() {
     run('npx prisma migrate resolve --applied 0_init');
   }
 
-  run('npx prisma migrate deploy');
+  runMigrations();
 
   // Idempotent; gives rows that predate multi-tenancy an owner.
   await backfillLegacyTenant(prisma);
