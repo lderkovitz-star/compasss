@@ -407,11 +407,12 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
           Upload a scenario pack
         </p>
         <p className="mt-1 text-xs text-slate-500 max-w-lg mx-auto">
-          Drop in a <strong>.json</strong> or <strong>.csv</strong> file of 5, 50 or 200+ scenarios.
-          You will see what it contains — counts, weight scale, new dimensions, and any row that
-          could not be read — before anything is saved. Templates for both formats are inside.
+          Tap to choose a <strong>.json</strong> or <strong>.csv</strong> file of 5, 50 or 200+
+          scenarios — or drag one in, at a desk. You will see what it contains — counts, weight
+          scale, new dimensions, and any row that could not be read — before anything is saved.
+          Templates for both formats are inside.
         </p>
-        <span className="mt-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white">
+        <span className="mt-3 inline-flex min-h-[44px] items-center rounded-lg bg-slate-900 px-5 text-xs font-semibold text-white">
           Choose a file
         </span>
       </div>
