@@ -17,7 +17,33 @@ interface Package {
   backdropImageUrl?: string | null;
 }
 
-export default function PackageSwitcher({ packages }: { packages: Package[] }) {
+export default function PackageSwitcher({
+  packages,
+  sandboxPackageId,
+  defaultClientPackageId,
+  overridePackageIds,
+}: {
+  packages: Package[];
+  sandboxPackageId: string | null;
+  defaultClientPackageId: string | null;
+  /** Packs that at least one client account points at directly. */
+  overridePackageIds: string[];
+}) {
+  /**
+   * Which slots a pack occupies.
+   *
+   * `isActive` used to say this, and has decided nothing since the three slots
+   * replaced it - so a card could read ACTIVE while the site served a
+   * different pack entirely. The slots are the answer.
+   */
+  function slotsFor(id: string): string[] {
+    const slots: string[] = [];
+    if (sandboxPackageId === id) slots.push('Public sandbox');
+    if (defaultClientPackageId === id) slots.push('Client default');
+    if (overridePackageIds.includes(id)) slots.push('Per-company override');
+    return slots;
+  }
+
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -165,23 +191,23 @@ export default function PackageSwitcher({ packages }: { packages: Package[] }) {
       {packages.map((pkg) => (
         <div
           key={pkg.id}
-          className={`card transition-all duration-200 ${pkg.isActive ? 'border-emerald-300 ring-1 ring-emerald-200' : ''}`}
+          className={`card transition-all duration-200 ${slotsFor(pkg.id).length ? 'border-emerald-300 ring-1 ring-emerald-200' : ''}`}
         >
           <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start justify-between gap-4">
             {/* Left */}
             <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-              <div className={`flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-xl text-base sm:text-lg font-black ${pkg.isActive ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              <div className={`flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-xl text-base sm:text-lg font-black ${slotsFor(pkg.id).length ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
                 {pkg.code.charAt(0)}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-none">{pkg.name}</h3>
-                  {pkg.isActive && (
-                    <span className="badge-green text-xs">
+                  {slotsFor(pkg.id).map((slot) => (
+                    <span key={slot} className="badge-green text-xs">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"/>
-                      ACTIVE
+                      {slot}
                     </span>
-                  )}
+                  ))}
                   <span className="badge-slate text-[10px]">v{pkg.version}</span>
                   <span className="badge-blue text-[10px]">{pkg.code}</span>
                 </div>
@@ -236,12 +262,12 @@ export default function PackageSwitcher({ packages }: { packages: Package[] }) {
 
             {/* Action */}
             <div className="flex-shrink-0 self-stretch sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-              {pkg.isActive ? (
+              {sandboxPackageId === pkg.id ? (
                 <div className="flex items-center justify-end gap-1.5 text-xs sm:text-sm font-semibold text-emerald-600">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  Currently Active
+                  Live demo pack
                 </div>
               ) : (
                 <div className="flex items-center justify-end gap-2">
@@ -273,7 +299,7 @@ export default function PackageSwitcher({ packages }: { packages: Package[] }) {
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
-                        Set as Active
+                        Set as demo pack
                       </>
                     )}
                   </button>

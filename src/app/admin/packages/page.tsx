@@ -28,6 +28,17 @@ export default async function PackagesPage() {
     prisma.clientAccount.count({ where: { deletedAt: null, assignedPackageId: { not: null } } }),
   ]);
 
+  // Which packs a client account points at directly, so a card can say so
+  // instead of guessing from the retired isActive flag.
+  const overrides = await prisma.clientAccount.findMany({
+    where: { deletedAt: null, assignedPackageId: { not: null } },
+    select: { assignedPackageId: true },
+    distinct: ['assignedPackageId'],
+  });
+  const overridePackageIds = overrides
+    .map((o) => o.assignedPackageId)
+    .filter((id): id is string => Boolean(id));
+
   return (
     <>
       <main className="page-content flex-1">
@@ -68,6 +79,9 @@ export default async function PackagesPage() {
             createdAt: p.createdAt.toISOString(),
             backdropImageUrl: p.backdropImageUrl,
           }))}
+          sandboxPackageId={settings?.sandboxPackageId ?? null}
+          defaultClientPackageId={settings?.defaultClientPackageId ?? null}
+          overridePackageIds={overridePackageIds}
         />
       </main>
     </>
