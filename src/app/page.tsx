@@ -1,4 +1,6 @@
 import Link from "next/link";
+import AdminQuickDrawer from "./AdminQuickDrawer";
+import { getAdminChrome } from "@/lib/admin-chrome";
 import { getGlobalSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { resolveBrandName } from "@/lib/constants/brand";
@@ -44,6 +46,9 @@ async function getHeadlineCounts(): Promise<{
 
 export default async function Home() {
   const settings = await getGlobalSettings();
+  // Only ever non-null for a signed-in admin; a candidate or a visitor never
+  // receives the drawer's markup.
+  const admin = await getAdminChrome();
   // Both counts used to be written into the page - "11 dimensions", "5+
   // scenarios" - from back when one pack was the only pack. They are whatever
   // the pack a visitor would actually run contains, so they are read from it.
@@ -51,6 +56,17 @@ export default async function Home() {
   
   return (
     <div className="min-h-screen bg-[#0B1220] text-[#F3F5FA] selection:bg-[#2E63F6] selection:text-white overflow-x-hidden font-sans">
+      {admin && (
+        <AdminQuickDrawer
+          adminEmail={admin.adminEmail}
+          adminName={admin.adminName}
+          adminRole={admin.adminRole}
+          adminImageUrl={admin.adminImageUrl}
+          platformName={settings.platformName ?? undefined}
+          logoUrl={settings.logoUrl ?? undefined}
+        />
+      )}
+
       {/* FIXED NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B1220]/95 backdrop-blur-xl border-b border-white/10 shadow-2xl">
         <div className="max-w-[1180px] mx-auto px-3 sm:px-8 py-3 flex items-center justify-between gap-2">

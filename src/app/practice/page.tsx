@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { getPublicSettings } from '@/lib/settings';
 import PracticeClient from './PracticeClient';
+import AdminQuickDrawer from '../AdminQuickDrawer';
+import { getAdminChrome } from '@/lib/admin-chrome';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -32,6 +34,10 @@ export default async function PracticePage() {
 
   const unavailable = settings?.practiceEnabled === false || !pack;
 
+  // The sandbox is the screen a demo actually runs on, so the drawer belongs
+  // here too. Null for anyone who is not a signed-in admin.
+  const admin = await getAdminChrome();
+
   if (unavailable) {
     return (
       <main className="min-h-screen bg-[#0B1220] text-[#F3F5FA] flex items-center justify-center px-4">
@@ -51,10 +57,21 @@ export default async function PracticePage() {
   }
 
   return (
-    <PracticeClient
-      platformName={platform.platformName}
-      packageName={pack.name}
-      scenarioCount={pack._count.scenarios}
-    />
+    <>
+      {admin && (
+        <AdminQuickDrawer
+          adminEmail={admin.adminEmail}
+          adminName={admin.adminName}
+          adminRole={admin.adminRole}
+          adminImageUrl={admin.adminImageUrl}
+          platformName={platform.platformName}
+        />
+      )}
+      <PracticeClient
+        platformName={platform.platformName}
+        packageName={pack.name}
+        scenarioCount={pack._count.scenarios}
+      />
+    </>
   );
 }
