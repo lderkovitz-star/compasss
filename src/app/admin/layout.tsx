@@ -9,7 +9,7 @@ export const revalidate = 0;
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const email = getAdminSession();
   if (!email) {
-    redirect('/admin-login');
+    redirect('/master-admin');
   }
 
   // Fetch admin profile data and system settings from DB

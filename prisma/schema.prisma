@@ -9,20 +9,22 @@ generator client {
 
 model User {
   id               String              @id @default(uuid())
-  email            String              @unique
+  email            String
   name             String
   targetRole       String?             @map("target_role")
   hobbiesSkills    String?             @map("hobbies_skills")
   resumeFileUrl    String?             @map("resume_file_url")
   resumeUploadedAt DateTime?           @map("resume_uploaded_at")
   resumeText       String?             @map("resume_text")
-  // Nullable in this migration; made required once every row is backfilled.
-  clientAccountId  String?             @map("client_account_id")
-  clientAccount    ClientAccount?      @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  // Required: a candidate row with no owning tenant is a row no employer
+  // query would exclude. Open intake writes into the legacy tenant.
+  clientAccountId  String              @map("client_account_id")
+  clientAccount    ClientAccount       @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
   createdAt        DateTime            @default(now()) @map("created_at")
   sessions         AssessmentSession[]
   resumeDocuments  ResumeDocument[]
 
+  @@unique([clientAccountId, email])
   @@index([clientAccountId, createdAt])
   @@map("users")
 }
@@ -103,13 +105,19 @@ model OptionScore {
   dimension   Dimension      @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
   weightScore Float          @map("weight_score")
 
+  // One weight per option per dimension. Without this, a second row for the
+  // same pair is silently added to the first when scores are summed, so an
+  // import that ran twice would inflate a candidate's score.
+  @@unique([optionId, dimensionId])
   @@map("option_scores")
 }
 
 model AssessmentSession {
   id                 String               @id @default(uuid())
-  userId             String               @map("user_id")
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Null for practice runs, which have no candidate record at all - there is
+  // nobody to create an account for, and nothing to keep afterwards.
+  userId             String?              @map("user_id")
+  user               User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   packageId          String               @map("package_id")
   package            ScenarioPackage      @relation(fields: [packageId], references: [id], onDelete: Cascade)
   status             String               @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
@@ -196,6 +204,10 @@ model FinalScore {
   rawScore       Float?            @map("raw_score")
   maxScore       Float?            @map("max_score")
   minScore       Float?            @map("min_score")
+  // How many of the answered scenarios could actually move this dimension.
+  // A score drawn from one scenario is a single choice, not a measurement, and
+  // the report says so rather than presenting it like the rest.
+  scenariosScored Int              @default(0) @map("scenarios_scored")
   exercised      Boolean           @default(true)
   scoringVersion Int               @default(1) @map("scoring_version")
 
@@ -203,6 +215,9 @@ model FinalScore {
   @@map("final_scores")
 }
 
+// Nothing reads this. Biometrics were removed from the product; the table and
+// the biometricMode setting stay because dropping columns is a destructive
+// migration for no benefit, and both are needed if the add-on returns.
 model BiometricReading {
   id         String            @id @default(uuid())
   sessionId  String            @map("session_id")
@@ -240,7 +255,7 @@ model PlatformSettings {
   id                      String   @id @default(uuid())
   platformName            String   @default("Compass") @map("platform_name")
   supportEmail            String   @default("support@continentalworks.com") @map("support_email")
-  biometricMode           String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
+  biometricMode           String   @default("disabled") @map("biometric_mode") // Unread; see BiometricReading
   antiCheat               Boolean  @default(true) @map("anti_cheat")
   blindUiMode             Boolean  @default(true) @map("blind_ui_mode")
   // Branding / Media
@@ -535,6 +550,13 @@ model TalentRegistryEntry {
   /// mean anything - see the 30 entry floor in the ranking job.
   isHighSignal   Boolean           @default(false) @map("is_high_signal")
   rankedAt       DateTime?         @map("ranked_at")
+  /// Embedding of this candidate's searchable text, for similarity search.
+  /// Stored as a plain array rather than a vector column so no database
+  /// extension is required; cohorts here are small enough that comparing in
+  /// memory costs less than the operational weight of pgvector.
+  embedding      Json?
+  embeddingModel String?           @map("embedding_model")
+  embeddedAt     DateTime?         @map("embedded_at")
   createdAt      DateTime          @default(now()) @map("created_at")
 
   @@index([source, isHighSignal])

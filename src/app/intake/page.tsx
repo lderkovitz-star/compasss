@@ -16,7 +16,6 @@ export default async function IntakePage() {
     <IntakeClient 
       platformName={platformName}
       logoUrl={settings?.logoUrl || null}
-      biometricMode={settings?.biometricMode || 'disabled'}
     />
   );
 }

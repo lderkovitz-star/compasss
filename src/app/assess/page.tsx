@@ -39,6 +39,7 @@ export default async function AssessPage({
     select: {
       candidateName: true,
       targetRole: true,
+      clientAccountId: true,
       status: true,
       expiresAt: true,
       revokedAt: true,
@@ -82,6 +83,7 @@ export default async function AssessPage({
       packageName={invite.package?.name ?? null}
       platformName={settings.platformName}
       resuming={Boolean(invite.sessionId)}
+      uploadPrefix={`tenants/${invite.clientAccountId}/resumes`}
     />
   );
 }

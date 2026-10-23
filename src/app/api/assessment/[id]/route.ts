@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { computeAndStoreScoreSnapshot, computeFinalScores, DecisionEvent } from '@/lib/scoring';
+import { resolveScenarioOrder, loadScenariosInOrder } from '@/lib/session-scenarios';
 import { getGlobalSettings } from '@/lib/settings';
+import { recordRegistryEntry } from '@/lib/talent-registry';
+import { queueEmail } from '@/lib/email';
 
 // GET — fetch current blind scenario (no scores, no dimension data)
 export async function GET(
@@ -21,23 +24,25 @@ export async function GET(
     }
 
     if (session.status === 'COMPLETED') {
+      // A practice run has no employer and no evaluator - the person who took
+      // it is the one who wanted the result, so they see it.
       return NextResponse.json(
-        { redirect: `/assessment/complete?session=${sessionId}` },
+        {
+          redirect:
+            session.kind === 'PRACTICE'
+              ? `/practice/results/${sessionId}`
+              : `/assessment/complete?session=${sessionId}`,
+        },
         { status: 200 }
       );
     }
 
-    // Get scenarios in order
-    const scenarios = await prisma.scenario.findMany({
-      where: { packageId: session.packageId },
-      orderBy: { sequenceOrder: 'asc' },
-      include: {
-        options: {
-          select: { id: true, optionCode: true, optionText: true },
-          orderBy: { optionCode: 'asc' },
-        },
-      },
-    });
+    // Fixed on first use and read back afterwards, so editing the pack does
+    // not change what a candidate part-way through is served. Trashed
+    // scenarios are excluded when the list is first chosen - that filter was
+    // missing, so they were being served to live candidates.
+    const order = await resolveScenarioOrder(session);
+    const scenarios = await loadScenariosInOrder(order);
 
     if (scenarios.length === 0) {
       return NextResponse.json({ error: 'No scenarios found for this package.' }, { status: 404 });
@@ -152,23 +157,68 @@ export async function POST(
       data: { currentScenarioIdx: { increment: 1 } },
     });
 
-    // Check if this was the last scenario
-    const totalScenarios = await prisma.scenario.count({ where: { packageId: session.packageId } });
+    // Was that the last one? Counted from the same frozen list the GET side
+    // serves, or the two can disagree - and if this side thinks there are
+    // more, the candidate is asked for answers that never arrive and the
+    // sitting never completes.
+    const totalScenarios = (await resolveScenarioOrder(session)).length;
     const answeredCount = await prisma.response.count({ where: { sessionId } });
 
     if (answeredCount >= totalScenarios) {
       await computeFinalScores(sessionId);
 
-      // Create a notification for admins
-      await prisma.notification.create({
-        data: {
-          title: 'Assessment Completed',
-          message: `${session.user?.name || 'A candidate'} has completed the ${session.package?.name || 'Assessment'} simulation.`,
-          linkUrl: `/admin/reports/${sessionId}`,
+      if (session.kind === 'PRACTICE') {
+        // Nobody is waiting on a practice result, so there is nothing to
+        // notify about. If the person asked to join the registry, that entry
+        // is the one thing their run leaves behind.
+        if (session.registryOptIn) {
+          await recordRegistryEntry(sessionId);
         }
-      });
+      } else {
+        await prisma.notification.create({
+          data: {
+            title: 'Assessment Completed',
+            message: `${session.user?.name || 'A candidate'} has completed the ${session.package?.name || 'Assessment'} simulation.`,
+            linkUrl: session.clientAccountId ? `/employer/reports/${sessionId}` : `/admin/reports/${sessionId}`,
+            clientAccountId: session.clientAccountId,
+            audience: session.clientAccountId ? 'CLIENT' : 'PLATFORM',
+          }
+        });
 
-      return NextResponse.json({ completed: true });
+        // The platform-wide registry covers real sittings across every tenant.
+        await recordRegistryEntry(sessionId);
+
+        // Tell the employer their report is ready. Queued rather than sent for
+        // as long as the sending domain is unverified; the in-app notification
+        // above is what they actually see meanwhile.
+        if (session.clientAccountId) {
+          const account = await prisma.clientAccount.findUnique({
+            where: { id: session.clientAccountId },
+            select: { name: true, contactEmail: true },
+          });
+          if (account?.contactEmail) {
+            await queueEmail({
+              template: 'REPORT_READY',
+              to: account.contactEmail,
+              clientAccountId: session.clientAccountId,
+              data: {
+                candidateName: session.user?.name ?? 'A candidate',
+                companyName: account.name,
+                roleTitle: session.user?.targetRole ?? '',
+                url: `/employer/reports/${sessionId}`,
+              },
+            });
+          }
+        }
+      }
+
+      return NextResponse.json({
+        completed: true,
+        redirect:
+          session.kind === 'PRACTICE'
+            ? `/practice/results/${sessionId}`
+            : `/assessment/complete?session=${sessionId}`,
+      });
     }
 
     // ⚠️ BLIND UI RULE: Return only progress, never scores

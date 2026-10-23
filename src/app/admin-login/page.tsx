@@ -1,24 +1,9 @@
-import { Suspense } from 'react';
-import { getGlobalSettings } from '@/lib/settings';
-import { resolveBrandName } from '@/lib/constants/brand';
-import { LoginForm } from './components/LoginForm';
+import { redirect } from 'next/navigation';
 
-// admin-login page with proper icons and layout
-export const dynamic = 'force-dynamic';
-
-export default async function AdminLoginPage() {
-  const settings = await getGlobalSettings();
-
-  return (
-    <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="text-slate-400 text-sm">Loading security interface...</div>
-        </div>
-    }>
-      <LoginForm 
-        initialPlatformName={resolveBrandName(settings.platformName)} 
-        initialPlatformLogo={settings.logoUrl || null} 
-      />
-    </Suspense>
-  );
+/**
+ * Kept so existing links and bookmarks still work. The master console's entry
+ * point is /admin; employers sign in at /employer.
+ */
+export default function AdminLoginRedirect() {
+  redirect('/admin');
 }

@@ -15,6 +15,15 @@ interface SidebarProps {
   logoUrl?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  /**
+   * Render as a drawer that stays hidden until opened, at every width.
+   *
+   * Inside the console the bar is permanent from `lg` up. Over a page that is
+   * not the console - the landing view during a demo - it must stay out of the
+   * way until it is asked for, or a desktop visitor gets an admin bar on the
+   * marketing page.
+   */
+  overlay?: boolean;
 }
 
 export default function AdminSidebar({
@@ -26,6 +35,7 @@ export default function AdminSidebar({
   logoUrl,
   isOpen = false,
   onClose,
+  overlay = false,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -41,7 +51,7 @@ export default function AdminSidebar({
   async function handleLogout() {
     setLoggingOut(true);
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin-login');
+    router.push('/admin');
     router.refresh();
   }
 
@@ -60,7 +70,7 @@ export default function AdminSidebar({
     },
     {
       href: '/admin/reports',
-      label: 'Reports',
+      label: 'Admin Ledger',
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -87,7 +97,7 @@ export default function AdminSidebar({
     },
     {
       href: '/admin/candidates',
-      label: 'Candidates',
+      label: 'Candidate View',
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -126,6 +136,20 @@ export default function AdminSidebar({
           },
         ]
       : []),
+    // The registries span every tenant, which no client role may do.
+    ...(adminRole === 'SUPER_ADMIN' || adminRole === 'ADMIN'
+      ? [
+          {
+            href: '/admin/talent',
+            label: 'Talent Registry',
+            icon: (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ),
+          },
+        ]
+      : []),
     {
       href: '/admin/settings',
       label: 'Settings',
@@ -141,8 +165,14 @@ export default function AdminSidebar({
   return (
     <aside
       style={{ background: '#0F172A' }}
-      className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col h-[100dvh] min-h-screen border-r border-white/5 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+      // Over a public page the drawer has to clear that page's own fixed
+      // header, which already sits at z-50, and its backdrop.
+      className={`fixed inset-y-0 left-0 ${overlay ? 'z-[70]' : 'z-50'} flex w-60 flex-col h-[100dvh] min-h-screen border-r border-white/5 transition-transform duration-300 ease-in-out ${
+        overlay
+          ? isOpen
+            ? 'translate-x-0 shadow-2xl'
+            : '-translate-x-full'
+          : `lg:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}`
       }`}
     >
       {/* Logo + Mobile Close */}
@@ -166,7 +196,7 @@ export default function AdminSidebar({
         {/* Close Button on Mobile/Tablet */}
         <button
           onClick={onClose}
-          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className={`${overlay ? '' : 'lg:hidden'} h-11 w-11 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors`}
           title="Close sidebar"
           aria-label="Close sidebar"
         >
@@ -189,7 +219,7 @@ export default function AdminSidebar({
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 outline-none ${
+                className={`flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 outline-none ${
                   active
                     ? 'bg-blue-600/15 text-blue-400 border border-blue-500/25'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
@@ -211,7 +241,7 @@ export default function AdminSidebar({
         <Link
           href="/admin/profile"
           onClick={onClose}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors ${
+          className={`flex min-h-[44px] items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors ${
             pathname === '/admin/profile' ? 'bg-blue-600/15' : ''
           }`}
         >
@@ -248,7 +278,7 @@ export default function AdminSidebar({
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150 disabled:opacity-50"
+          className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150 disabled:opacity-50"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
