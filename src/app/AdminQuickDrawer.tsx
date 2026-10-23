@@ -52,7 +52,7 @@ export default function AdminQuickDrawer({
           aria-label="Open admin settings"
           // Bottom left: where a thumb sits when a tablet is held up to show
           // someone, and clear of the page's own calls to action.
-          className="fixed bottom-5 left-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-white/15 bg-[#0F172A]/95 text-white shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-md transition-transform active:scale-95"
+          className="fixed bottom-5 left-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-white/25 bg-[#1B2740] text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] ring-1 ring-black/40 transition-transform active:scale-95 hover:border-white/40"
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
