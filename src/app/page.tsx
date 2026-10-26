@@ -162,7 +162,40 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="relative mt-8 sm:mt-12 md:mt-[72px] h-14 sm:h-20 md:h-[92px]">
+          {/* METHODOLOGY PROOF BAR — the dispositions this pack measures. Read
+              from the active pack rather than written here, because the packs
+              are swappable and a hardcoded list would be wrong the first time
+              one with another taxonomy is loaded. */}
+          {dimensionNames.length > 0 && (
+            <div className="mt-9 sm:mt-11">
+              <div className={`text-[10.5px] uppercase tracking-[0.18em] text-[#5B6580] ${plexMono.className}`}>
+                {dimensionNames.length} Disposition Vectors · measured every run
+              </div>
+              <ul className="mt-3.5 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {dimensionNames.map((name, i) => (
+                  <li
+                    key={name}
+                    className="flex flex-shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] font-medium text-[#C3CBDD]"
+                  >
+                    <svg className="h-3 w-3 flex-shrink-0" viewBox="0 0 12 12" aria-hidden="true">
+                      {/* A different mark per vector, so the bar reads as a set
+                          of distinct measures rather than a row of bullets. */}
+                      {i % 4 === 0 && <circle cx="6" cy="6" r="3.2" fill="none" stroke="#35E0C8" strokeWidth="1.5" />}
+                      {i % 4 === 1 && <path d="M6 1.6 L10.4 6 L6 10.4 L1.6 6 Z" fill="none" stroke="#5B8CFF" strokeWidth="1.5" strokeLinejoin="round" />}
+                      {i % 4 === 2 && <path d="M1.8 8.6 L4.6 4.8 L7.2 7.1 L10.2 2.9" fill="none" stroke="#35E0C8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+                      {i % 4 === 3 && <rect x="2.1" y="2.1" width="7.8" height="7.8" rx="1.6" fill="none" stroke="#5B8CFF" strokeWidth="1.5" />}
+                    </svg>
+                    {name}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-[12px] text-[#5B6580]">
+                Plus decision latency, option revisits and hesitation, captured to the millisecond.
+              </p>
+            </div>
+          )}
+
+          <div className="relative mt-10 sm:mt-14 h-14 sm:h-20 md:h-[92px]">
             {/* A route through three decisions: at each one the path could have
                 gone either way, and one way was taken. This replaced a heart-rate
                 trace, which outlasted the biometrics it was drawn for. */}
@@ -200,39 +233,6 @@ export default async function Home() {
               </g>
             </svg>
           </div>
-
-          {/* METHODOLOGY PROOF BAR — the dispositions this pack measures. Read
-              from the active pack rather than written here, because the packs
-              are swappable and a hardcoded list would be wrong the first time
-              one with another taxonomy is loaded. */}
-          {dimensionNames.length > 0 && (
-            <div className="mt-10 sm:mt-14">
-              <div className={`text-[10.5px] uppercase tracking-[0.18em] text-[#5B6580] ${plexMono.className}`}>
-                {dimensionNames.length} Disposition Vectors · measured every run
-              </div>
-              <ul className="mt-3.5 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {dimensionNames.map((name, i) => (
-                  <li
-                    key={name}
-                    className="flex flex-shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] font-medium text-[#C3CBDD]"
-                  >
-                    <svg className="h-3 w-3 flex-shrink-0" viewBox="0 0 12 12" aria-hidden="true">
-                      {/* A different mark per vector, so the bar reads as a set
-                          of distinct measures rather than a row of bullets. */}
-                      {i % 4 === 0 && <circle cx="6" cy="6" r="3.2" fill="none" stroke="#35E0C8" strokeWidth="1.5" />}
-                      {i % 4 === 1 && <path d="M6 1.6 L10.4 6 L6 10.4 L1.6 6 Z" fill="none" stroke="#5B8CFF" strokeWidth="1.5" strokeLinejoin="round" />}
-                      {i % 4 === 2 && <path d="M1.8 8.6 L4.6 4.8 L7.2 7.1 L10.2 2.9" fill="none" stroke="#35E0C8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
-                      {i % 4 === 3 && <rect x="2.1" y="2.1" width="7.8" height="7.8" rx="1.6" fill="none" stroke="#5B8CFF" strokeWidth="1.5" />}
-                    </svg>
-                    {name}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-[12px] text-[#5B6580]">
-                Plus decision latency, option revisits and hesitation, captured to the millisecond.
-              </p>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 border border-white/10 rounded-[14px] overflow-hidden -mt-2 relative bg-white/[0.015]">
             <div className="p-4 sm:p-[26px_20px] md:border-r border-b md:border-b-0 border-white/10 text-center">
