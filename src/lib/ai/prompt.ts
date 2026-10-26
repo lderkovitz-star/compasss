@@ -71,7 +71,7 @@ export function fill(template: string, values: Record<string, string>): string {
 }
 
 /** Wraps untrusted text so the model can tell data from instruction. */
-function fence(tag: string, body: string | null, absent: string): string {
+export function fence(tag: string, body: string | null, absent: string): string {
   const trimmed = (body ?? '').trim();
   if (!trimmed) return `<${tag}>${absent}</${tag}>`;
   // A candidate cannot close the fence early and write outside it.

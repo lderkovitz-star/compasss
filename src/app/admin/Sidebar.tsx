@@ -15,15 +15,6 @@ interface SidebarProps {
   logoUrl?: string;
   isOpen?: boolean;
   onClose?: () => void;
-  /**
-   * Render as a drawer that stays hidden until opened, at every width.
-   *
-   * Inside the console the bar is permanent from `lg` up. Over a page that is
-   * not the console - the landing view during a demo - it must stay out of the
-   * way until it is asked for, or a desktop visitor gets an admin bar on the
-   * marketing page.
-   */
-  overlay?: boolean;
 }
 
 export default function AdminSidebar({
@@ -35,7 +26,6 @@ export default function AdminSidebar({
   logoUrl,
   isOpen = false,
   onClose,
-  overlay = false,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -165,14 +155,8 @@ export default function AdminSidebar({
   return (
     <aside
       style={{ background: '#0F172A' }}
-      // Over a public page the drawer has to clear that page's own fixed
-      // header, which already sits at z-50, and its backdrop.
-      className={`fixed inset-y-0 left-0 ${overlay ? 'z-[70]' : 'z-50'} flex w-60 flex-col h-[100dvh] min-h-screen border-r border-white/5 transition-transform duration-300 ease-in-out ${
-        overlay
-          ? isOpen
-            ? 'translate-x-0 shadow-2xl'
-            : '-translate-x-full'
-          : `lg:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}`
+      className={`fixed inset-y-0 left-0 z-50 flex w-60 flex-col h-[100dvh] min-h-screen border-r border-white/5 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
       }`}
     >
       {/* Logo + Mobile Close */}
@@ -196,7 +180,7 @@ export default function AdminSidebar({
         {/* Close Button on Mobile/Tablet */}
         <button
           onClick={onClose}
-          className={`${overlay ? '' : 'lg:hidden'} h-11 w-11 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors`}
+          className="lg:hidden h-11 w-11 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           title="Close sidebar"
           aria-label="Close sidebar"
         >

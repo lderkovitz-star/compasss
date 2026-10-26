@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 const NAV = [
   { href: '/employer/candidates', label: 'Candidate Ledger' },
+  { href: '/employer/cohort', label: 'Cohort Analysis' },
 ];
 
 export default function PortalShell({

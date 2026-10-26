@@ -87,7 +87,7 @@ export default function GatewayForm({
         value={accessKey}
         onChange={(e) => setAccessKey(e.target.value)}
         placeholder="CMP-XXXXXXXX-..."
-        className="w-full rounded-xl border border-white/10 bg-[#0B1220]/50 px-3.5 py-3 text-sm font-mono text-white placeholder-[#5B6580] outline-none transition-all focus:border-[#5B8CFF] focus:ring-1 focus:ring-[#5B8CFF]"
+        className="w-full rounded-xl border border-white/10 bg-[#0B0F17]/50 px-3.5 py-3 text-sm font-mono text-white placeholder-[#5B6580] outline-none transition-all focus:border-[#5B8CFF] focus:ring-1 focus:ring-[#5B8CFF]"
       />
 
       <button
