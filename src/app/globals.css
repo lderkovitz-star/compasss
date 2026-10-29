@@ -194,7 +194,9 @@
 
   /* ─── TABLE ──────────────────────────────────────── */
   .table-wrapper {
-    @apply card overflow-hidden;
+    /* Horizontal scroll, not hidden: a table wider than its card had its last
+       column clipped off and unreachable rather than scrollable. */
+    @apply card overflow-x-auto overflow-y-hidden;
   }
 
   .table-header {

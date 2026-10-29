@@ -204,7 +204,7 @@ export default function ClientAccountsClient({
       ) : (
         <div className="table-wrapper">
           <table className="w-full">
-            <thead className="table-header">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="th">Company</th>
                 <th className="th text-center">Access key</th>
@@ -232,7 +232,7 @@ export default function ClientAccountsClient({
                   </td>
                   <td className="td text-center">
                     <select
-                      className="form-select text-xs"
+                      className="form-select text-xs min-w-[190px]"
                       value={a.assignedPackageId ?? ''}
                       disabled={busy}
                       onChange={(e) =>
