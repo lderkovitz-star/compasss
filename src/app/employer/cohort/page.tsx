@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../PortalShell';
-import CohortClient from './CohortClient';
+import CohortWorkbench from '@/components/CohortWorkbench';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -28,7 +28,13 @@ export default async function CohortPage() {
 
   return (
     <PortalShell company={session.account.name}>
-      <CohortClient savedRoles={contexts} completedCount={completed} />
+      <CohortWorkbench
+        savedRoles={contexts}
+        completedCount={completed}
+        rankEndpoint="/api/portal/cohort/rank"
+        compareEndpoint="/api/portal/cohort/compare"
+        reportBase="/employer/reports"
+      />
     </PortalShell>
   );
 }

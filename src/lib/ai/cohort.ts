@@ -80,10 +80,13 @@ const SYSTEM = [
   'You are given, for each candidate: their scored dispositions from a decision simulation, how long they took to decide, and their resume.',
   'Weigh all three. A strong resume with weak decision behaviour is not a strong candidate, and the reverse is worth saying out loud.',
   'Be specific and short. No hedging, no restating the inputs back.',
+  'Rank them against each other explicitly: the verdict must name who leads and who trails, not praise everyone.',
   'Reply with JSON only, in exactly this shape:',
   '{"verdict":"one or two sentences naming who leads and why","candidates":[{"sessionId":"...","standsOutFor":"...","reservation":"...","bestFitFor":"..."}]}',
   'Every field is one sentence. Include one entry per candidate, using the sessionId given.',
 ].join('\n');
+
+export const MAX_COMPARE = 6;
 
 export async function compareCandidates(
   sessionIds: string[],

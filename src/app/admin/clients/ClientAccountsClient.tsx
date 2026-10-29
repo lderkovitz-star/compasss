@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -16,6 +18,7 @@ type Account = {
   createdAt: string;
   assignedPackage: { id: string; name: string } | null;
   _count: { candidates: number; sessions: number; invites: number };
+  testedCount: number;
 };
 
 type Pkg = { id: string; name: string; code: string };
@@ -236,7 +239,7 @@ export default function ClientAccountsClient({
                         patch(a, { assignedPackageId: e.target.value }, `${a.name} updated`)
                       }
                     >
-                      <option value="">Global default</option>
+                      <option value="">Global default — {defaultPackageName}</option>
                       {packages.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -245,8 +248,10 @@ export default function ClientAccountsClient({
                     </select>
                   </td>
                   <td className="td text-center">
-                    <span className="text-slate-900 font-medium">{a._count.candidates}</span>
-                    <div className="text-xs text-slate-500">{a._count.sessions} sessions</div>
+                    <span className="text-slate-900 font-medium">{a.testedCount}</span>
+                    <div className="text-xs text-slate-500">
+                      tested · {a._count.candidates} invited
+                    </div>
                   </td>
                   <td className="td text-center">
                     <span className={a.status === 'ACTIVE' ? 'badge-green' : 'badge-amber'}>
@@ -255,6 +260,12 @@ export default function ClientAccountsClient({
                   </td>
                   <td className="td text-center">
                     <div className="flex items-center justify-center gap-2">
+                      <Link
+                        href={`/admin/clients/${a.id}/cohort`}
+                        className="btn-ghost text-xs inline-flex items-center"
+                      >
+                        Cohort AI
+                      </Link>
                       <button className="btn-ghost text-xs" disabled={busy} onClick={() => rotateKey(a)}>
                         Rotate key
                       </button>

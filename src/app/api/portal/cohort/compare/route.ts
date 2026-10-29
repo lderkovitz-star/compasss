@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireClient } from '@/lib/portal-auth';
-import { compareCandidates } from '@/lib/ai/cohort';
+import { compareCandidates, MAX_COMPARE } from '@/lib/ai/cohort';
+import { resolveJobSpec } from '@/lib/ai/cohort-rank';
 import { consumeRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -22,38 +23,22 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const ids = Array.isArray(body?.sessionIds)
-    ? body.sessionIds.filter((v: unknown): v is string => typeof v === 'string').slice(0, 3)
+    ? body.sessionIds.filter((v: unknown): v is string => typeof v === 'string').slice(0, MAX_COMPARE)
     : [];
-  let jobSpec = typeof body?.query === 'string' ? body.query.trim() : '';
-  const jobContextId = typeof body?.jobContextId === 'string' ? body.jobContextId : null;
-
   if (ids.length < 2) {
     return NextResponse.json(
-      { error: 'Pick two or three candidates to compare.' },
+      { error: `Pick between two and ${MAX_COMPARE} candidates to compare.` },
       { status: 400 }
     );
   }
 
-  if (!jobSpec && jobContextId) {
-    const context = await prisma.jobContext.findFirst({
-      where: { id: jobContextId, clientAccountId: principal.clientAccountId },
-      select: { title: true, descriptionText: true },
-    });
-    if (!context) {
-      return NextResponse.json({ error: 'That role could not be found.' }, { status: 404 });
-    }
-    jobSpec = [context.title, context.descriptionText].filter(Boolean).join('\n\n').trim();
-  }
-
-  if (jobSpec.length < 10) {
-    return NextResponse.json(
-      { error: 'Describe the role in a little more detail, or pick a saved one.' },
-      { status: 400 }
-    );
+  const spec = await resolveJobSpec(principal.clientAccountId, body ?? {});
+  if ('error' in spec) {
+    return NextResponse.json({ error: spec.error }, { status: spec.status });
   }
 
   try {
-    const comparison = await compareCandidates(ids, principal.clientAccountId, jobSpec);
+    const comparison = await compareCandidates(ids, principal.clientAccountId, spec.spec);
 
     await prisma.auditLog.create({
       data: {

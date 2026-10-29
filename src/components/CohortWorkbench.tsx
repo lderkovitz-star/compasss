@@ -3,12 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-type Row = {
+/**
+ * Rank a cohort against one role, then combine any selection of them into a
+ * single comparative table.
+ *
+ * The same workbench serves the employer portal and the master console; they
+ * differ only in which endpoint they post to and where a report link points.
+ */
+
+export type Row = {
   sessionId: string;
   name: string;
   email: string | null;
   role: string | null;
-  completedAt: string | null;
   decisionScore: number;
   scores: (number | null)[];
   matchScore: number;
@@ -29,12 +36,22 @@ type Comparison = {
   }[];
 };
 
-export default function CohortClient({
+const MAX_COMPARE = 6;
+
+export default function CohortWorkbench({
   savedRoles,
   completedCount,
+  rankEndpoint,
+  compareEndpoint,
+  reportBase,
+  heading = 'Cohort analysis',
 }: {
   savedRoles: { id: string; title: string }[];
   completedCount: number;
+  rankEndpoint: string;
+  compareEndpoint: string;
+  reportBase: string;
+  heading?: string;
 }) {
   const [useSaved, setUseSaved] = useState(savedRoles.length > 0);
   const [roleId, setRoleId] = useState(savedRoles[0]?.id ?? '');
@@ -48,7 +65,7 @@ export default function CohortClient({
   const [comparison, setComparison] = useState<Comparison | null>(null);
   const [comparing, setComparing] = useState(false);
 
-  function body() {
+  function specBody() {
     return useSaved ? { jobContextId: roleId } : { query: spec };
   }
 
@@ -58,10 +75,10 @@ export default function CohortClient({
     setComparison(null);
     setPicked([]);
     try {
-      const res = await fetch('/api/portal/cohort/rank', {
+      const res = await fetch(rankEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body()),
+        body: JSON.stringify({ ...specBody(), mode: 'rank' }),
       });
       const json = await res.json();
       if (!res.ok || json.ok === false) throw new Error(json.error || 'The ranking failed.');
@@ -73,14 +90,14 @@ export default function CohortClient({
     }
   }
 
-  async function compare() {
+  async function combine() {
     setComparing(true);
     setError('');
     try {
-      const res = await fetch('/api/portal/cohort/compare', {
+      const res = await fetch(compareEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body(), sessionIds: picked }),
+        body: JSON.stringify({ ...specBody(), mode: 'compare', sessionIds: picked }),
       });
       const json = await res.json();
       if (!res.ok || json.ok === false) throw new Error(json.error || 'The comparison failed.');
@@ -94,17 +111,33 @@ export default function CohortClient({
 
   function toggle(id: string) {
     setComparison(null);
-    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 3 ? p : [...p, id]));
+    setPicked((p) =>
+      p.includes(id) ? p.filter((x) => x !== id) : p.length >= MAX_COMPARE ? p : [...p, id]
+    );
   }
+
+  function selectTop(n: number) {
+    setComparison(null);
+    setPicked((ranking?.rows ?? []).slice(0, n).map((r) => r.sessionId));
+  }
+
+  // The comparison returns the AI's reading; the scores came back with the
+  // ranking. One table needs both, matched up by session.
+  const merged =
+    comparison && ranking
+      ? comparison.candidates
+          .map((c) => ({ ...c, row: ranking.rows.find((r) => r.sessionId === c.sessionId) }))
+          .filter((c) => c.row)
+      : [];
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-[19px] font-bold tracking-tight text-slate-900">Cohort analysis</h1>
+        <h1 className="text-[19px] font-bold tracking-tight text-slate-900">{heading}</h1>
         <p className="text-[13px] text-slate-500 mt-1">
-          Rank everyone who has completed an assessment against one role, then put the finalists
-          side by side. {completedCount} completed {completedCount === 1 ? 'assessment' : 'assessments'} in
-          this ledger.
+          Rank everyone who has completed an assessment against one role, then combine any of them
+          into a single comparison. {completedCount} completed{' '}
+          {completedCount === 1 ? 'assessment' : 'assessments'} in this ledger.
         </p>
       </div>
 
@@ -173,17 +206,36 @@ export default function CohortClient({
       {ranking && ranking.rows.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 bg-slate-50">
-            <p className="text-[12px] text-slate-500">
-              Columns come from the spec, so they change with the role.
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12px] text-slate-500">
+                {picked.length} selected · up to {MAX_COMPARE}
+              </span>
+              {ranking.rows.length >= 3 && (
+                <button
+                  onClick={() => selectTop(Math.min(4, ranking.rows.length))}
+                  className="min-h-[44px] inline-flex items-center px-2 text-[12px] font-medium text-blue-600 hover:underline"
+                >
+                  Select top {Math.min(4, ranking.rows.length)}
+                </button>
+              )}
+              {picked.length > 0 && (
+                <button
+                  onClick={() => {
+                    setPicked([]);
+                    setComparison(null);
+                  }}
+                  className="min-h-[44px] inline-flex items-center px-2 text-[12px] font-medium text-slate-500 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
             <button
-              onClick={compare}
+              onClick={combine}
               disabled={picked.length < 2 || comparing}
               className="btn-primary text-xs px-4 py-2 disabled:opacity-40"
             >
-              {comparing
-                ? 'Comparing…'
-                : `Compare ${picked.length || ''} selected`.trim()}
+              {comparing ? 'Combining…' : 'Combine & Compare'}
             </button>
           </div>
 
@@ -219,7 +271,7 @@ export default function CohortClient({
                           type="checkbox"
                           checked={picked.includes(row.sessionId)}
                           onChange={() => toggle(row.sessionId)}
-                          disabled={!picked.includes(row.sessionId) && picked.length >= 3}
+                          disabled={!picked.includes(row.sessionId) && picked.length >= MAX_COMPARE}
                           className="mt-1"
                         />
                         <span className="min-w-0">
@@ -253,7 +305,7 @@ export default function CohortClient({
                     ))}
                     <td className="px-4 py-3 text-right">
                       <Link
-                        href={`/employer/reports/${row.sessionId}`}
+                        href={`${reportBase}/${row.sessionId}`}
                         className="inline-flex min-h-[44px] items-center px-3 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                       >
                         Open
@@ -273,37 +325,99 @@ export default function CohortClient({
         </div>
       )}
 
-      {comparison && (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5">
-          <h2 className="text-[15px] font-bold text-slate-900">Head to head</h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-slate-700">{comparison.verdict}</p>
+      {comparison && merged.length > 0 && ranking && (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-4 border-b border-slate-200">
+            <h2 className="text-[15px] font-bold text-slate-900">
+              Combined comparison · {merged.length} candidates
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-700">{comparison.verdict}</p>
+          </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {comparison.candidates.map((c) => (
-              <div key={c.sessionId} className="rounded-lg border border-slate-200 p-3.5">
-                <div className="text-sm font-semibold text-slate-900">{c.name}</div>
-                <dl className="mt-2.5 space-y-2.5">
-                  <div>
-                    <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
-                      Stands out for
-                    </dt>
-                    <dd className="text-[12.5px] leading-relaxed text-slate-700">{c.standsOutFor}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-amber-700">
-                      Reservation
-                    </dt>
-                    <dd className="text-[12.5px] leading-relaxed text-slate-700">{c.reservation}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">
-                      Best fit for
-                    </dt>
-                    <dd className="text-[12.5px] leading-relaxed text-slate-700">{c.bestFitFor}</dd>
-                  </div>
-                </dl>
-              </div>
-            ))}
+          {/* One table, candidates as columns, so the rows line up and can be
+              read across rather than held in your head between cards. */}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 w-40" />
+                  {merged.map((c) => (
+                    <th key={c.sessionId} className="px-4 py-3 text-left">
+                      <span className="block text-sm font-bold text-slate-900">{c.name}</span>
+                      {c.row?.isWildCard && (
+                        <span className="mt-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                          Wild card
+                        </span>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr className="bg-slate-50/50">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    Match
+                  </th>
+                  {merged.map((c) => (
+                    <td key={c.sessionId} className="px-4 py-2.5 text-sm font-bold text-slate-900">
+                      {c.row?.matchScore}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    Decision score
+                  </th>
+                  {merged.map((c) => (
+                    <td key={c.sessionId} className="px-4 py-2.5 text-sm text-slate-700">
+                      {c.row?.decisionScore}
+                    </td>
+                  ))}
+                </tr>
+                {ranking.axes.map((axis, i) => (
+                  <tr key={axis}>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                      {axis}
+                    </th>
+                    {merged.map((c) => (
+                      <td key={c.sessionId} className="px-4 py-2.5 text-sm text-slate-700">
+                        {c.row?.scores[i] ?? '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                <tr className="bg-emerald-50/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-emerald-700 align-top">
+                    Stands out for
+                  </th>
+                  {merged.map((c) => (
+                    <td key={c.sessionId} className="px-4 py-3 text-[12.5px] leading-relaxed text-slate-700 align-top">
+                      {c.standsOutFor}
+                    </td>
+                  ))}
+                </tr>
+                <tr className="bg-amber-50/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-amber-700 align-top">
+                    Reservation
+                  </th>
+                  {merged.map((c) => (
+                    <td key={c.sessionId} className="px-4 py-3 text-[12.5px] leading-relaxed text-slate-700 align-top">
+                      {c.reservation}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 align-top">
+                    Best fit for
+                  </th>
+                  {merged.map((c) => (
+                    <td key={c.sessionId} className="px-4 py-3 text-[12.5px] leading-relaxed text-slate-700 align-top">
+                      {c.bestFitFor}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
