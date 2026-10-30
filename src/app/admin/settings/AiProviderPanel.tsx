@@ -37,6 +37,22 @@ export default function AiProviderPanel({ canEdit }: { canEdit: boolean }) {
   const current = providers.find((p) => p.key === selected) ?? null;
   const needsBaseUrl = current?.providerType === 'OPENAI_COMPATIBLE';
 
+  /**
+   * Whether the form holds anything the database has not been told about.
+   *
+   * Test connection asks the server to call the provider with its *saved*
+   * settings, which is the only thing worth testing - it is what an
+   * evaluation will use. Typing a key and pressing Test therefore tests the
+   * old state, which reads as the field being ignored. So Test waits until
+   * there is nothing unsaved.
+   */
+  const dirty =
+    !!current &&
+    (apiKey.trim().length > 0 ||
+      draft.model !== current.model ||
+      Number(draft.maxTokens) !== current.maxTokens ||
+      (needsBaseUrl && draft.baseUrl !== (current.baseUrl ?? '')));
+
   async function load() {
     try {
       const res = await fetch('/api/admin/ai/providers');
@@ -239,12 +255,23 @@ export default function AiProviderPanel({ canEdit }: { canEdit: boolean }) {
             </button>
             <button
               onClick={test}
-              disabled={!canEdit || testing || !current.keyConfigured}
-              title={current.keyConfigured ? undefined : 'Save a key first.'}
+              disabled={!canEdit || testing || dirty || !current.keyConfigured}
+              title={
+                dirty
+                  ? 'Save first — Test uses the saved settings.'
+                  : current.keyConfigured
+                    ? undefined
+                    : 'Save a key first.'
+              }
               className="btn-secondary text-sm px-4 py-2"
             >
               {testing ? 'Testing…' : 'Test connection'}
             </button>
+            {dirty && (
+              <span className="text-[12px] text-amber-700">
+                Unsaved changes — Test uses the saved settings, so save first.
+              </span>
+            )}
             {selected !== activeKey && (
               <button
                 onClick={() => void patch({ activeProviderKey: selected }, `${current.label} is now live`)}

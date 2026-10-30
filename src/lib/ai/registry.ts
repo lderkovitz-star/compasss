@@ -50,6 +50,17 @@ export const DEFAULT_PROVIDERS = [
   },
 ];
 
+/**
+ * The environment variable names a provider falls back to when nothing is
+ * saved in the panel: ANTHROPIC_API_KEY / ANTHROPIC_MODEL_ID, OPENAI_API_KEY,
+ * and so on. Set them in the host and a fresh deployment works without anyone
+ * opening the form.
+ */
+function envNames(key: string): { apiKey: string; model: string } {
+  const prefix = key.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+  return { apiKey: `${prefix}_API_KEY`, model: `${prefix}_MODEL_ID` };
+}
+
 export async function ensureProviders() {
   for (const spec of DEFAULT_PROVIDERS) {
     await prisma.aiProviderConfig.upsert({
@@ -59,8 +70,11 @@ export async function ensureProviders() {
         key: spec.key,
         label: spec.label,
         providerType: spec.providerType,
-        model: spec.model,
+        // A model id in the environment wins over the built-in default on a
+        // fresh row; the panel still overrides it afterwards.
+        model: process.env[envNames(spec.key).model]?.trim() || spec.model,
         baseUrl: spec.baseUrl,
+        apiKeyEnvVar: envNames(spec.key).apiKey,
       },
     });
   }
@@ -97,15 +111,29 @@ export async function resolveActiveProvider(keyOverride?: string): Promise<Resol
   if (!config.isEnabled) {
     throw new ProviderError(`The "${config.label}" provider is turned off in Settings.`);
   }
-  if (!config.model.trim()) {
-    throw new ProviderError(`No model id is set for "${config.label}". Add one in Settings.`);
+  const names = envNames(config.key);
+
+  // The panel is the usual place for these, but an operator may prefer to keep
+  // them in the host's configuration. Saved values win, so switching a model
+  // mid-demo still takes effect without a redeploy.
+  const model = config.model.trim() || process.env[names.model]?.trim() || '';
+  if (!model) {
+    throw new ProviderError(
+      `No model id is set for "${config.label}". Add one in Settings, or set ${names.model}.`
+    );
   }
 
   let apiKey = decryptSecret(config.apiKeyCipher);
 
-  // An operator may prefer to hold the key in the environment.
+  // The column is honoured first for anyone who named a variable of their own;
+  // otherwise the conventional name is tried, so simply setting
+  // ANTHROPIC_API_KEY works on a deployment whose rows predate that column
+  // being seeded.
   if (!apiKey && config.apiKeyEnvVar) {
-    apiKey = process.env[config.apiKeyEnvVar] ?? null;
+    apiKey = process.env[config.apiKeyEnvVar]?.trim() || null;
+  }
+  if (!apiKey) {
+    apiKey = process.env[names.apiKey]?.trim() || null;
   }
 
   // The key the old single-provider settings row held, so an existing
@@ -116,7 +144,7 @@ export async function resolveActiveProvider(keyOverride?: string): Promise<Resol
 
   if (!apiKey) {
     throw new ProviderError(
-      `No API key is saved for "${config.label}". Add one in Settings → AI provider.`
+      `No API key is saved for "${config.label}". Add one in Settings → AI provider, or set ${names.apiKey} in the environment.`
     );
   }
 
@@ -125,7 +153,7 @@ export async function resolveActiveProvider(keyOverride?: string): Promise<Resol
     key: config.key,
     label: config.label,
     providerType: config.providerType as ProviderType,
-    model: config.model.trim(),
+    model,
     baseUrl: config.baseUrl,
     apiKey,
     maxTokens: config.maxTokens,
