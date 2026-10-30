@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentAdmin } from '@/lib/auth';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 import { tierSingleCandidate, batchTierCandidates } from '@/lib/ai-sorter';
 
+export const dynamic = 'force-dynamic';
+// A batch run makes one provider call per candidate.
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Each call costs money at the provider, so this is not something the
+  // read-only ASSESSOR role may trigger.
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
 
   try {
     const body = await req.json();

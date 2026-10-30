@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 
 // GET — list all scenarios (optionally filter by packageId)
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const packageId = req.nextUrl.searchParams.get('packageId');
   const status = req.nextUrl.searchParams.get('status');
   const isDeleted = status === 'deleted';
@@ -23,6 +27,9 @@ export async function GET(req: NextRequest) {
 
 // POST — create new scenario
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = await req.json();
     const { packageId, narrativeText, timeLimitSec, sequenceOrder, options } = body;

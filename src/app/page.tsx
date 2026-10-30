@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getGlobalSettings } from "@/lib/settings";
+import { prisma } from "@/lib/db";
 import { resolveBrandName } from "@/lib/constants/brand";
 import { Fraunces, IBM_Plex_Mono } from 'next/font/google';
 
@@ -9,18 +10,73 @@ const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], dis
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/** The pack a visitor would run: the practice slot, or the client default. */
+async function getHeadlineCounts(): Promise<{
+  scenarioCount: number | null;
+  dimensionCount: number | null;
+  dimensionNames: string[];
+}> {
+  try {
+    const slots = await prisma.platformSettings.findFirst({
+      select: { sandboxPackageId: true, defaultClientPackageId: true },
+    });
+    const packageId = slots?.sandboxPackageId ?? slots?.defaultClientPackageId ?? null;
+    if (!packageId) return { scenarioCount: null, dimensionCount: null, dimensionNames: [] };
+
+    const scenarios = await prisma.scenario.findMany({
+      where: { packageId, deletedAt: null },
+      select: {
+        options: {
+          select: { scores: { select: { dimension: { select: { id: true, name: true } } } } },
+        },
+      },
+    });
+    if (scenarios.length === 0) {
+      return { scenarioCount: null, dimensionCount: null, dimensionNames: [] };
+    }
+
+    // The vectors named on the page are the ones this pack actually measures.
+    // Writing a list into the markup would go stale the first time a pack with
+    // a different taxonomy is loaded - which is the whole point of the packs
+    // being swappable.
+    const dimensions = new Map<string, string>();
+    for (const scenario of scenarios) {
+      for (const option of scenario.options) {
+        for (const score of option.scores) {
+          dimensions.set(score.dimension.id, score.dimension.name);
+        }
+      }
+    }
+
+    return {
+      scenarioCount: scenarios.length,
+      dimensionCount: dimensions.size,
+      dimensionNames: Array.from(dimensions.values()).sort((a, b) => a.localeCompare(b)),
+    };
+  } catch {
+    // The homepage must render whether or not the database answers.
+    return { scenarioCount: null, dimensionCount: null, dimensionNames: [] };
+  }
+}
+
 export default async function Home() {
   const settings = await getGlobalSettings();
+  // Both counts used to be written into the page - "11 dimensions", "5+
+  // scenarios" - from back when one pack was the only pack. They are whatever
+  // the pack a visitor would actually run contains, so they are read from it.
+  const { scenarioCount, dimensionCount, dimensionNames } = await getHeadlineCounts();
   
   return (
-    <div className="min-h-screen bg-[#0B1220] text-[#F3F5FA] selection:bg-[#2E63F6] selection:text-white overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-[#0B0F17] text-[#F3F5FA] selection:bg-[#2E63F6] selection:text-white overflow-x-hidden font-sans">
+
       {/* FIXED NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B1220]/95 backdrop-blur-xl border-b border-white/10 shadow-2xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B0F17]/95 backdrop-blur-xl border-b border-white/10 shadow-2xl">
         <div className="max-w-[1180px] mx-auto px-3 sm:px-8 py-3 flex items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-[#2E63F6] to-[#1B3FA8] shadow-[0_0_18px_rgba(46,99,246,0.5)] border border-[#5B8CFF]/40 overflow-hidden">
-              {(settings as any)?.logoUrl ? (
-                <img src={(settings as any).logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              {settings.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a tenant-supplied URL, not a bundled asset
+                <img src={settings.logoUrl} alt="" className="w-full h-full object-cover" />
               ) : (
                 <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
@@ -33,7 +89,7 @@ export default async function Home() {
             </div>
           </Link>
           <div className="flex items-center flex-shrink-0">
-            <Link href="/intake" className="bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] py-1.5 sm:py-2.5 rounded sm:rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
+            <Link href="/intake" className="min-h-[44px] bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
               Begin assessment &rarr;
             </Link>
           </div>
@@ -52,22 +108,100 @@ export default async function Home() {
         
         <div className="relative max-w-[780px] mx-auto px-4 sm:px-8 text-center">
 
-          <h1 className={`text-3xl sm:text-4xl md:text-[58px] leading-[1.12] sm:leading-[1.06] font-semibold tracking-tight text-white ${fraunces.className}`}>
-            Decision-making,<br/>measured under <em className="italic text-[#5B8CFF] font-medium">real pressure.</em>
+          <h1 className={`text-3xl sm:text-4xl md:text-[54px] leading-[1.12] sm:leading-[1.08] font-semibold tracking-tight text-white ${fraunces.className}`}>
+            Predictive Execution &amp; <em className="italic text-[#5B8CFF] font-medium">Decision Velocity</em><br className="hidden sm:block"/> for High-Stakes Leadership
           </h1>
-          <p className="mt-4 sm:mt-[26px] max-w-[560px] mx-auto text-sm sm:text-base md:text-[17px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
-            Scenario-driven crisis simulations, an 11-dimension psychological profile, and live biometric telemetry — read candidates the way a room full of assessors would, minus the room.
+          <p className="mt-4 sm:mt-[26px] max-w-[580px] mx-auto text-sm sm:text-base md:text-[17px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
+            Put an executive inside a crisis and measure what they actually do — every choice, every hesitation, scored against the dispositions your role depends on.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3.5 mt-8 sm:mt-10">
-            <Link href="/intake" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-colors">
-              Start candidate assessment
+
+          {/* Two audiences, two doors. */}
+          <div className="grid sm:grid-cols-2 gap-3.5 sm:gap-4 mt-8 sm:mt-11 text-left">
+            <Link
+              href="/practice"
+              className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6 transition-colors hover:border-[#35E0C8]/45 hover:bg-white/[0.055]"
+            >
+              <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#35E0C8]/70 to-transparent" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#35E0C8]/30 bg-[#35E0C8]/10 text-[#35E0C8]">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="mt-4 text-[15px] sm:text-base font-semibold text-white">Take a Practice Run</div>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#97A2BE]">
+                Paste a role, attach a CV, and sit the simulation yourself. Nothing is shared with any employer.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#35E0C8]">
+                Start a run
+                <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+                </svg>
+              </span>
+            </Link>
+
+            <Link
+              href="/employer"
+              className="group relative rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6 transition-colors hover:border-[#5B8CFF]/50 hover:bg-white/[0.055]"
+            >
+              <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#5B8CFF]/70 to-transparent" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#5B8CFF]/30 bg-[#5B8CFF]/10 text-[#5B8CFF]">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5" />
+                </svg>
+              </div>
+              <div className="mt-4 text-[15px] sm:text-base font-semibold text-white">Compass Business</div>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#97A2BE]">
+                Issue assessment links, rank a cohort against your job spec, and compare finalists side by side.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#5B8CFF]">
+                Employer sign in
+                <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+                </svg>
+              </span>
             </Link>
           </div>
 
-          <div className="relative mt-8 sm:mt-12 md:mt-[72px] h-14 sm:h-20 md:h-[92px]">
-            <svg viewBox="0 0 1000 92" preserveAspectRatio="none" className="w-full h-full block">
+          {/* METHODOLOGY PROOF BAR — the dispositions this pack measures. Read
+              from the active pack rather than written here, because the packs
+              are swappable and a hardcoded list would be wrong the first time
+              one with another taxonomy is loaded. */}
+          {dimensionNames.length > 0 && (
+            <div className="mt-9 sm:mt-11">
+              <div className={`text-[10.5px] uppercase tracking-[0.18em] text-[#5B6580] ${plexMono.className}`}>
+                {dimensionNames.length} Disposition Vectors · measured every run
+              </div>
+              <ul className="mt-3.5 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {dimensionNames.map((name, i) => (
+                  <li
+                    key={name}
+                    className="flex flex-shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] font-medium text-[#C3CBDD]"
+                  >
+                    <svg className="h-3 w-3 flex-shrink-0" viewBox="0 0 12 12" aria-hidden="true">
+                      {/* A different mark per vector, so the bar reads as a set
+                          of distinct measures rather than a row of bullets. */}
+                      {i % 4 === 0 && <circle cx="6" cy="6" r="3.2" fill="none" stroke="#35E0C8" strokeWidth="1.5" />}
+                      {i % 4 === 1 && <path d="M6 1.6 L10.4 6 L6 10.4 L1.6 6 Z" fill="none" stroke="#5B8CFF" strokeWidth="1.5" strokeLinejoin="round" />}
+                      {i % 4 === 2 && <path d="M1.8 8.6 L4.6 4.8 L7.2 7.1 L10.2 2.9" fill="none" stroke="#35E0C8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+                      {i % 4 === 3 && <rect x="2.1" y="2.1" width="7.8" height="7.8" rx="1.6" fill="none" stroke="#5B8CFF" strokeWidth="1.5" />}
+                    </svg>
+                    {name}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-[12px] text-[#5B6580]">
+                Plus decision latency, option revisits and hesitation, captured to the millisecond.
+              </p>
+            </div>
+          )}
+
+          <div className="relative mt-10 sm:mt-14 h-14 sm:h-20 md:h-[92px]">
+            {/* A route through three decisions: at each one the path could have
+                gone either way, and one way was taken. This replaced a heart-rate
+                trace, which outlasted the biometrics it was drawn for. */}
+            <svg viewBox="0 0 1000 92" preserveAspectRatio="none" className="w-full h-full block" aria-hidden="true">
               <defs>
-                <linearGradient id="pulseGrad" x1="0" y1="0" x2="1" y2="0">
+                <linearGradient id="decisionPathGrad" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#2E63F6" stopOpacity="0"/>
                   <stop offset="15%" stopColor="#2E63F6" stopOpacity="0.6"/>
                   <stop offset="50%" stopColor="#35E0C8"/>
@@ -75,23 +209,43 @@ export default async function Home() {
                   <stop offset="100%" stopColor="#2E63F6" stopOpacity="0"/>
                 </linearGradient>
               </defs>
-              <path d="M0,46 L160,46 L185,46 L200,20 L215,72 L232,46 L260,46 L430,46 L452,46 L468,8 L486,80 L504,46 L525,46 L700,46 L722,46 L738,26 L754,64 L772,46 L800,46 L1000,46" fill="none" stroke="url(#pulseGrad)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px rgba(53,224,200,0.35))' }} />
-              <circle cx="486" cy="80" r="4" fill="#35E0C8" style={{ filter: 'drop-shadow(0 0 8px rgba(53,224,200,0.8))' }} />
+              {/* The branches not taken. */}
+              <g fill="none" stroke="#5B6580" strokeWidth="1.2" strokeOpacity="0.3" strokeDasharray="3 5" strokeLinecap="round">
+                <path d="M190,46 L230,64 L270,46"/>
+                <path d="M450,46 L490,28 L530,46"/>
+                <path d="M710,46 L750,64 L790,46"/>
+              </g>
+              {/* The route actually taken. */}
+              <path
+                d="M0,46 L190,46 L230,28 L270,46 L450,46 L490,64 L530,46 L710,46 L750,28 L790,46 L1000,46"
+                fill="none"
+                stroke="url(#decisionPathGrad)"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ filter: 'drop-shadow(0 0 6px rgba(53,224,200,0.35))' }}
+              />
+              {/* The moments of choice. */}
+              <g fill="#35E0C8" style={{ filter: 'drop-shadow(0 0 8px rgba(53,224,200,0.55))' }}>
+                <circle cx="190" cy="46" r="3"/>
+                <circle cx="450" cy="46" r="3"/>
+                <circle cx="710" cy="46" r="3"/>
+              </g>
             </svg>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 border border-white/10 rounded-[14px] overflow-hidden -mt-2 relative bg-white/[0.015]">
             <div className="p-4 sm:p-[26px_20px] md:border-r border-b md:border-b-0 border-white/10 text-center">
-              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#5B8CFF]">11</div>
-              <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Cognitive dimensions</div>
+              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#5B8CFF]">{dimensionCount ?? '—'}</div>
+              <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Dimensions measured</div>
             </div>
             <div className="p-4 sm:p-[26px_20px] md:border-r border-b md:border-b-0 border-white/10 text-center">
-              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#5B8CFF]">5+</div>
+              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#5B8CFF]">{scenarioCount ?? '—'}</div>
               <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Crisis scenarios</div>
             </div>
             <div className="p-4 sm:p-[26px_20px] md:border-r border-white/10 text-center">
-              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#35E0C8]">BLE</div>
-              <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Biometric telemetry</div>
+              <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#35E0C8]">ms</div>
+              <div className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] tracking-[0.06em] uppercase text-[#5B6580] font-medium">Decision latency</div>
             </div>
             <div className="p-4 sm:p-[26px_20px] text-center">
               <div className="text-xl sm:text-[26px] font-semibold tracking-tight text-[#F5B95C]">100%</div>
@@ -149,12 +303,12 @@ export default async function Home() {
 
             <div className="bg-[#10192E] p-6 sm:p-9 relative border-t border-white/10">
               <span className={`text-[11px] text-[#5B6580] tracking-[0.08em] mb-3 sm:mb-[22px] block ${plexMono.className}`}>MODULE D</span>
-              <div className="text-lg sm:text-[19px] font-semibold text-white tracking-tight">Biometric telemetry</div>
+              <div className="text-lg sm:text-[19px] font-semibold text-white tracking-tight">Decision telemetry</div>
               <div className="mt-2.5 text-xs sm:text-[13.5px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
-                Heart rate streams from a paired BLE device, timestamped against every decision, mapped to stress spikes in the executive report.
+                How long each call took, which options were revisited, and where the candidate hesitated — recorded per decision and carried into the executive report.
               </div>
               <span className="inline-block mt-4 sm:mt-5 text-[10.5px] font-semibold tracking-[0.06em] uppercase px-2.5 py-1.5 rounded-md text-[#35E0C8] bg-[#35E0C8]/10 border border-[#35E0C8]/25">
-                Real-time BPM
+                Per-decision timing
               </span>
             </div>
           </div>
@@ -174,7 +328,7 @@ export default async function Home() {
               <span className={`text-[11px] text-[#35E0C8] mb-2 sm:mb-3.5 block ${plexMono.className}`}>01</span>
               <div className="text-sm sm:text-[14.5px] font-semibold text-white">Intake</div>
               <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">Candidate profile, target role, resume — stored, not parsed.</div>
-              <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B1220] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
+              <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B0F17] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#5B6580" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
             </div>
@@ -183,7 +337,7 @@ export default async function Home() {
               <span className={`text-[11px] text-[#35E0C8] mb-2 sm:mb-3.5 block ${plexMono.className}`}>02</span>
               <div className="text-sm sm:text-[14.5px] font-semibold text-white">Assessment</div>
               <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">Timed scenarios, one-way navigation, silent telemetry.</div>
-              <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B1220] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
+              <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B0F17] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#5B6580" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
             </div>
@@ -191,8 +345,8 @@ export default async function Home() {
             <div className="flex-1 p-5 sm:p-7 relative border-x border-b md:border-b-y md:border-l md:border-r-0 border-white/10">
               <span className={`text-[11px] text-[#35E0C8] mb-2 sm:mb-3.5 block ${plexMono.className}`}>03</span>
               <div className="text-sm sm:text-[14.5px] font-semibold text-white">Scoring</div>
-              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">11 dimensions weighted server-side against responses.</div>
-              <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B1220] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
+              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">{dimensionCount ? `${dimensionCount} dimensions` : 'Every dimension'} weighted server-side against responses.</div>
+              <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B0F17] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#5B6580" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
             </div>

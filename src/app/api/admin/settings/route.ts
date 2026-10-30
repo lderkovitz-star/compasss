@@ -29,7 +29,6 @@ export async function GET() {
         data: {
           platformName: 'Compass',
           supportEmail: 'support@continentalworks.com',
-          biometricMode: 'disabled',
           antiCheat: true,
           blindUiMode: true,
         },
@@ -51,7 +50,6 @@ export async function PUT(req: NextRequest) {
     const {
       platformName,
       supportEmail,
-      biometricMode,
       antiCheat,
       blindUiMode,
       anthropicApiKey,
@@ -63,13 +61,6 @@ export async function PUT(req: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (platformName !== undefined) updateData.platformName = platformName;
     if (supportEmail !== undefined) updateData.supportEmail = supportEmail;
-    if (biometricMode !== undefined) {
-      const allowed = ['disabled', 'optional', 'required'];
-      if (!allowed.includes(biometricMode)) {
-        return NextResponse.json({ error: 'Invalid biometric mode.' }, { status: 400 });
-      }
-      updateData.biometricMode = biometricMode;
-    }
     if (antiCheat !== undefined) updateData.antiCheat = Boolean(antiCheat);
     if (blindUiMode !== undefined) updateData.blindUiMode = Boolean(blindUiMode);
     if (aiPromptTemplate !== undefined) updateData.aiPromptTemplate = aiPromptTemplate || null;

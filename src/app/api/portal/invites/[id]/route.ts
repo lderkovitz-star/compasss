@@ -26,6 +26,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     );
   }
 
+  // tenant-scoping-ok: invite.id came from the tenant-scoped lookup above, so
+  // this can only ever update a row this account owns.
   await prisma.assessmentInvite.update({
     where: { id: invite.id },
     data: { status: 'REVOKED', revokedAt: new Date() },

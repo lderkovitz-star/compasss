@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
-import { getAdminSession, hashPassword } from '@/lib/auth';
+import { requireAdmin, hashPassword } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 // GET — fetch admin profile
 export async function GET() {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const admin = await prisma.admin.findUnique({ where: { email: adminEmail } });
-  if (!admin) return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
 
   return NextResponse.json({
     id: admin.id,
@@ -25,11 +21,12 @@ export async function GET() {
 
 // PUT — update admin profile (email, password, image)
 export async function PUT(req: NextRequest) {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const caller = await requireAdmin();
+  if (caller instanceof NextResponse) return caller;
 
-  const admin = await prisma.admin.findUnique({ where: { email: adminEmail } });
-  if (!admin) return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+  // The guard already fetched the account, so this edits whoever is signed
+  // in - never an id the request supplied.
+  const admin = caller;
 
   const contentType = req.headers.get('content-type') || '';
 
@@ -47,13 +44,17 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'Image must be under 5MB.' }, { status: 400 });
       }
 
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'admin');
-      await mkdir(uploadDir, { recursive: true });
-      const ext = imageFile.name.split('.').pop() || 'jpg';
-      const fileName = `admin-${Date.now()}.${ext}`;
-      const bytes = await imageFile.arrayBuffer();
-      await writeFile(path.join(uploadDir, fileName), Buffer.from(bytes));
-      const profileImageUrl = `/uploads/admin/${fileName}`;
+      // Written to blob storage, not to disk. The filesystem on Vercel is
+      // read-only, so this threw every time in production - the same fault
+      // that was fixed for résumés and missed here. It also wrote into
+      // public/uploads, which is how candidate documents ended up committed.
+      const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const blob = await put(`admin/avatars/${admin.id}-${Date.now()}.${ext}`, imageFile, {
+        access: 'public',
+        addRandomSuffix: true,
+        contentType: imageFile.type,
+      });
+      const profileImageUrl = blob.url;
 
       await prisma.admin.update({
         where: { id: admin.id },
@@ -78,7 +79,17 @@ export async function PUT(req: NextRequest) {
   }
 
   if (body.currentPassword && body.newPassword) {
-    const valid = await bcrypt.compare(body.currentPassword, admin.passwordHash);
+    // The guard returns a safe subset of the account, so the hash is read
+    // separately - by the signed-in admin's id, never by anything the
+    // request supplied.
+    const credentials = await prisma.admin.findUnique({
+      where: { id: admin.id },
+      select: { passwordHash: true },
+    });
+    if (!credentials) {
+      return NextResponse.json({ error: 'Admin not found.' }, { status: 404 });
+    }
+    const valid = await bcrypt.compare(body.currentPassword, credentials.passwordHash);
     if (!valid) return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 403 });
     if (body.newPassword.length < 6) {
       return NextResponse.json({ error: 'New password must be at least 6 characters.' }, { status: 400 });

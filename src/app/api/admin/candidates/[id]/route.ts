@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getAdminSession } from '@/lib/auth';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
 
   try {
     const candidate = await prisma.user.findUnique({
@@ -26,8 +26,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
 
   try {
     const data = await req.json();
@@ -48,8 +48,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
 
   try {
     await prisma.user.delete({
