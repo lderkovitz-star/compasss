@@ -71,12 +71,28 @@ export default async function PracticeResultsPage({
 
   const scored = session.finalScores.filter((s) => s.exercised);
   const THIN = 3;
+
+  /**
+   * A practice result is deliberately partial.
+   *
+   * Enough real scoring to be worth sitting - the overall figure, the shape of
+   * the profile, and the strongest few dimensions with their actual numbers -
+   * and not so much that an employer could run their hiring off the sandbox.
+   * The full profile is what an invited assessment produces, and that is the
+   * one that reaches a ledger.
+   */
+  const SHOWN = 5;
   const wellEvidenced = scored.filter((s) => s.scenariosScored >= THIN);
   const forAverage = wellEvidenced.length ? wellEvidenced : scored;
   const overall = forAverage.length
     ? Math.round(forAverage.reduce((sum, s) => sum + s.finalScore, 0) / forAverage.length)
     : null;
   const thin = scored.length - wellEvidenced.length;
+
+  // Strongest first, so what is shown is the part a person came to see.
+  const ranked = [...scored].sort((a, b) => b.finalScore - a.finalScore);
+  const shown = ranked.slice(0, SHOWN);
+  const withheld = ranked.length - shown.length;
 
   const avgMs = session.responses.length
     ? Math.round(session.responses.reduce((sum, r) => sum + r.timeSpentMs, 0) / session.responses.length)
@@ -114,6 +130,18 @@ export default async function PracticeResultsPage({
           )}
         </div>
 
+        <div className="mt-6 rounded-xl border border-[#35E0C8]/25 bg-[#35E0C8]/[0.07] px-4 py-3.5">
+          <p className="text-[13px] font-semibold text-[#35E0C8]">
+            Practice result — not an employer evaluation
+          </p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-[#97A2BE]">
+            This is a shortened run on the public sandbox, and it shows part of the profile. No
+            employer can see it and it appears in no company&apos;s candidate list. Hiring decisions
+            run on a full assessment issued by an employer, which scores every dimension and
+            produces the report their ledger receives.
+          </p>
+        </div>
+
         {scored.length === 0 ? (
           <p className="mt-8 rounded-xl border border-white/10 bg-white/5 p-5 text-[14px] text-[#97A2BE]">
             No dimension could be scored from this run.
@@ -121,7 +149,7 @@ export default async function PracticeResultsPage({
         ) : (
           <>
             <PracticeResultCharts
-              dimensions={scored.map((s) => ({
+              dimensions={shown.map((s) => ({
                 name: s.dimension.name,
                 score: Math.round(s.finalScore),
                 scenariosScored: s.scenariosScored,
@@ -130,7 +158,9 @@ export default async function PracticeResultsPage({
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
               <div className="px-5 py-4 border-b border-white/10">
-                <h2 className="font-semibold text-white">Dimension profile</h2>
+                <h2 className="font-semibold text-white">
+                  Strongest {shown.length} of {ranked.length} dimensions
+                </h2>
                 {thin > 0 && wellEvidenced.length > 0 && (
                   <p className="mt-1 text-xs text-[#97A2BE]">
                     {thin} of these came from fewer than {THIN} scenarios and are marked. The overall
@@ -139,7 +169,7 @@ export default async function PracticeResultsPage({
                 )}
               </div>
               <div className="divide-y divide-white/5">
-                {scored.map((s, i) => (
+                {shown.map((s, i) => (
                   <div key={i} className="px-5 py-3 flex items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white">
@@ -169,6 +199,18 @@ export default async function PracticeResultsPage({
               </div>
             </div>
           </>
+        )}
+
+        {withheld > 0 && (
+          <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-5 py-4">
+            <p className="text-[13px] font-medium text-white">
+              {withheld} further dimension{withheld === 1 ? '' : 's'} scored, not shown here
+            </p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-[#97A2BE]">
+              The sandbox reports the strongest few. A full assessment scores the whole set across
+              the complete pack, and that is the version an employer reads.
+            </p>
+          </div>
         )}
 
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">

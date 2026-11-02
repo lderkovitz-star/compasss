@@ -22,6 +22,7 @@ export default async function PackagesPage() {
         sandboxPackageId: true,
         defaultClientPackageId: true,
         defaultSessionDepth: true,
+        sandboxSessionDepth: true,
       },
     }),
     prisma.clientAccount.count({ where: { deletedAt: null } }),
@@ -61,6 +62,7 @@ export default async function PackagesPage() {
           sandboxPackageId={settings?.sandboxPackageId ?? null}
           defaultClientPackageId={settings?.defaultClientPackageId ?? null}
           defaultSessionDepth={settings?.defaultSessionDepth ?? null}
+          sandboxSessionDepth={settings?.sandboxSessionDepth ?? null}
           accountCount={accountCount}
           overrideCount={overrideCount}
         />

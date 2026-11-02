@@ -29,12 +29,14 @@ export async function GET() {
       sandboxPackageId: true,
       defaultClientPackageId: true,
       defaultSessionDepth: true,
+      sandboxSessionDepth: true,
     },
   });
   return NextResponse.json({
     sandboxPackageId: settings?.sandboxPackageId ?? null,
     defaultClientPackageId: settings?.defaultClientPackageId ?? null,
     defaultSessionDepth: settings?.defaultSessionDepth ?? null,
+    sandboxSessionDepth: settings?.sandboxSessionDepth ?? null,
   });
 }
 
@@ -67,20 +69,21 @@ export async function PATCH(req: NextRequest) {
       data[field] = value;
     }
 
-    if (body.defaultSessionDepth !== undefined) {
-      const raw = body.defaultSessionDepth;
+    for (const field of ['defaultSessionDepth', 'sandboxSessionDepth'] as const) {
+      if (body[field] === undefined) continue;
+      const raw = body[field];
       if (raw === null || raw === '') {
-        data.defaultSessionDepth = null;
-      } else {
-        const depth = Number(raw);
-        if (!Number.isInteger(depth) || depth < 1 || depth > 500) {
-          return NextResponse.json(
-            { error: 'Session depth must be a whole number between 1 and 500, or left empty to run the whole pack.' },
-            { status: 400 }
-          );
-        }
-        data.defaultSessionDepth = depth;
+        data[field] = null;
+        continue;
       }
+      const depth = Number(raw);
+      if (!Number.isInteger(depth) || depth < 1 || depth > 500) {
+        return NextResponse.json(
+          { error: 'Session depth must be a whole number between 1 and 500, or left empty to run the whole pack.' },
+          { status: 400 }
+        );
+      }
+      data[field] = depth;
     }
 
     if (Object.keys(data).length === 0) {
@@ -108,6 +111,7 @@ export async function PATCH(req: NextRequest) {
       sandboxPackageId: saved.sandboxPackageId ?? null,
       defaultClientPackageId: saved.defaultClientPackageId ?? null,
       defaultSessionDepth: saved.defaultSessionDepth ?? null,
+      sandboxSessionDepth: saved.sandboxSessionDepth ?? null,
     });
   } catch (error) {
     console.error('[packages assignments PATCH]', error);
