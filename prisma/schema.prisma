@@ -272,6 +272,10 @@ model PlatformSettings {
   sandboxPackageId        String?  @map("sandbox_package_id")
   defaultClientPackageId  String?  @map("default_client_package_id")
   defaultSessionDepth     Int?     @map("default_session_depth")
+  // How long a public practice run is. Separate from the client default so a
+  // short demo in the sandbox does not shorten real assessments, and because
+  // the sandbox usually points at a long pack.
+  sandboxSessionDepth     Int?     @default(10) @map("sandbox_session_depth")
   practiceEnabled         Boolean  @default(true) @map("practice_enabled")
   storageProvider         String   @default("VERCEL_BLOB") @map("storage_provider")
   storageConfig           Json?    @map("storage_config")

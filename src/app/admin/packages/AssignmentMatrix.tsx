@@ -11,6 +11,7 @@ type Props = {
   sandboxPackageId: string | null;
   defaultClientPackageId: string | null;
   defaultSessionDepth: number | null;
+  sandboxSessionDepth: number | null;
   overrideCount: number;
   accountCount: number;
 };
@@ -24,6 +25,7 @@ export default function AssignmentMatrix({
   sandboxPackageId,
   defaultClientPackageId,
   defaultSessionDepth,
+  sandboxSessionDepth,
   overrideCount,
   accountCount,
 }: Props) {
@@ -31,6 +33,7 @@ export default function AssignmentMatrix({
   const [sandbox, setSandbox] = useState(sandboxPackageId ?? '');
   const [clientDefault, setClientDefault] = useState(defaultClientPackageId ?? '');
   const [depth, setDepth] = useState(defaultSessionDepth?.toString() ?? '');
+  const [sandboxDepth, setSandboxDepth] = useState(sandboxSessionDepth?.toString() ?? '');
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
@@ -117,6 +120,41 @@ export default function AssignmentMatrix({
           <Link href="/admin/clients" className="btn-secondary text-xs px-3 py-1.5">
             Set per account
           </Link>
+        </div>
+
+        <div className="px-5 py-4 flex flex-wrap items-start justify-between gap-4 border-b border-slate-100">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-slate-900">Practice run length</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              How many scenarios the public sandbox gives a visitor. The sandbox usually points at
+              the same long pack a real assessment uses, and nobody finishes fifty scenarios to see
+              a demo. Leave it empty to run the whole pack.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={500}
+              value={sandboxDepth}
+              placeholder="all"
+              onChange={(e) => setSandboxDepth(e.target.value)}
+              className="form-input w-24 text-slate-900"
+            />
+            <button
+              onClick={() =>
+                void patch(
+                  'sandboxSessionDepth',
+                  sandboxDepth === '' ? null : sandboxDepth,
+                  'Practice length updated'
+                )
+              }
+              disabled={saving === 'sandboxSessionDepth'}
+              className="btn-secondary text-xs px-3 py-1.5"
+            >
+              {saving === 'sandboxSessionDepth' ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
 
         <div className="px-5 py-4 flex flex-wrap items-start justify-between gap-4">

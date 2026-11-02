@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
         sandboxPackageId: true,
         defaultClientPackageId: true,
         defaultSessionDepth: true,
+        sandboxSessionDepth: true,
       },
     });
 
@@ -103,7 +104,12 @@ export async function POST(req: NextRequest) {
         kind: 'PRACTICE',
         status: 'IN_PROGRESS',
         currentScenarioIdx: 0,
-        sessionDepth: settings?.defaultSessionDepth ?? null,
+        // The sandbox has its own length. It points at the same long pack a
+        // real assessment uses, so without this a visitor had to answer all
+        // fifty scenarios before any result appeared - which is why nobody was
+        // seeing one.
+        sessionDepth:
+          settings?.sandboxSessionDepth ?? settings?.defaultSessionDepth ?? null,
         practiceName: name || null,
         practiceEmail: email || null,
         practiceJobText: jobText || null,
