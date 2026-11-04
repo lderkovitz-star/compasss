@@ -19,9 +19,87 @@ type Account = {
   assignedPackage: { id: string; name: string } | null;
   _count: { candidates: number; sessions: number; invites: number };
   testedCount: number;
+  candidateSeatLimit: number | null;
+  /** Invitations currently holding a seat; see src/lib/seats.ts. */
+  seatsUsed: number;
 };
 
 type Pkg = { id: string; name: string; code: string };
+
+/**
+ * Seat limit cell.
+ *
+ * Kept as a local draft until it is committed, because a field that saves on
+ * every keystroke would fire a request for "1", "12" and "120" on the way to
+ * typing 120 - and the "1" would be rejected as below the seats already used.
+ */
+function SeatCell({
+  used,
+  limit,
+  disabled,
+  onCommit,
+}: {
+  used: number;
+  limit: number | null;
+  disabled: boolean;
+  onCommit: (value: number | null) => void;
+}) {
+  const [draft, setDraft] = useState(limit === null ? '' : String(limit));
+
+  // The row re-renders from the server after a save; follow it rather than
+  // holding a stale draft.
+  const [lastLimit, setLastLimit] = useState(limit);
+  if (lastLimit !== limit) {
+    setLastLimit(limit);
+    setDraft(limit === null ? '' : String(limit));
+  }
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === '') {
+      if (limit !== null) onCommit(null);
+      return;
+    }
+    const value = Number(trimmed);
+    if (!Number.isInteger(value) || value < 0) {
+      toast.error('Seats must be a whole number, or blank for unlimited.');
+      setDraft(limit === null ? '' : String(limit));
+      return;
+    }
+    if (value !== limit) onCommit(value);
+  }
+
+  const over = limit !== null && used >= limit;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
+        <span className={over ? 'font-semibold text-amber-700' : 'font-medium text-slate-900'}>
+          {used}
+        </span>
+        <span className="text-slate-400">/</span>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          className="form-input text-xs text-center w-[72px] min-h-[44px]"
+          placeholder="∞"
+          aria-label="Candidate seat limit"
+          value={draft}
+          disabled={disabled}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+        />
+      </div>
+      <div className="text-xs text-slate-500">
+        {limit === null ? 'unlimited' : over ? 'at limit' : `${limit - used} left`}
+      </div>
+    </div>
+  );
+}
 
 export default function ClientAccountsClient({
   accounts,
@@ -210,6 +288,7 @@ export default function ClientAccountsClient({
                 <th className="th text-center">Access key</th>
                 <th className="th text-center">Scenario package</th>
                 <th className="th text-center">Candidates</th>
+                <th className="th text-center">Seats</th>
                 <th className="th text-center">Status</th>
                 <th className="th text-center">Actions</th>
               </tr>
@@ -252,6 +331,22 @@ export default function ClientAccountsClient({
                     <div className="text-xs text-slate-500">
                       tested · {a._count.candidates} invited
                     </div>
+                  </td>
+                  <td className="td text-center">
+                    <SeatCell
+                      used={a.seatsUsed}
+                      limit={a.candidateSeatLimit}
+                      disabled={busy}
+                      onCommit={(value) =>
+                        patch(
+                          a,
+                          { candidateSeatLimit: value },
+                          value === null
+                            ? `${a.name} set to unlimited seats`
+                            : `${a.name} limited to ${value} seat${value === 1 ? '' : 's'}`
+                        )
+                      }
+                    />
                   </td>
                   <td className="td text-center">
                     <span className={a.status === 'ACTIVE' ? 'badge-green' : 'badge-amber'}>
