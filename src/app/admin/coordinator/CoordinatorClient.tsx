@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 
@@ -220,6 +220,19 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
   const [sessionOverrides, setSessionOverrides] = useState<Record<string, Record<string, HumanOverride>>>({});
   const [runningAI, setRunningAI] = useState<string | null>(null);
   const [aiResults, setAiResults] = useState<Record<string, SessionData['aiEvaluation']>>({});
+  // The 8-column table can be wider than its box and scroll sideways. Track the visible width so the
+  // expanded details panel can stay pinned to it instead of scrolling out of view with the table.
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const [tableViewWidth, setTableViewWidth] = useState(0);
+  useEffect(() => {
+    const el = tableScrollRef.current;
+    if (!el) return;
+    const update = () => setTableViewWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [batchRunning, setBatchRunning] = useState(false);
 
   const getEffectiveTraits = (s: SessionData) => {
@@ -290,11 +303,13 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
 
   const renderExpandedDetails = (s: SessionData) => {
     const ai = getAI(s);
+    // whitespace-normal: the desktop table is whitespace-nowrap and this row inherits it,
+    // which kept long text (the AI rationale, notes) on one line and stretched the table sideways.
     return (
-      <div className="p-5 space-y-4 bg-slate-50/50">
+      <div className="p-5 space-y-4 bg-slate-50/50 whitespace-normal">
         <h3 className="text-sm font-bold text-slate-900">Decision Trail — {s.candidate.name}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Trait Scores</p>
             <div className="space-y-2">
               {(['decisiveness', 'riskTolerance', 'resourcePreservation'] as const).map(t => {
@@ -312,7 +327,7 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Scenario Response Trail</p>
             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {s.responses.map((r, i) => (
@@ -333,11 +348,11 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
           </div>
 
           {ai && (
-            <div>
+            <div className="min-w-0 sm:col-span-2">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">AI Rationale</p>
-              <div className={`p-3 rounded-lg border text-xs leading-relaxed ${TIER_CONFIG[ai.tier].bg} ${TIER_CONFIG[ai.tier].color}`}>
+              <div className={`p-3 rounded-lg border text-xs leading-relaxed max-w-4xl ${TIER_CONFIG[ai.tier].bg} ${TIER_CONFIG[ai.tier].color}`}>
                 <p className="font-bold mb-1">{TIER_CONFIG[ai.tier].label}</p>
-                <p>{ai.rationale}</p>
+                <p className="whitespace-pre-line break-words">{ai.rationale}</p>
               </div>
             </div>
           )}
@@ -362,7 +377,7 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
                     <div className="min-w-0">
-                      <p className="text-xs text-slate-700 leading-relaxed">{n.note}</p>
+                      <p className="text-xs text-slate-700 leading-relaxed break-words">{n.note}</p>
                       <p className="text-[10px] text-slate-400 mt-1">
                         by {n.by} {n.at ? `· ${new Date(n.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                       </p>
@@ -412,7 +427,7 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
 
       {/* Candidate Table */}
       <div className="hidden lg:flex flex-col flex-1 min-h-0 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
-        <div className="flex-1 min-h-0 w-full overflow-auto">
+        <div ref={tableScrollRef} className="flex-1 min-h-0 w-full overflow-auto">
           <table className="w-full whitespace-nowrap">
             <thead className="bg-slate-50/90 sticky top-0 z-10 backdrop-blur-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
               <tr>
@@ -516,7 +531,9 @@ export default function CoordinatorClient({ sessions, canRunAI }: { sessions: Se
                     {isExpanded && (
                       <tr>
                         <td colSpan={8} className="p-0 border-t border-slate-100">
-                          {renderExpandedDetails(s)}
+                          <div className="sticky left-0" style={{ width: tableViewWidth || undefined }}>
+                            {renderExpandedDetails(s)}
+                          </div>
                         </td>
                       </tr>
                     )}
