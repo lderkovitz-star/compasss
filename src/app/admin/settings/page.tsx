@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
+import { ANTHROPIC_MODEL } from '@/lib/constants/ai';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -600,7 +601,7 @@ export default function AdminSettingsPage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500">
-                  Uses <strong className="text-violet-700">Claude 3 Haiku</strong> — fast, cost-effective batch model.
+                  Uses <strong className="text-violet-700">{ANTHROPIC_MODEL}</strong>.
                 </p>
                 <button
                   onClick={handleAISave}

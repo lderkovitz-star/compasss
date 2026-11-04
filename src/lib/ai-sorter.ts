@@ -9,6 +9,7 @@
  */
 
 import { prisma } from './db';
+import { ANTHROPIC_MODEL } from './constants/ai';
 
 export type CandidateTier = 'TOP_TIER' | 'MID_TIER' | 'LOWER_TIER';
 
@@ -97,7 +98,7 @@ async function callAnthropicAPI(apiKey: string, prompt: string): Promise<AIEvalu
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-3-haiku-20240307', // Fast, cost-effective for batch processing
+      model: ANTHROPIC_MODEL,
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     }),
