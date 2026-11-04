@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAdmin } from '@/lib/auth';
 import { tierSingleCandidate, batchTierCandidates } from '@/lib/ai-sorter';
 
+// An evaluation reads the resume and waits on the model: 8-17s measured, past
+// the platform's default limit on some plans.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const admin = await getCurrentAdmin();
   if (!admin) {

@@ -647,7 +647,7 @@ export default function AdminSettingsPage() {
                   value={aiPromptTemplate}
                   onChange={e => setAiPromptTemplate(e.target.value)}
                   rows={9}
-                  placeholder={`Available variables:\n{{candidate_name}}, {{target_role}}, {{intake_context}}, {{package_name}}\n{{decisiveness}}, {{risk_tolerance}}, {{resource_preservation}}\n{{avg_time_ms}}, {{total_switches}}, {{completed_at}}`}
+                  placeholder={`Available variables:\n{{candidate_name}}, {{target_role}}, {{intake_context}}, {{package_name}}\n{{decisiveness}}, {{risk_tolerance}}, {{resource_preservation}}\n{{avg_time_ms}}, {{total_switches}}, {{completed_at}}\n{{job_requirements}}, {{resume_text}}, {{scenario_choices}}, {{dimension_scores}}\n\nAny of the last four you leave out are added in front of your template automatically.`}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono resize-y text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
                 />
               </div>
