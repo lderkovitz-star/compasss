@@ -6,6 +6,19 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { ANTHROPIC_MODEL } from '@/lib/constants/ai';
 
+// The API answers 4xx/5xx with { error }, which fetch does not throw on - so
+// without this check a rejected save looked exactly like a successful one.
+async function putSettings(body: Record<string, unknown>) {
+  const res = await fetch('/api/admin/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? 'Request failed');
+  return data;
+}
+
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -64,22 +77,18 @@ export default function AdminSettingsPage() {
   const triggerSave = async (updates: any = {}) => {
     setSaving(true);
     try {
-      await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          platformName, 
-          supportEmail, 
-          biometricMode, 
-          logoUrl, 
-          defaultBackdropUrl: backdropUrl, 
-          ...updates 
-        }),
+      await putSettings({
+        platformName,
+        supportEmail,
+        biometricMode,
+        logoUrl,
+        defaultBackdropUrl: backdropUrl,
+        ...updates,
       });
       toast.success('Settings saved');
       router.refresh();
-    } catch {
-      toast.error('Failed to save settings');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -90,22 +99,29 @@ export default function AdminSettingsPage() {
     triggerSave();
   };
 
+  // True once a key has been typed in. The saved key is never sent to the browser,
+  // so any text in the field is a new key.
+  const keyEdited = anthropicApiKey.trim().length > 0;
+
   const handleAISave = async () => {
     setSavingAI(true);
     try {
-      await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platformName, supportEmail, biometricMode,
-          ...(anthropicApiKey.trim() ? { anthropicApiKey } : {}),
-          aiPromptTemplate,
-        }),
+      // Only the AI fields: re-posting the general ones from component state
+      // would overwrite them with defaults whenever the initial load failed.
+      const saved = await putSettings({
+        ...(keyEdited ? { anthropicApiKey } : {}),
+        aiPromptTemplate,
       });
+      // Show what the server actually stored. The key is write-only, so the field
+      // goes back to the "key set" placeholder.
+      setApiKeyConfigured(Boolean(saved.anthropicApiKeyConfigured));
+      setApiKeyLast4(saved.anthropicApiKeyLast4 ?? null);
+      setAiPromptTemplate(saved.aiPromptTemplate ?? '');
+      setAnthropicApiKey('');
       toast.success('AI configuration saved');
       router.refresh();
-    } catch {
-      toast.error('Failed to save AI config');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save AI config');
     } finally {
       setSavingAI(false);
     }
