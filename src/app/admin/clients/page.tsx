@@ -23,6 +23,12 @@ async function getData() {
         createdAt: true,
         assignedPackage: { select: { id: true, name: true } },
         _count: { select: { candidates: true, sessions: true, invites: true } },
+        // "Tested" means finished, not invited. Counted here rather than in
+        // the page so one query covers every account.
+        sessions: {
+          where: { kind: 'OFFICIAL', status: 'COMPLETED' },
+          select: { id: true },
+        },
       },
     }),
     prisma.scenarioPackage.findMany({
@@ -59,9 +65,10 @@ export default async function ClientAccountsPage() {
       </div>
 
       <ClientAccountsClient
-        accounts={accounts.map((a) => ({
+        accounts={accounts.map(({ sessions, ...a }) => ({
           ...a,
           createdAt: a.createdAt.toISOString(),
+          testedCount: sessions.length,
         }))}
         packages={packages}
         defaultPackageId={defaultPackageId}

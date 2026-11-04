@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
+import PackUploader from './PackUploader';
 
 interface Package { id: string; name: string; code: string; isActive: boolean; scenarioCount: number; }
 interface Scenario {
@@ -301,8 +302,6 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [importJson, setImportJson] = useState('');
-  const [importPackageId, setImportPackageId] = useState(packages[0]?.id || '');
   const [createPackageId, setCreatePackageId] = useState(packages[0]?.id || '');
   const [createNarrativeText, setCreateNarrativeText] = useState('');
   const [createTimeLimit, setCreateTimeLimit] = useState(90);
@@ -324,18 +323,6 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
     document.body.appendChild(downloadAnchorNode); 
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
-  }
-
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setImportJson(event.target.result as string);
-      }
-    };
-    reader.readAsText(file);
   }
 
   function openCreate() {
@@ -365,8 +352,7 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
         }),
       });
       if (!res.ok) throw new Error('Failed to create');
-      const newScenario = await res.json();
-      
+
       setIsCreating(false);
       router.refresh();
     } catch {
@@ -391,47 +377,46 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
     }
   }
 
-  async function saveImport() {
-    if (!importJson) return;
-    setSaving(true);
-    setError('');
-    try {
-      const parsed = JSON.parse(importJson);
-      
-      const payload = {
-        packageId: importPackageId,
-        isNewPackage: false,
-        packageData: {},
-        scenarios: parsed.scenarios || parsed, // Handle both root array and { scenarios: [] } formats
-      };
-
-      const res = await fetch(`/api/admin/scenarios/import`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to import');
-      }
-
-      setIsImporting(false);
-      setImportJson('');
-      router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid JSON or Import failed.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <>
       <div className="animate-slide-up">
         {error && <div className="alert-danger mb-4">{error}</div>}
 
       {/* Filter Bar & Actions */}
+      {/* Uploading a pack was reachable only through a small "Import" button in
+          the toolbar below, which is not where anyone looks for it. It is the
+          main way scenarios get into the system, so it says so. */}
+      <div
+        onClick={() => setIsImporting(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsImporting(true);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        className="mb-6 cursor-pointer rounded-xl border-2 border-dashed border-slate-200 bg-white p-6 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/40"
+      >
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+        </div>
+        <p className="mt-3 text-sm font-semibold text-slate-900">
+          Upload a scenario pack
+        </p>
+        <p className="mt-1 text-xs text-slate-500 max-w-lg mx-auto">
+          Tap to choose a <strong>.json</strong> or <strong>.csv</strong> file of 5, 50 or 200+
+          scenarios — or drag one in, at a desk. You will see what it contains — counts, weight
+          scale, new dimensions, and any row that could not be read — before anything is saved.
+          Templates for both formats are inside.
+        </p>
+        <span className="mt-3 inline-flex min-h-[44px] items-center rounded-lg bg-slate-900 px-5 text-xs font-semibold text-white">
+          Choose a file
+        </span>
+      </div>
+
       <div className="card-p mb-6 flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -749,67 +734,8 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
         document.body
       )}
 
-      {/* Import Modal */}
       {mounted && isImporting && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-2xl animate-fade-in relative z-[101] max-h-[95vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
-              <h3 className="text-sm font-bold text-slate-900">Import Scenarios (JSON)</h3>
-              <button onClick={() => { setIsImporting(false); setImportJson(''); }} className="text-slate-400 hover:text-slate-600">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-            <div className="p-5 space-y-4 overflow-y-auto">
-              <div>
-                <label className="form-label">Select Package</label>
-                <select
-                  value={importPackageId}
-                  onChange={e => setImportPackageId(e.target.value)}
-                  className="form-input text-slate-900"
-                >
-                  {packages.map(p => (
-                    <option key={p.id} value={p.id} className="text-slate-900">{p.code} - {p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">JSON Payload</label>
-                  <div>
-                    <input
-                      type="file"
-                      accept=".json"
-                      id="json-upload"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <label htmlFor="json-upload" className="cursor-pointer text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 flex items-center gap-1.5 transition-colors">
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                      </svg>
-                      Upload File
-                    </label>
-                  </div>
-                </div>
-                <textarea
-                  value={importJson}
-                  onChange={e => setImportJson(e.target.value)}
-                  placeholder="Paste your JSON array of scenarios here..."
-                  className="form-textarea min-h-[300px] font-mono text-[11px] text-slate-900"
-                />
-              </div>
-            </div>
-            <div className="p-5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50 rounded-b-2xl flex-shrink-0">
-              <button onClick={() => { setIsImporting(false); setImportJson(''); }} className="btn-ghost text-sm px-4 py-2 text-slate-600">Cancel</button>
-              <button onClick={saveImport} disabled={saving || !importJson} className="btn-primary text-sm px-5 py-2">
-                {saving ? 'Importing...' : 'Import Data'}
-              </button>
-            </div>
-          </div>
-        </div>,
+        <PackUploader onClose={() => setIsImporting(false)} />,
         document.body
       )}
     </>

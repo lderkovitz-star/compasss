@@ -3,17 +3,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import Image from 'next/image';
+import { SUPPORT_EMAIL, resolveSupportEmail } from '@/lib/constants/brand';
+import AiProviderPanel from './AiProviderPanel';
+import EmailQueuePanel from './EmailQueuePanel';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [adminRole, setAdminRole] = useState('');
   const [saving, setSaving] = useState(false);
 
   // General Settings
   const [platformName, setPlatformName] = useState('Compass');
-  const [supportEmail, setSupportEmail] = useState('support@compass.com');
-  const [biometricMode, setBiometricMode] = useState('disabled');
+  const [supportEmail, setSupportEmail] = useState(SUPPORT_EMAIL);
 
   // Media / Branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -24,10 +26,8 @@ export default function AdminSettingsPage() {
   const backdropRef = useRef<HTMLInputElement>(null);
 
   // AI Config
-  const [anthropicApiKey, setAnthropicApiKey] = useState('');
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
-  const [apiKeyLast4, setApiKeyLast4] = useState<string | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
+  const [aiProviderLabel, setAiProviderLabel] = useState('Not configured');
+  const [aiKeyConfigured, setAiKeyConfigured] = useState(false);
   const [aiPromptTemplate, setAiPromptTemplate] = useState('');
   const [savingAI, setSavingAI] = useState(false);
 
@@ -38,22 +38,30 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     Promise.all([
       fetch('/api/admin/settings', { cache: 'no-store' }).then(res => res.json()),
-      fetch('/api/admin/packages', { cache: 'no-store' }).then(res => res.json())
+      fetch('/api/admin/packages', { cache: 'no-store' }).then(res => res.json()),
+      fetch('/api/admin/profile', { cache: 'no-store' }).then(res => res.json()).catch(() => null),
+      fetch('/api/admin/ai/providers', { cache: 'no-store' }).then(res => res.json()).catch(() => null),
     ])
-      .then(([settingsData, packagesData]) => {
+      .then(([settingsData, packagesData, profileData, aiData]) => {
         if (settingsData && !settingsData.error) {
           setPlatformName(settingsData.platformName ?? 'Compass');
-          setSupportEmail(settingsData.supportEmail ?? 'support@compass.com');
-          setBiometricMode(settingsData.biometricMode ?? 'disabled');
+          setSupportEmail(resolveSupportEmail(settingsData.supportEmail));
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
-          // The key is write-only server-side; we only learn whether one is set.
-          setApiKeyConfigured(Boolean(settingsData.anthropicApiKeyConfigured));
-          setApiKeyLast4(settingsData.anthropicApiKeyLast4 ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
         }
         if (Array.isArray(packagesData)) {
           setPackages(packagesData);
+        }
+        if (profileData?.role) {
+          setAdminRole(profileData.role);
+        }
+        if (aiData?.providers) {
+          const live = aiData.providers.find(
+            (p: { key: string }) => p.key === aiData.activeProviderKey
+          );
+          setAiProviderLabel(live ? `${live.label} · ${live.model || 'no model set'}` : 'Not configured');
+          setAiKeyConfigured(Boolean(live?.keyConfigured));
         }
         setLoading(false);
       })
@@ -69,7 +77,6 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ 
           platformName, 
           supportEmail, 
-          biometricMode, 
           logoUrl, 
           defaultBackdropUrl: backdropUrl, 
           ...updates 
@@ -96,8 +103,7 @@ export default function AdminSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          platformName, supportEmail, biometricMode,
-          ...(anthropicApiKey.trim() ? { anthropicApiKey } : {}),
+          platformName, supportEmail,
           aiPromptTemplate,
         }),
       });
@@ -237,7 +243,7 @@ export default function AdminSettingsPage() {
                   type="email"
                   value={supportEmail}
                   onChange={e => setSupportEmail(e.target.value)}
-                  placeholder="support@compass.com"
+                  placeholder={SUPPORT_EMAIL}
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-slate-900 bg-white font-medium placeholder:text-slate-400 shadow-sm"
                 />
               </div>
@@ -480,41 +486,13 @@ export default function AdminSettingsPage() {
                 </svg>
                 <h2 className="text-sm font-bold text-slate-900">AI Backend Configuration</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-1 ml-6">Powers the background candidate tiering in the Coordinator View. Never runs during candidate sessions.</p>
+              <p className="text-xs text-slate-500 mt-1 ml-6">
+                Powers the background candidate tiering in the Coordinator View. Never runs during
+                candidate sessions, and never shown to the candidate.
+              </p>
             </div>
             <div className="p-5 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Anthropic API Key
-                  <span className="ml-2 text-xs text-slate-400 font-normal">(sk-ant-...)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={anthropicApiKey}
-                    onChange={e => setAnthropicApiKey(e.target.value)}
-                    placeholder={apiKeyConfigured ? `Key set (ends ${apiKeyLast4 ?? '****'}) - type to replace` : 'sk-ant-api03-...'}
-                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showApiKey ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-400 mt-1">Your key is stored securely in the database. It is never sent to the candidate&apos;s browser.</p>
-              </div>
+              <AiProviderPanel canEdit={adminRole === 'SUPER_ADMIN'} />
 
               <div>
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-2">
@@ -569,8 +547,8 @@ export default function AdminSettingsPage() {
                             } else {
                               setAiPromptTemplate(content);
                             }
-                          } catch (err) {
-                            alert("Failed to parse file.");
+                          } catch {
+                            alert("That file could not be read as a prompt template.");
                           }
                         };
                         reader.readAsText(file);
@@ -600,7 +578,7 @@ export default function AdminSettingsPage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500">
-                  Uses <strong className="text-violet-700">Claude 3 Haiku</strong> — fast, cost-effective batch model.
+                  The model and provider are set below. Nothing is sent to a provider until a key is saved.
                 </p>
                 <button
                   onClick={handleAISave}
@@ -628,12 +606,24 @@ export default function AdminSettingsPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-sm font-bold text-slate-900">Outbound Email</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                What would be sent, and why it is being held.
+              </p>
+            </div>
+            <div className="p-5">
+              <EmailQueuePanel />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
               <h2 className="text-sm font-bold text-slate-900">System Integrations</h2>
             </div>
             <div className="p-5 space-y-4">
               {[
-                { icon: '🗂️', label: 'Local File System', status: 'Active', detail: 'Resumes & Media assets', color: 'text-slate-500', bg: 'bg-slate-100' },
-                { icon: '🤖', label: 'Anthropic Claude', status: apiKeyConfigured ? 'Key Configured' : 'Key Not Set', detail: 'Background AI Tiering', color: apiKeyConfigured ? 'text-emerald-600' : 'text-amber-600', bg: apiKeyConfigured ? 'bg-emerald-50' : 'bg-amber-50' },
+                { icon: '🗂️', label: 'Vercel Blob', status: 'Active', detail: 'Resumes & media, uploaded direct from the browser', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { icon: '🤖', label: aiProviderLabel, status: aiKeyConfigured ? 'Key configured' : 'Key not set', detail: 'Background AI tiering', color: aiKeyConfigured ? 'text-emerald-600' : 'text-amber-600', bg: aiKeyConfigured ? 'bg-emerald-50' : 'bg-amber-50' },
                 { icon: '📄', label: 'react-pdf/renderer', status: 'Active', detail: 'Report Generation Engine', color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 { icon: '🗄️', label: 'PostgreSQL', status: 'Connected', detail: 'Prisma ORM Managed', color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map(item => (

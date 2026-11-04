@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import dynamic from "next/dynamic";
-import ExportButtons from "./ExportButtons";
+import ExportButtons from "@/components/ReportExportButtons";
+import ScoringVersionNotice from "@/components/ScoringVersionNotice";
 
 const ReportCharts = dynamic(() => import("./ReportCharts"), { 
   ssr: false,
@@ -19,10 +20,6 @@ interface DBFinalScore {
   dimension: DBDimension;
   finalScore: number;
   percentileRank: number | null;
-}
-
-interface DBBiometric {
-  bpm: number;
 }
 
 interface DBResponse {
@@ -52,7 +49,6 @@ async function getReport(sessionId: string) {
         include: { scenario: true, option: true },
         orderBy: { submittedAt: "asc" },
       },
-      biometrics: { orderBy: { recordedAt: "asc" } },
     },
   });
 }
@@ -67,12 +63,6 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
     category: fs.dimension.category,
     score: Math.round(fs.finalScore),
     percentile: Math.round(fs.percentileRank ?? 0),
-  }));
-
-  const biometricData = ((session.biometrics || []) as unknown as DBBiometric[]).map((b, i: number) => ({
-    t: i,
-    bpm: b.bpm,
-    time: `T+${Math.floor(i * 15 / 60)}m`,
   }));
 
   const overallScore = dimensionScores.length > 0
@@ -106,7 +96,6 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
               completedAt={session.completedAt ? session.completedAt.toISOString() : null}
               candidateNotes={session.user?.hobbiesSkills ?? null}
               dimensionScores={dimensionScores}
-              biometricData={biometricData}
               responses={((session.responses || []) as unknown as DBResponse[]).map(r => ({
                 id: r.id,
                 scenario: r.scenario ? { sequenceOrder: r.scenario.sequenceOrder, narrativeText: r.scenario.narrativeText } : null,
@@ -133,6 +122,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                   {session.status === "COMPLETED"
                     ? <span className="badge-green text-xs">Completed</span>
                     : <span className="badge-amber text-xs">In Progress</span>}
+                  <ScoringVersionNotice version={session.scoringVersion} />
                 </div>
               </div>
             </div>
@@ -188,7 +178,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
             </div>
 
             {/* Charts */}
-            <ReportCharts dimensionScores={dimensionScores} biometricData={biometricData} />
+            <ReportCharts dimensionScores={dimensionScores} />
           </>
         ) : (
           <div className="card-p text-center py-16 text-slate-400 mb-6">

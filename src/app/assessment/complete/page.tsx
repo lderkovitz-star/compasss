@@ -99,7 +99,7 @@ export default function AssessmentCompletePage({ searchParams }: Props) {
                 bg: 'bg-blue-500/10 border-blue-500/20',
                 iconBg: 'bg-blue-500/15',
                 title: 'Executive Report Generated',
-                desc: 'An 11-dimension psychological profile has been created for your evaluator.',
+                desc: 'A decision profile has been created for your evaluator.',
               },
               {
                 icon: (

@@ -6,7 +6,6 @@ async function main() {
   console.log('Seeding Cognitive Assessment Database...');
 
   // Clean existing data
-  await prisma.biometricReading.deleteMany({});
   await prisma.finalScore.deleteMany({});
   await prisma.scoreSnapshot.deleteMany({});
   await prisma.response.deleteMany({});
@@ -45,7 +44,7 @@ async function main() {
     data: {
       name: 'Cabin in the Woods: Survival Protocol',
       code: 'CABIN_SURVIVAL_V1',
-      description: 'High-stress wilderness survival simulation designed to assess split-second executive crisis leadership, risk tolerance, and biometric emotional stability under extreme environmental pressure.',
+      description: 'High-stress wilderness survival simulation designed to assess split-second executive crisis leadership, risk tolerance, and composure under extreme environmental pressure.',
       version: '1.2.0',
       isActive: true,
     },
@@ -156,9 +155,26 @@ async function main() {
   console.log(`Created ${scenariosList.length} scenarios for primary package.`);
 
   // 4. Create Sample Demo User & Assessment Session (Module C & A Demo Data)
+  //
+  // Every candidate belongs to a tenant, so the demo data needs one. This is
+  // the same account the legacy backfill creates, so seeding a fresh database
+  // and migrating an existing one land in the same place.
+  const demoAccount = await prisma.clientAccount.upsert({
+    where: { slug: 'continental-works' },
+    update: {},
+    create: {
+      name: 'Continental Works',
+      slug: 'continental-works',
+      contactEmail: 'support@continentalworks.com',
+      status: 'ACTIVE',
+    },
+    select: { id: true },
+  });
+
   const demoUser = await prisma.user.create({
     data: {
       name: 'Alex Mercer',
+      clientAccountId: demoAccount.id,
       email: 'alex.mercer@apex-executive.com',
       targetRole: 'Chief Risk Officer & Crisis Commander',
       hobbiesSkills: 'System Dynamics, Chess Grandmaster, Alpine Wilderness Rescue',
@@ -170,7 +186,9 @@ async function main() {
   const demoSession = await prisma.assessmentSession.create({
     data: {
       userId: demoUser.id,
+      clientAccountId: demoAccount.id,
       packageId: activePkg.id,
+      kind: 'OFFICIAL',
       status: 'COMPLETED',
       startedAt: new Date(Date.now() - 3600000),
       completedAt: new Date(Date.now() - 600000),
@@ -204,20 +222,6 @@ async function main() {
         },
       });
     }
-  }
-
-  // Add Biometric Telemetry Readings (Module D Sample Data)
-  const startTime = Date.now() - 3600000;
-  const bpmPattern = [72, 74, 73, 76, 98, 112, 108, 85, 79, 82, 124, 118, 92, 78, 80];
-  for (let i = 0; i < bpmPattern.length; i++) {
-    await prisma.biometricReading.create({
-      data: {
-        sessionId: demoSession.id,
-        bpm: bpmPattern[i],
-        recordedAt: BigInt(startTime + i * 120000),
-        deviceId: 'BLE-HRM-9482',
-      },
-    });
   }
 
   console.log(`Created sample candidate demo session (${demoSession.id}) for Alex Mercer.`);

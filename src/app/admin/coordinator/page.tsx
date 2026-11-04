@@ -6,7 +6,10 @@ export const revalidate = 0;
 
 async function getCoordinatorData() {
   const sessions = await prisma.assessmentSession.findMany({
-    where: { status: 'COMPLETED' },
+    // Practice runs have no candidate record and belong to no employer, so
+    // they do not belong in a ledger of people being considered for a role.
+    // They are reviewed in the sandbox talent registry instead.
+    where: { status: 'COMPLETED', kind: 'OFFICIAL' },
     orderBy: { completedAt: 'desc' },
     include: {
       user: {
@@ -38,7 +41,13 @@ async function getCoordinatorData() {
 export default async function CoordinatorPage() {
   const sessions = await getCoordinatorData();
 
-  const sessionData = sessions.map(s => {
+  // The `kind: OFFICIAL` filter above means every row here has a candidate,
+  // but the relation is optional in the schema, so this narrows it rather than
+  // asserting it - a practice run that somehow reached this list is dropped
+  // instead of rendering as a blank candidate.
+  const sessionData = sessions
+    .filter((s): s is typeof s & { user: NonNullable<typeof s.user> } => s.user !== null)
+    .map(s => {
     const traitScores = (s.traitScores as any) ?? null;
     const humanOverrides = (s.humanOverrides as any) ?? {};
     const aiEvaluation = (s.aiEvaluation as any) ?? null;
