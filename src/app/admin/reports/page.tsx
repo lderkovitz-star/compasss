@@ -66,16 +66,18 @@ export default async function ReportsListPage({
           </div>
           {/* Desktop Table View (screens >= lg) */}
           <div className="hidden lg:block w-full">
-            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+            {/* Auto layout: Package, Status and dates size to their content so they never
+                clip; Candidate takes the leftover width and truncates the long email. */}
+            <table className="w-full [&_th]:px-3 [&_td]:px-3">
               <thead className="bg-slate-50/80">
                 <tr>
-                  <th className="th" style={{ width: '26%' }}>Candidate</th>
-                  <th className="th text-center hidden xl:table-cell" style={{ width: '12%' }}>Target Role</th>
-                  <th className="th text-center" style={{ width: '12%' }}>Package</th>
-                  <th className="th text-center" style={{ width: '12%' }}>Status</th>
-                  <th className="th text-center" style={{ width: '14%' }}>Started</th>
-                  <th className="th text-center hidden xl:table-cell" style={{ width: '14%' }}>Completed</th>
-                  <th className="th text-center" style={{ width: '10%' }}>Report</th>
+                  <th className="th w-full">Candidate</th>
+                  <th className="th text-center whitespace-nowrap hidden xl:table-cell">Target Role</th>
+                  <th className="th text-center whitespace-nowrap">Package</th>
+                  <th className="th text-center whitespace-nowrap">Status</th>
+                  <th className="th text-center whitespace-nowrap">Started</th>
+                  <th className="th text-center whitespace-nowrap hidden xl:table-cell">Completed</th>
+                  <th className="th text-center whitespace-nowrap">Report</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,47 +99,45 @@ export default async function ReportsListPage({
                 ) : (
                   filteredSessions.map((s) => (
                     <tr key={s.id} className="tr">
-                      <td className="td" data-label="Candidate">
+                      <td className="td max-w-0" data-label="Candidate">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white">
                             {s.user?.name?.charAt(0) ?? "?"}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold text-slate-900 leading-none truncate">{s.user?.name ?? "—"}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5 truncate">{s.user?.email ?? "—"}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5 truncate" title={s.user?.email ?? ""}>{s.user?.email ?? "—"}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="td text-center hidden xl:table-cell truncate" data-label="Role">
-                        <span className="text-xs text-slate-600 inline-block truncate max-w-full">{s.user?.targetRole ?? "—"}</span>
+                      <td className="td text-center hidden xl:table-cell" data-label="Role">
+                        <div className="mx-auto min-w-[7rem] max-w-[11rem] text-xs text-slate-600 break-words line-clamp-2" title={s.user?.targetRole ?? ""}>{s.user?.targetRole ?? "—"}</div>
                       </td>
-                      <td className="td text-center truncate" data-label="Package">
-                        <span className="badge-slate text-[10px] max-w-full truncate" title={s.package?.code ?? ""}>{s.package?.code ?? "—"}</span>
+                      <td className="td text-center whitespace-nowrap" data-label="Package">
+                        <span className="badge-slate text-[10px]" title={s.package?.code ?? ""}>{s.package?.code ?? "—"}</span>
                       </td>
-                      <td className="td text-center truncate" data-label="Status">
-                        <div className="inline-flex max-w-full"><StatusBadge status={s.status} /></div>
+                      <td className="td text-center whitespace-nowrap" data-label="Status">
+                        <StatusBadge status={s.status} />
                       </td>
-                      <td className="td text-xs text-slate-400 text-center truncate" suppressHydrationWarning data-label="Started">
+                      <td className="td text-xs text-slate-400 text-center whitespace-nowrap" suppressHydrationWarning data-label="Started">
                         {s.startedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </td>
-                      <td className="td text-xs text-slate-400 text-center hidden xl:table-cell truncate" suppressHydrationWarning data-label="Completed">
+                      <td className="td text-xs text-slate-400 text-center whitespace-nowrap hidden xl:table-cell" suppressHydrationWarning data-label="Completed">
                         {s.completedAt
                           ? s.completedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
                           : "—"}
                       </td>
-                      <td className="td text-center truncate" data-label="Report">
-                        <div className="flex justify-center items-center">
-                          {s.status === "COMPLETED" ? (
-                            <Link
-                              href={`/admin/reports/${s.id}`}
-                              className="btn-secondary text-[10px] px-2.5 py-1 hover:-translate-y-[1px] transition-transform inline-block"
-                            >
-                              Report
-                            </Link>
-                          ) : (
-                            <span className="text-xs text-slate-300 truncate max-w-full block">Not ready</span>
-                          )}
-                        </div>
+                      <td className="td text-center whitespace-nowrap" data-label="Report">
+                        {s.status === "COMPLETED" ? (
+                          <Link
+                            href={`/admin/reports/${s.id}`}
+                            className="btn-secondary text-[10px] px-2.5 py-1 hover:-translate-y-[1px] transition-transform inline-block"
+                          >
+                            Report
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-slate-300">Not ready</span>
+                        )}
                       </td>
                     </tr>
                   ))
