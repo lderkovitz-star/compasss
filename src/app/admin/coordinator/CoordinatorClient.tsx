@@ -214,7 +214,7 @@ function OverrideModal({
   return createPortal(modalContent, document.body);
 }
 
-export default function CoordinatorClient({ sessions }: { sessions: SessionData[] }) {
+export default function CoordinatorClient({ sessions, canRunAI }: { sessions: SessionData[]; canRunAI: boolean }) {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [overrideTarget, setOverrideTarget] = useState<SessionData | null>(null);
   const [sessionOverrides, setSessionOverrides] = useState<Record<string, Record<string, HumanOverride>>>({});
@@ -389,23 +389,25 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
             </span>
           )}
         </div>
-        <button
-          onClick={handleBatchAI}
-          disabled={batchRunning || pendingAI === 0}
-          className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition disabled:opacity-50"
-        >
-          {batchRunning ? (
-            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-          ) : (
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-            </svg>
-          )}
-          {batchRunning ? 'Running AI Tiering…' : `Run Batch AI Tiering (${pendingAI})`}
-        </button>
+        {canRunAI && (
+          <button
+            onClick={handleBatchAI}
+            disabled={batchRunning || pendingAI === 0}
+            className="w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition disabled:opacity-50"
+          >
+            {batchRunning ? (
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            )}
+            {batchRunning ? 'Running AI Tiering…' : `Run Batch AI Tiering (${pendingAI})`}
+          </button>
+        )}
       </div>
 
       {/* Candidate Table */}
@@ -481,7 +483,7 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${tierConfig?.bg} ${tierConfig?.color}`}>
                             {tierConfig?.label}
                           </span>
-                        ) : (
+                        ) : canRunAI ? (
                           <button
                             onClick={() => handleRunAI(s.sessionId)}
                             disabled={runningAI === s.sessionId}
@@ -489,6 +491,8 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
                           >
                             {runningAI === s.sessionId ? 'Running…' : 'Run AI'}
                           </button>
+                        ) : (
+                          <span className="text-xs text-slate-400">Not evaluated</span>
                         )}
                       </td>
                       <td className="td text-center">
@@ -563,7 +567,7 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${tierConfig?.bg} ${tierConfig?.color}`}>
                           {tierConfig?.label}
                         </span>
-                      ) : (
+                      ) : canRunAI ? (
                         <button
                           onClick={() => handleRunAI(s.sessionId)}
                           disabled={runningAI === s.sessionId}
@@ -571,6 +575,8 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
                         >
                           {runningAI === s.sessionId ? 'Running…' : 'Run AI'}
                         </button>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Not evaluated</span>
                       )}
                     </div>
                     

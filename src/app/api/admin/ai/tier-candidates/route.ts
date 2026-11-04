@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentAdmin } from '@/lib/auth';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 import { tierSingleCandidate, batchTierCandidates } from '@/lib/ai-sorter';
 
 // An evaluation reads the resume and waits on the model: 8-17s measured, past
@@ -7,10 +7,10 @@ import { tierSingleCandidate, batchTierCandidates } from '@/lib/ai-sorter';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-  const admin = await getCurrentAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Each run spends the configured Anthropic key, so it is a write action: the
+  // read-only ASSESSOR role may view results but not trigger them.
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
 
   try {
     const body = await req.json();

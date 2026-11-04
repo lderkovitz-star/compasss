@@ -7,10 +7,12 @@ import { TIER_VIEW, inputLabels, type StoredEvaluation } from '@/lib/ai-evaluati
 export default function AiEvaluationPanel({
   sessionId,
   evaluation,
+  completed,
   canRun,
 }: {
   sessionId: string;
   evaluation: StoredEvaluation | null;
+  completed: boolean;
   canRun: boolean;
 }) {
   const router = useRouter();
@@ -82,8 +84,11 @@ export default function AiEvaluationPanel({
         </p>
       )}
 
-      {!evaluation && !canRun && (
+      {!evaluation && !completed && (
         <p className="mt-3 text-sm text-slate-400">The candidate has not completed the assessment yet.</p>
+      )}
+      {!evaluation && completed && !canRun && (
+        <p className="mt-3 text-sm text-slate-400">No AI evaluation has been run for this candidate yet.</p>
       )}
     </div>
   );

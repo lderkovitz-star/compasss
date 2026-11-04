@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getCurrentAdmin, WRITE_ROLES } from "@/lib/auth";
 import dynamic from "next/dynamic";
 import ExportButtons from "./ExportButtons";
 import AiEvaluationPanel from "./AiEvaluationPanel";
@@ -62,6 +63,10 @@ async function getReport(sessionId: string) {
 export default async function ReportPage({ params }: { params: { sessionId: string } }) {
   const session = await getReport(params.sessionId);
   if (!session) notFound();
+
+  // Running an evaluation spends the Anthropic key, so it is limited to the write roles.
+  const admin = await getCurrentAdmin();
+  const canWrite = !!admin && (WRITE_ROLES as readonly string[]).includes(admin.role);
 
   const dimensionScores = ((session.finalScores || []) as unknown as DBFinalScore[]).map((fs) => ({
     name: fs.dimension.name,
@@ -164,7 +169,8 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
         <AiEvaluationPanel
           sessionId={params.sessionId}
           evaluation={readEvaluation(session.aiEvaluation)}
-          canRun={session.status === "COMPLETED"}
+          completed={session.status === "COMPLETED"}
+          canRun={session.status === "COMPLETED" && canWrite}
         />
 
         {/* Dimension Score Grid */}

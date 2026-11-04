@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { getCurrentAdmin, WRITE_ROLES } from '@/lib/auth';
 import CoordinatorClient from './CoordinatorClient';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,9 @@ async function getCoordinatorData() {
 
 export default async function CoordinatorPage() {
   const sessions = await getCoordinatorData();
+  // Running AI evaluations spends the Anthropic key, so it is limited to the write roles.
+  const admin = await getCurrentAdmin();
+  const canRunAI = !!admin && (WRITE_ROLES as readonly string[]).includes(admin.role);
 
   const sessionData = sessions.map(s => {
     const traitScores = (s.traitScores as any) ?? null;
@@ -81,7 +85,7 @@ export default async function CoordinatorPage() {
           Per-candidate scoring, latency, decision paths, and AI tiering. Human overrides available on all trait scores.
         </p>
       </div>
-      <CoordinatorClient sessions={sessionData} />
+      <CoordinatorClient sessions={sessionData} canRunAI={canRunAI} />
     </main>
   );
 }
