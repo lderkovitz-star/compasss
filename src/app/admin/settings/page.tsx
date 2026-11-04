@@ -44,6 +44,8 @@ export default function AdminSettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiPromptTemplate, setAiPromptTemplate] = useState('');
   const [savingAI, setSavingAI] = useState(false);
+  const [testingAI, setTestingAI] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Packages State
   const [packages, setPackages] = useState<any[]>([]);
@@ -118,12 +120,31 @@ export default function AdminSettingsPage() {
       setApiKeyLast4(saved.anthropicApiKeyLast4 ?? null);
       setAiPromptTemplate(saved.aiPromptTemplate ?? '');
       setAnthropicApiKey('');
+      setAiTestResult(null);
       toast.success('AI configuration saved');
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save AI config');
     } finally {
       setSavingAI(false);
+    }
+  };
+
+  const handleAITest = async () => {
+    setTestingAI(true);
+    setAiTestResult(null);
+    try {
+      const res = await fetch('/api/admin/ai/test', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      setAiTestResult(
+        res.ok
+          ? { ok: Boolean(data.ok), message: data.message ?? 'No response from the test.' }
+          : { ok: false, message: data.error ?? 'Test failed' }
+      );
+    } catch {
+      setAiTestResult({ ok: false, message: 'Could not reach the server.' });
+    } finally {
+      setTestingAI(false);
     }
   };
 
@@ -619,6 +640,22 @@ export default function AdminSettingsPage() {
                 <p className="text-xs text-slate-500">
                   Uses <strong className="text-violet-700">{ANTHROPIC_MODEL}</strong>.
                 </p>
+                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+                <button
+                  type="button"
+                  onClick={handleAITest}
+                  disabled={testingAI || savingAI || !apiKeyConfigured || keyEdited}
+                  title={
+                    keyEdited
+                      ? 'Save the new key first - the test uses the saved key'
+                      : !apiKeyConfigured
+                        ? 'Save an API key first'
+                        : undefined
+                  }
+                  className="w-full sm:w-auto justify-center px-4 py-2 border border-violet-200 text-violet-700 bg-violet-50 text-sm font-medium rounded-lg hover:bg-violet-100 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {testingAI ? 'Testing…' : 'Test connection'}
+                </button>
                 <button
                   onClick={handleAISave}
                   disabled={savingAI}
@@ -636,7 +673,17 @@ export default function AdminSettingsPage() {
                   )}
                   {savingAI ? 'Saving…' : 'Save AI Config'}
                 </button>
+                </div>
               </div>
+              {aiTestResult && (
+                <p
+                  role="status"
+                  className={`text-xs font-medium ${aiTestResult.ok ? 'text-emerald-600' : 'text-red-600'}`}
+                >
+                  {aiTestResult.ok ? '✓ ' : '✕ '}
+                  {aiTestResult.message}
+                </p>
+              )}
             </div>
           </section>
         </div>

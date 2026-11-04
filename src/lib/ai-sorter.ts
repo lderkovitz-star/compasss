@@ -89,19 +89,49 @@ Respond ONLY in this exact JSON format with no additional text:
   return prompt;
 }
 
-async function callAnthropicAPI(apiKey: string, prompt: string): Promise<AIEvaluation> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+function postToAnthropic(apiKey: string, body: Record<string, unknown>, signal?: AbortSignal) {
+  return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: 512,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    body: JSON.stringify({ model: ANTHROPIC_MODEL, ...body }),
+    signal,
+  });
+}
+
+/**
+ * Sends the smallest possible request with the key that is saved in the
+ * database - not whatever is typed in the form - so a pass means the same key
+ * the evaluation pipeline will use works. The model is the one the pipeline
+ * calls, so a retired model shows up here as well as in production.
+ */
+export async function testAnthropicConnection(): Promise<{ ok: boolean; message: string }> {
+  const { apiKey } = await getSettings();
+  if (!apiKey) return { ok: false, message: 'No API key is saved yet. Save one first.' };
+
+  try {
+    const response = await postToAnthropic(
+      apiKey,
+      { max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] },
+      AbortSignal.timeout(15000)
+    );
+    if (response.ok) return { ok: true, message: `Connected. ${ANTHROPIC_MODEL} responded.` };
+
+    const body = await response.json().catch(() => null);
+    const detail = body?.error?.message ?? response.statusText;
+    return { ok: false, message: `Anthropic returned ${response.status}: ${detail}` };
+  } catch {
+    return { ok: false, message: 'Could not reach api.anthropic.com.' };
+  }
+}
+
+async function callAnthropicAPI(apiKey: string, prompt: string): Promise<AIEvaluation> {
+  const response = await postToAnthropic(apiKey, {
+    max_tokens: 512,
+    messages: [{ role: 'user', content: prompt }],
   });
 
   if (!response.ok) {
