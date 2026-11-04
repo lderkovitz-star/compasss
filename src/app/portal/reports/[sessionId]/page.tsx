@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../../PortalShell';
+import { TIER_VIEW, inputLabels, readEvaluation } from '@/lib/ai-evaluation-view';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -30,6 +31,7 @@ export default async function PortalReportPage({
       startedAt: true,
       completedAt: true,
       traitScores: true,
+      aiEvaluation: true,
       user: { select: { name: true, email: true, targetRole: true } },
       package: { select: { name: true, code: true } },
       jobContext: { select: { title: true } },
@@ -48,6 +50,8 @@ export default async function PortalReportPage({
 
   if (!report) notFound();
 
+  const evaluation = readEvaluation(report.aiEvaluation);
+  const evaluationBasis = inputLabels(evaluation?.inputs);
   const scored = report.finalScores.filter((s) => s.exercised);
   const overall = scored.length
     ? Math.round(scored.reduce((sum, s) => sum + s.finalScore, 0) / scored.length)
@@ -104,6 +108,33 @@ export default async function PortalReportPage({
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 bg-white border border-slate-200 rounded-xl p-5 sm:p-6">
+        <h2 className="font-semibold text-slate-900">AI evaluation</h2>
+        {evaluation ? (
+          <>
+            <div className={`mt-3 p-4 rounded-lg border text-sm leading-relaxed ${TIER_VIEW[evaluation.tier].classes}`}>
+              <p className="font-bold mb-1">{TIER_VIEW[evaluation.tier].label}</p>
+              <p className="whitespace-pre-wrap">{evaluation.rationale}</p>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              {evaluationBasis.length > 0 && (
+                <>
+                  <span className="font-semibold uppercase tracking-wide text-slate-400">Based on</span>{' '}
+                  {evaluationBasis.join(' · ')} ·{' '}
+                </>
+              )}
+              Evaluated {new Date(evaluation.evaluatedAt).toLocaleDateString()}
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-slate-500">
+            {report.status === 'COMPLETED'
+              ? 'The AI evaluation for this candidate has not been run yet.'
+              : 'Available once the candidate completes the assessment.'}
+          </p>
+        )}
       </div>
 
       <div className="mt-6 bg-white border border-slate-200 rounded-xl overflow-hidden">

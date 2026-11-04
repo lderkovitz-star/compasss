@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import dynamic from "next/dynamic";
 import ExportButtons from "./ExportButtons";
+import AiEvaluationPanel from "./AiEvaluationPanel";
+import { readEvaluation } from "@/lib/ai-evaluation-view";
 
 const ReportCharts = dynamic(() => import("./ReportCharts"), { 
   ssr: false,
@@ -158,6 +160,12 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
             </div>
           )}
         </div>
+
+        <AiEvaluationPanel
+          sessionId={params.sessionId}
+          evaluation={readEvaluation(session.aiEvaluation)}
+          canRun={session.status === "COMPLETED"}
+        />
 
         {/* Dimension Score Grid */}
         {dimensionScores.length > 0 ? (
