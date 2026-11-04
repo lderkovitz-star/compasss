@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
+import { extractTargetRole } from '@/lib/target-role';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
         resumeFile = rawResume as File;
       }
     }
+
+    // No separate field any more: take the title from the context's first
+    // "Target Role:" line so the reports have a role to show.
+    if (!targetRole) targetRole = extractTargetRole(hobbiesSkills);
 
     // Validate required fields (target role is no longer collected)
     if (!name || !email) {
