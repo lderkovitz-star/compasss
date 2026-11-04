@@ -97,8 +97,12 @@ async function callAnthropicAPI(apiKey: string, prompt: string): Promise<AIEvalu
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-3-haiku-20240307', // Fast, cost-effective for batch processing
-      max_tokens: 512,
+      // claude-3-haiku-20240307 was retired on 2026-04-20; requests to it fail.
+      model: 'claude-haiku-5-5', // Fast, cost-effective for batch processing
+      max_tokens: 1024,
+      // Haiku 5.5 thinks by default. A one-paragraph tiering call does not need
+      // it, and turning it off keeps the reply to a single text block.
+      thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -109,7 +113,12 @@ async function callAnthropicAPI(apiKey: string, prompt: string): Promise<AIEvalu
   }
 
   const data = await response.json();
-  const text = data.content?.[0]?.text ?? '';
+  // Take the text block by type rather than position: content can hold other
+  // block types (e.g. thinking) ahead of it.
+  const text =
+    (data.content as Array<{ type: string; text?: string }> | undefined)?.find(
+      (block) => block.type === 'text'
+    )?.text ?? '';
 
   // Parse JSON response from Claude
   const jsonMatch = text.match(/\{[\s\S]*\}/);
