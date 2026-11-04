@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { resolveDefaultTenantId } from '@/lib/tenant';
+import { getConsentPolicy, recordConsent } from '@/lib/consent';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
     hobbiesSkills = typeof body.hobbiesSkills === 'string' ? body.hobbiesSkills : null;
     const resumeDocumentId =
       typeof body.resumeDocumentId === 'string' ? body.resumeDocumentId : null;
+    const consentAccepted = body.consentAccepted === true;
 
     // Validate required fields (target role is no longer collected)
     if (!name || !email) {
@@ -35,6 +37,18 @@ export async function POST(req: NextRequest) {
     // Email format check
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
+    }
+
+    // Consent is checked before anything is written. A candidate who declines
+    // leaves no candidate row, no sitting and no uploaded document attached to
+    // them - refusing after the fact would mean having to undo records we
+    // should never have created.
+    const policy = await getConsentPolicy();
+    if (policy.required && !consentAccepted) {
+      return NextResponse.json(
+        { error: 'Please confirm the consent statement to continue.' },
+        { status: 400 }
+      );
     }
 
     // Attach the document the candidate uploaded, if any. Its text was
@@ -118,6 +132,18 @@ export async function POST(req: NextRequest) {
       },
       select: { id: true },
     });
+
+    // The wording is stored with the record, so a later edit to the statement
+    // cannot change what this candidate agreed to.
+    if (consentAccepted) {
+      await recordConsent({
+        sessionId: session.id,
+        userId: user.id,
+        clientAccountId,
+        policy,
+        headers: req.headers,
+      });
+    }
 
     // Tie the uploaded document to this sitting so the evaluation can find it.
     if (resumeDocumentId && resumeFileUrl) {

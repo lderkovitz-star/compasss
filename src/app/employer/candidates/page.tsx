@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../PortalShell';
 import InviteGenerator from './InviteGenerator';
+import { getSeatUsage } from '@/lib/seats';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -150,7 +151,7 @@ export default async function PortalCandidatesPage({
   // Everything the generator offers is scoped to this account: its own saved
   // roles, and the package resolved by the Module B order - this account's
   // override first, then the global client default.
-  const [account, settings, savedContexts, packages] = await Promise.all([
+  const [account, settings, savedContexts, packages, seats] = await Promise.all([
     prisma.clientAccount.findUnique({
       where: { id: session.clientAccountId },
       select: { assignedPackageId: true },
@@ -167,6 +168,7 @@ export default async function PortalCandidatesPage({
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
+    getSeatUsage(session.clientAccountId),
   ]);
 
   const defaultPackageId =
@@ -187,6 +189,7 @@ export default async function PortalCandidatesPage({
           packages={packages}
           savedContexts={savedContexts}
           defaultPackageId={defaultPackageId}
+          seats={seats}
         />
       </div>
 

@@ -32,6 +32,12 @@ export default function AdminSettingsPage() {
   const [savingAI, setSavingAI] = useState(false);
 
   // Packages State
+  const [consentRequired, setConsentRequired] = useState(true);
+  const [consentPolicyVersion, setConsentPolicyVersion] = useState('1.0');
+  const [consentStatement, setConsentStatement] = useState('');
+  const [consentDefault, setConsentDefault] = useState('');
+  const [savingConsent, setSavingConsent] = useState(false);
+
   const [packages, setPackages] = useState<any[]>([]);
   const [uploadingPackageId, setUploadingPackageId] = useState<string | null>(null);
 
@@ -49,6 +55,13 @@ export default function AdminSettingsPage() {
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
+          setConsentRequired(settingsData.consentRequired ?? true);
+          setConsentPolicyVersion(settingsData.consentPolicyVersion ?? '1.0');
+          // Blank means "use the built-in wording". The box stays empty and
+          // the default is shown beneath it, so an admin can see what
+          // candidates get without that text being silently saved as custom.
+          setConsentStatement(settingsData.consentStatement ?? '');
+          setConsentDefault(settingsData.defaultConsentStatement ?? '');
         }
         if (Array.isArray(packagesData)) {
           setPackages(packagesData);
@@ -94,6 +107,19 @@ export default function AdminSettingsPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     triggerSave();
+  };
+
+  const handleConsentSave = async () => {
+    setSavingConsent(true);
+    try {
+      await triggerSave({
+        consentRequired,
+        consentPolicyVersion: consentPolicyVersion.trim() || '1.0',
+        consentStatement: consentStatement.trim() || null,
+      });
+    } finally {
+      setSavingConsent(false);
+    }
   };
 
   const handleAISave = async () => {
@@ -477,6 +503,100 @@ export default function AdminSettingsPage() {
 
 
 
+          {/* ── Candidate Consent ────────────────────────────────── */}
+          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-.34-.014-.675-.041-1.007z"/>
+                </svg>
+                <h2 className="text-sm font-bold text-slate-900">Candidate Consent</h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 ml-6">
+                Shown at intake and on invitation links, and recorded against the sitting with the
+                exact wording the candidate agreed to. Editing the statement changes what the next
+                candidate sees and leaves every record already taken untouched.
+              </p>
+            </div>
+            <div className="p-5 space-y-5">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <span className="flex h-[44px] w-[24px] flex-shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={consentRequired}
+                    onChange={(e) => setConsentRequired(e.target.checked)}
+                    className="h-[18px] w-[18px] rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-700">
+                    Require consent before an assessment can start
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    On by default. With this off, candidates are not asked and no consent record is
+                    written — only switch it off if your counsel has told you to.
+                  </span>
+                </span>
+              </label>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Statement version
+                  <span className="ml-2 text-xs text-slate-400 font-normal">
+                    Bump this whenever the wording changes
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={consentPolicyVersion}
+                  maxLength={32}
+                  onChange={(e) => setConsentPolicyVersion(e.target.value)}
+                  placeholder="1.0"
+                  className="w-full sm:w-48 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm text-slate-900 bg-white shadow-sm min-h-[44px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Consent statement
+                  <span className="ml-2 text-xs text-slate-400 font-normal">
+                    (Optional — leave blank to use the default below)
+                  </span>
+                </label>
+                <textarea
+                  value={consentStatement}
+                  onChange={(e) => setConsentStatement(e.target.value)}
+                  rows={6}
+                  placeholder="Paste the wording your counsel approved…"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm resize-y text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
+                />
+                {consentDefault && (
+                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-600 mb-1">
+                      {consentStatement.trim() ? 'Built-in default (not in use)' : 'Currently shown to candidates'}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed">{consentDefault}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
+                <p className="text-xs text-slate-500">
+                  Consent records are listed on each candidate report and are removed with the
+                  sitting if a deletion request is actioned.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleConsentSave}
+                  disabled={savingConsent || saving}
+                  className="w-full sm:w-auto justify-center px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition disabled:opacity-50 inline-flex items-center min-h-[44px] whitespace-nowrap"
+                >
+                  {savingConsent ? 'Saving…' : 'Save consent settings'}
+                </button>
+              </div>
+            </div>
+          </section>
+
           {/* ── AI Backend Configuration ─────────────────────────── */}
           <section className="bg-white rounded-xl border border-violet-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-violet-100 bg-violet-50/50">
@@ -505,7 +625,7 @@ export default function AdminSettingsPage() {
                       type="button"
                       onClick={() => {
                         const data = {
-                          prompt: `Evaluate the candidate's performance.\nCandidate: {{candidate_name}}\nRole: {{target_role}}\n\nMetrics:\n- Decisiveness: {{decisiveness}}/100\n- Risk Tolerance: {{risk_tolerance}}/100\n- Resource Preservation: {{resource_preservation}}/100\n- Avg Time: {{avg_time_ms}}ms\n\nBased on these metrics, provide a performance tier (e.g., HIGH, MEDIUM, LOW) and a brief rationale.`
+                          prompt: `Evaluate the candidate's performance.\nCandidate: {{candidate_name}}\nRole: {{role_title}}\nSimulation: {{package_name}}\n\nThe employer described the role as follows.\n{{job_context}}\n\nThe candidate attached this resume.\n{{resume}}\n\nDimension scores, normalised against what this simulation could measure:\n{{dimension_scores}}\n\nDecision log:\n{{decision_log}}\n\nTiming: {{avg_decision_ms}}ms average per decision, {{total_revisits}} option revisit(s).\n\nRespond with JSON only: { "tier": "TOP_TIER" | "MID_TIER" | "LOWER_TIER", "rationale": "..." }`
                         };
                         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);
@@ -571,7 +691,7 @@ export default function AdminSettingsPage() {
                   value={aiPromptTemplate}
                   onChange={e => setAiPromptTemplate(e.target.value)}
                   rows={9}
-                  placeholder={`Available variables:\n{{candidate_name}}, {{target_role}}, {{intake_context}}, {{package_name}}\n{{decisiveness}}, {{risk_tolerance}}, {{resource_preservation}}\n{{avg_time_ms}}, {{total_switches}}, {{completed_at}}`}
+                  placeholder={`Available variables:\n{{candidate_name}}, {{role_title}}, {{package_name}}, {{completed_at}}\n{{job_context}}, {{resume}}, {{candidate_notes}}\n{{dimension_scores}}, {{decision_log}}\n{{avg_decision_ms}}, {{total_revisits}}\n\nDimension names come from the active scenario pack, so nothing here is tied\nto a particular taxonomy. An unrecognised {{token}} is left as written.`}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono resize-y text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
                 />
               </div>

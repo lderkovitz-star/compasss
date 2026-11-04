@@ -10,10 +10,13 @@ export default function InviteGenerator({
   packages,
   savedContexts,
   defaultPackageId,
+  seats,
 }: {
   packages: Pkg[];
   savedContexts: SavedContext[];
   defaultPackageId: string | null;
+  /** Null when this account has no seat limit. */
+  seats: { used: number; limit: number | null; remaining: number | null } | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -87,17 +90,32 @@ export default function InviteGenerator({
     }
   }
 
+  // A limit the employer cannot see is a limit they discover by being refused,
+  // so it is stated next to the button that spends it.
+  const atLimit = seats?.limit != null && seats.remaining === 0;
+
   return (
     <>
-      <button
-        onClick={() => {
-          setOpen(true);
-          setGenerated(null);
-        }}
-        className="bg-blue-600 text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-      >
-        Generate Candidate Assessment Link
-      </button>
+      <div className="flex flex-col items-stretch sm:items-end gap-1">
+        <button
+          onClick={() => {
+            setOpen(true);
+            setGenerated(null);
+          }}
+          disabled={atLimit}
+          title={atLimit ? 'No candidate seats remain on this account.' : undefined}
+          className="bg-blue-600 text-white text-[13px] font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600 min-h-[44px]"
+        >
+          Generate Candidate Assessment Link
+        </button>
+        {seats?.limit != null && (
+          <p className={`text-[11.5px] ${atLimit ? 'text-amber-700 font-medium' : 'text-slate-500'}`}>
+            {atLimit
+              ? `All ${seats.limit} candidate seats are in use — withdraw an unused invitation to free one.`
+              : `${seats.remaining} of ${seats.limit} candidate seats remaining`}
+          </p>
+        )}
+      </div>
 
       {/* The link is shown once; make that unmissable. */}
       {generated && (

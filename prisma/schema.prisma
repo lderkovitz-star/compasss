@@ -156,6 +156,7 @@ model AssessmentSession {
   syntheses          ArchetypeSynthesis[]
   resumeDocument     ResumeDocument?
   registryEntry      TalentRegistryEntry?
+  consent            CandidateConsent?
 
   @@index([clientAccountId, kind, status, startedAt])
   @@index([kind, purgeAfter])
@@ -194,22 +195,22 @@ model ScoreSnapshot {
 }
 
 model FinalScore {
-  id             String            @id @default(uuid())
-  sessionId      String            @map("session_id")
-  session        AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  dimensionId    String            @map("dimension_id")
-  dimension      Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
-  finalScore     Float             @map("final_score")
-  percentileRank Float?            @map("percentile_rank")
-  rawScore       Float?            @map("raw_score")
-  maxScore       Float?            @map("max_score")
-  minScore       Float?            @map("min_score")
+  id              String            @id @default(uuid())
+  sessionId       String            @map("session_id")
+  session         AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  dimensionId     String            @map("dimension_id")
+  dimension       Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  finalScore      Float             @map("final_score")
+  percentileRank  Float?            @map("percentile_rank")
+  rawScore        Float?            @map("raw_score")
+  maxScore        Float?            @map("max_score")
+  minScore        Float?            @map("min_score")
   // How many of the answered scenarios could actually move this dimension.
   // A score drawn from one scenario is a single choice, not a measurement, and
   // the report says so rather than presenting it like the rest.
-  scenariosScored Int              @default(0) @map("scenarios_scored")
-  exercised      Boolean           @default(true)
-  scoringVersion Int               @default(1) @map("scoring_version")
+  scenariosScored Int               @default(0) @map("scenarios_scored")
+  exercised       Boolean           @default(true)
+  scoringVersion  Int               @default(1) @map("scoring_version")
 
   @@unique([sessionId, dimensionId])
   @@map("final_scores")
@@ -282,6 +283,12 @@ model PlatformSettings {
   emailProvider           String   @default("NONE") @map("email_provider")
   emailFrom               String?  @map("email_from")
   synthesisDailyCallLimit Int      @default(200) @map("synthesis_daily_call_limit")
+  // Candidate consent framework. The statement is editable because the wording
+  // is a legal matter rather than an engineering one, and the version is what
+  // ties a stored consent to the text that produced it.
+  consentRequired         Boolean  @default(true) @map("consent_required")
+  consentPolicyVersion    String   @default("1.0") @map("consent_policy_version")
+  consentStatement        String?  @map("consent_statement")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
@@ -322,6 +329,10 @@ model ClientAccount {
   accessKeyLast4     String?          @map("access_key_last4")
   accessKeyRotatedAt DateTime?        @map("access_key_rotated_at")
   logoUrl            String?          @map("logo_url")
+  // How many candidates this account may put through an assessment. Null is
+  // unlimited, which is what every existing account stays on - a limit nobody
+  // set should never start refusing invitations.
+  candidateSeatLimit Int?             @map("candidate_seat_limit")
   // Module B per-company override; falls back to the global default.
   assignedPackageId  String?          @map("assigned_package_id")
   assignedPackage    ScenarioPackage? @relation(fields: [assignedPackageId], references: [id])
@@ -336,6 +347,7 @@ model ClientAccount {
   jobContexts   JobContext[]
   invites       AssessmentInvite[]
   notifications Notification[]
+  consents      CandidateConsent[]
 
   @@index([status, deletedAt])
   @@map("client_accounts")
@@ -601,4 +613,32 @@ model EmailLog {
 
   @@index([status, createdAt])
   @@map("email_logs")
+}
+
+/// What a candidate agreed to, and the exact words they agreed to.
+///
+/// A boolean flag would not survive the question an enterprise buyer actually
+/// asks, which is not "did they consent" but "to what". So the statement is
+/// stored verbatim alongside the version it came from: editing the wording in
+/// Master Admin changes what the next candidate is shown and leaves every
+/// record already taken exactly as it was.
+///
+/// One row per sitting rather than per person. Consent is given for a specific
+/// evaluation by a specific employer, and a candidate assessed twice has
+/// consented twice.
+model CandidateConsent {
+  id              String            @id @default(uuid())
+  sessionId       String            @unique @map("session_id")
+  session         AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId          String?           @map("user_id")
+  clientAccountId String?           @map("client_account_id")
+  clientAccount   ClientAccount?    @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  policyVersion   String            @map("policy_version")
+  statementText   String            @map("statement_text")
+  acceptedAt      DateTime          @default(now()) @map("accepted_at")
+  ipAddress       String?           @map("ip_address")
+  userAgent       String?           @map("user_agent")
+
+  @@index([clientAccountId, acceptedAt])
+  @@map("candidate_consents")
 }

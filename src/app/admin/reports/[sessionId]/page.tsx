@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import dynamic from "next/dynamic";
 import ExportButtons from "@/components/ReportExportButtons";
 import ScoringVersionNotice from "@/components/ScoringVersionNotice";
+import ConsentRecord from "@/components/ConsentRecord";
 
 const ReportCharts = dynamic(() => import("./ReportCharts"), { 
   ssr: false,
@@ -41,6 +42,9 @@ async function getReport(sessionId: string) {
     include: {
       user: true,
       package: true,
+      consent: {
+        select: { policyVersion: true, statementText: true, acceptedAt: true },
+      },
       finalScores: {
         include: { dimension: true },
         orderBy: { finalScore: "desc" },
@@ -147,6 +151,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
               <p className="text-sm text-slate-600">{session.user.hobbiesSkills}</p>
             </div>
           )}
+          <ConsentRecord consent={session.consent} />
         </div>
 
         {/* Dimension Score Grid */}

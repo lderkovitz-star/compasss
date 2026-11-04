@@ -5,6 +5,7 @@ import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../../PortalShell';
 import ScoringVersionNotice from '@/components/ScoringVersionNotice';
 import ReportExportButtons from '@/components/ReportExportButtons';
+import ConsentRecord from '@/components/ConsentRecord';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -36,6 +37,9 @@ export default async function PortalReportPage({
       user: { select: { name: true, email: true, targetRole: true } },
       package: { select: { name: true, code: true } },
       jobContext: { select: { title: true } },
+      consent: {
+        select: { policyVersion: true, statementText: true, acceptedAt: true },
+      },
       finalScores: {
         orderBy: { finalScore: 'desc' },
         select: {
@@ -152,6 +156,7 @@ export default async function PortalReportPage({
             </div>
           </div>
         </div>
+        <ConsentRecord consent={report.consent} />
       </div>
 
       <div className="mt-6 bg-white border border-slate-200 rounded-xl overflow-hidden">

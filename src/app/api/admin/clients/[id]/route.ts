@@ -30,11 +30,34 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (body.assignedPackageId !== undefined) {
       data.assignedPackageId = body.assignedPackageId || null;
     }
+    // Candidate seats. An empty value clears the limit rather than setting it
+    // to zero - "unlimited" and "none allowed" are opposite instructions and
+    // a blank box should never mean the second one.
+    if (body.candidateSeatLimit !== undefined) {
+      if (body.candidateSeatLimit === null || body.candidateSeatLimit === '') {
+        data.candidateSeatLimit = null;
+      } else {
+        const seats = Number(body.candidateSeatLimit);
+        if (!Number.isInteger(seats) || seats < 0 || seats > 1_000_000) {
+          return NextResponse.json(
+            { error: 'Seat limit must be a whole number, or blank for unlimited.' },
+            { status: 400 }
+          );
+        }
+        data.candidateSeatLimit = seats;
+      }
+    }
 
     const account = await prisma.clientAccount.update({
       where: { id: params.id },
       data,
-      select: { id: true, name: true, status: true, assignedPackageId: true },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        assignedPackageId: true,
+        candidateSeatLimit: true,
+      },
     });
 
     await prisma.auditLog.create({

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { uploadResume, RESUME_MAX_BYTES } from '@/lib/upload-resume';
+import ConsentCheckbox from '@/components/ConsentCheckbox';
 
 interface FormState {
   name: string;
@@ -14,9 +15,18 @@ interface FormState {
 interface IntakeClientProps {
   platformName: string;
   logoUrl?: string | null;
+  consentStatement: string;
+  consentVersion: string;
+  consentRequired: boolean;
 }
 
-export default function IntakeClient({ platformName, logoUrl }: IntakeClientProps) {
+export default function IntakeClient({
+  platformName,
+  logoUrl,
+  consentStatement,
+  consentVersion,
+  consentRequired,
+}: IntakeClientProps) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -27,6 +37,7 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState('');
+  const [consent, setConsent] = useState(false);
 
   const displayBrand = platformName || 'Compass';
 
@@ -67,6 +78,12 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
       setError('Please provide a valid email address.');
       return;
     }
+    // Checked here as well as on the server. The server decides; this is only
+    // so a candidate is told before their resume is uploaded rather than after.
+    if (consentRequired && !consent) {
+      setError('Please confirm the consent statement to continue.');
+      return;
+    }
     setLoading(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
@@ -91,6 +108,7 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
           email: trimmedEmail,
           hobbiesSkills: form.hobbiesSkills || null,
           resumeDocumentId,
+          consentAccepted: consent,
         }),
         signal: controller.signal,
       });
@@ -292,10 +310,21 @@ export default function IntakeClient({ platformName, logoUrl }: IntakeClientProp
                     </svg>
                   </div>
                   <p className="text-[13px] font-medium text-white mb-1">Drag & drop your resume here</p>
-                  <p className="text-[11.5px] text-[#5B6580]">or click to browse — PDF or DOCX, max 4MB</p>
+                  <p className="text-[11.5px] text-[#5B6580]">or click to browse — PDF or DOCX, max 25MB</p>
                 </>
               )}
             </div>
+          </div>
+
+          {/* Consent */}
+          <div className="pt-2">
+            <ConsentCheckbox
+              statement={consentStatement}
+              version={consentVersion}
+              checked={consent}
+              onChange={setConsent}
+              disabled={loading}
+            />
           </div>
 
           {/* Submit */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
+import { getConsentPolicy, recordConsent } from '@/lib/consent';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
     const token = body && typeof body === 'object' ? body.token : null;
     const resumeDocumentId =
       body && typeof body.resumeDocumentId === 'string' ? body.resumeDocumentId : null;
+    const consentAccepted = body && body.consentAccepted === true;
 
     if (!isWellFormedInviteToken(token)) {
       return NextResponse.json({ error: 'This invitation link is not valid.' }, { status: 400 });
@@ -57,8 +59,21 @@ export async function POST(req: NextRequest) {
     }
     // Already started: send them back to the same session rather than making a
     // second one. Refreshing the page mid-assessment should not lose progress.
+    // This sits above the consent gate on purpose - consent was taken when the
+    // sitting began, and a refresh should not ask for it twice.
     if (invite.sessionId) {
       return NextResponse.json({ sessionId: invite.sessionId });
+    }
+
+    // Checked after the invitation is validated, so a bad link is reported as
+    // a bad link, and before the candidate record is touched, so declining
+    // writes nothing at all.
+    const policy = await getConsentPolicy();
+    if (policy.required && !consentAccepted) {
+      return NextResponse.json(
+        { error: 'Please confirm the consent statement to continue.' },
+        { status: 400 }
+      );
     }
 
     // The candidate record belongs to the inviting employer. The same person
@@ -116,6 +131,16 @@ export async function POST(req: NextRequest) {
       },
       select: { id: true },
     });
+
+    if (consentAccepted) {
+      await recordConsent({
+        sessionId: session.id,
+        userId: user.id,
+        clientAccountId: invite.clientAccountId,
+        policy,
+        headers: req.headers,
+      });
+    }
 
     await prisma.assessmentInvite.update({
       where: { id: invite.id },
