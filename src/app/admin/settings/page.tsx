@@ -42,6 +42,9 @@ export default function AdminSettingsPage() {
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [apiKeyLast4, setApiKeyLast4] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+  // The saved key, as loaded from the server. Lets us tell "shows the saved key"
+  // apart from "has a new, unsaved key typed in".
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [aiPromptTemplate, setAiPromptTemplate] = useState('');
   const [savingAI, setSavingAI] = useState(false);
   const [testingAI, setTestingAI] = useState(false);
@@ -67,6 +70,20 @@ export default function AdminSettingsPage() {
           setApiKeyConfigured(Boolean(settingsData.anthropicApiKeyConfigured));
           setApiKeyLast4(settingsData.anthropicApiKeyLast4 ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
+
+          // Fill the key field with the saved key. Super Admin only: anyone else
+          // gets a 403 here and keeps the "key set (ends ...)" placeholder.
+          if (settingsData.anthropicApiKeyConfigured) {
+            fetch('/api/admin/settings/ai-key', { method: 'POST' })
+              .then(res => (res.ok ? res.json() : null))
+              .then(data => {
+                if (data?.anthropicApiKey) {
+                  setAnthropicApiKey(data.anthropicApiKey);
+                  setRevealedKey(data.anthropicApiKey);
+                }
+              })
+              .catch(() => {});
+          }
         }
         if (Array.isArray(packagesData)) {
           setPackages(packagesData);
@@ -101,9 +118,8 @@ export default function AdminSettingsPage() {
     triggerSave();
   };
 
-  // True once a key has been typed in. The saved key is never sent to the browser,
-  // so any text in the field is a new key.
-  const keyEdited = anthropicApiKey.trim().length > 0;
+  // A key typed in that differs from the saved one (if it has been revealed).
+  const keyEdited = anthropicApiKey.trim().length > 0 && anthropicApiKey.trim() !== revealedKey;
 
   const handleAISave = async () => {
     setSavingAI(true);
@@ -114,12 +130,12 @@ export default function AdminSettingsPage() {
         ...(keyEdited ? { anthropicApiKey } : {}),
         aiPromptTemplate,
       });
-      // Show what the server actually stored. The key is write-only, so the field
-      // goes back to the "key set" placeholder.
+      // Show what the server actually stored. The field keeps the key it was
+      // just saved with, so a new key is now the saved one.
       setApiKeyConfigured(Boolean(saved.anthropicApiKeyConfigured));
       setApiKeyLast4(saved.anthropicApiKeyLast4 ?? null);
       setAiPromptTemplate(saved.aiPromptTemplate ?? '');
-      setAnthropicApiKey('');
+      if (keyEdited) setRevealedKey(anthropicApiKey.trim());
       setAiTestResult(null);
       toast.success('AI configuration saved');
       router.refresh();
