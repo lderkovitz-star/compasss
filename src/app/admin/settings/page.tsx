@@ -30,6 +30,8 @@ export default function AdminSettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [aiPromptTemplate, setAiPromptTemplate] = useState('');
   const [savingAI, setSavingAI] = useState(false);
+  const [testingAI, setTestingAI] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Packages State
   const [packages, setPackages] = useState<any[]>([]);
@@ -51,6 +53,8 @@ export default function AdminSettingsPage() {
           setApiKeyConfigured(Boolean(settingsData.anthropicApiKeyConfigured));
           setApiKeyLast4(settingsData.anthropicApiKeyLast4 ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
+          // "A key is saved" is not "the key works", so check it for real.
+          if (settingsData.anthropicApiKeyConfigured) handleAITest();
         }
         if (Array.isArray(packagesData)) {
           setPackages(packagesData);
@@ -63,22 +67,27 @@ export default function AdminSettingsPage() {
   const triggerSave = async (updates: any = {}) => {
     setSaving(true);
     try {
-      await fetch('/api/admin/settings', {
+      const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          platformName, 
-          supportEmail, 
-          biometricMode, 
-          logoUrl, 
-          defaultBackdropUrl: backdropUrl, 
-          ...updates 
+        body: JSON.stringify({
+          platformName,
+          supportEmail,
+          biometricMode,
+          logoUrl,
+          defaultBackdropUrl: backdropUrl,
+          ...updates
         }),
       });
+      // fetch only throws on network failure; a 401/403/500 still resolves.
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? `Save failed (HTTP ${res.status})`);
+      }
       toast.success('Settings saved');
       router.refresh();
-    } catch {
-      toast.error('Failed to save settings');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -92,7 +101,7 @@ export default function AdminSettingsPage() {
   const handleAISave = async () => {
     setSavingAI(true);
     try {
-      await fetch('/api/admin/settings', {
+      const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,12 +110,44 @@ export default function AdminSettingsPage() {
           aiPromptTemplate,
         }),
       });
+      const data = await res.json().catch(() => null);
+      // fetch only throws on network failure; a 401/403/500 still resolves.
+      if (!res.ok || !data || data.error) {
+        throw new Error(data?.error ?? `Save failed (HTTP ${res.status})`);
+      }
+      // Show what the server actually stored, rather than what we sent.
+      setApiKeyConfigured(Boolean(data.anthropicApiKeyConfigured));
+      setApiKeyLast4(data.anthropicApiKeyLast4 ?? null);
+      setAiPromptTemplate(data.aiPromptTemplate ?? '');
+      const keyChanged = anthropicApiKey.trim().length > 0;
+      setAnthropicApiKey('');
+      setShowApiKey(false);
       toast.success('AI configuration saved');
       router.refresh();
-    } catch {
-      toast.error('Failed to save AI config');
+      // A new key gets checked straight away, so the status is never stale.
+      if (keyChanged && data.anthropicApiKeyConfigured) handleAITest();
+      else if (!data.anthropicApiKeyConfigured) setTestResult(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save AI config');
     } finally {
       setSavingAI(false);
+    }
+  };
+
+  const handleAITest = async () => {
+    setTestingAI(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/admin/settings/test-ai', { method: 'POST' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || typeof data.ok !== 'boolean') {
+        throw new Error(data?.error ?? `Test failed (HTTP ${res.status})`);
+      }
+      setTestResult({ ok: data.ok, message: data.message });
+    } catch (err) {
+      setTestResult({ ok: false, message: err instanceof Error ? err.message : 'Test failed' });
+    } finally {
+      setTestingAI(false);
     }
   };
 
@@ -513,7 +554,44 @@ export default function AdminSettingsPage() {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Your key is stored securely in the database. It is never sent to the candidate&apos;s browser.</p>
+                <p className="text-xs text-slate-400 mt-1">Once saved, the key is never sent back to any browser - only its last four characters are shown.</p>
+
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                  {apiKeyConfigured ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Key saved - ends in <span className="font-mono">{apiKeyLast4 ?? '****'}</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      No key saved
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleAITest}
+                    disabled={!apiKeyConfigured || testingAI || savingAI || anthropicApiKey.trim().length > 0}
+                    title={anthropicApiKey.trim() ? 'Save the new key first - Test checks the saved key.' : undefined}
+                    className="w-full sm:w-auto justify-center px-3 py-1.5 text-xs font-medium border border-violet-200 text-violet-700 rounded-lg bg-white hover:bg-violet-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {testingAI ? 'Testing…' : 'Test connection'}
+                  </button>
+                  {anthropicApiKey.trim().length > 0 && (
+                    <span className="text-xs text-slate-500">Save the new key first, then test it.</span>
+                  )}
+                </div>
+
+                {/* The result is about the saved key; hide it while a new one is typed. */}
+                {testResult && !anthropicApiKey.trim() && (
+                  <p
+                    role="status"
+                    className={`mt-2 text-xs font-medium ${testResult.ok ? 'text-emerald-700' : 'text-red-600'}`}
+                  >
+                    {testResult.ok ? '✓ ' : '✗ '}
+                    {testResult.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -600,7 +678,7 @@ export default function AdminSettingsPage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500">
-                  Uses <strong className="text-violet-700">Claude 3 Haiku</strong> — fast, cost-effective batch model.
+                  Uses <strong className="text-violet-700">Claude Haiku 5.5</strong> — fast, cost-effective batch model.
                 </p>
                 <button
                   onClick={handleAISave}
@@ -633,7 +711,18 @@ export default function AdminSettingsPage() {
             <div className="p-5 space-y-4">
               {[
                 { icon: '🗂️', label: 'Local File System', status: 'Active', detail: 'Resumes & Media assets', color: 'text-slate-500', bg: 'bg-slate-100' },
-                { icon: '🤖', label: 'Anthropic Claude', status: apiKeyConfigured ? 'Key Configured' : 'Key Not Set', detail: 'Background AI Tiering', color: apiKeyConfigured ? 'text-emerald-600' : 'text-amber-600', bg: apiKeyConfigured ? 'bg-emerald-50' : 'bg-amber-50' },
+                {
+                  icon: '🤖',
+                  label: 'Anthropic Claude',
+                  detail: 'Background AI Tiering',
+                  ...(!apiKeyConfigured
+                    ? { status: 'Key Not Set', color: 'text-amber-600', bg: 'bg-amber-50' }
+                    : testingAI || !testResult
+                      ? { status: 'Checking…', color: 'text-slate-500', bg: 'bg-slate-100' }
+                      : testResult.ok
+                        ? { status: 'Connected', color: 'text-emerald-600', bg: 'bg-emerald-50' }
+                        : { status: 'Connection Failed', color: 'text-red-600', bg: 'bg-red-50' }),
+                },
                 { icon: '📄', label: 'react-pdf/renderer', status: 'Active', detail: 'Report Generation Engine', color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 { icon: '🗄️', label: 'PostgreSQL', status: 'Connected', detail: 'Prisma ORM Managed', color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map(item => (
