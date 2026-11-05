@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ClientAccessGate from '@/components/ClientAccessGate';
 import { getGlobalSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { resolveBrandName } from "@/lib/constants/brand";
@@ -375,7 +376,13 @@ export default async function Home() {
       <footer className="border-t border-white/10 py-6 sm:py-7">
         <div className="max-w-[1180px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs sm:text-[12.5px] text-[#5B6580] text-center sm:text-left">
           <span>© 2026 {resolveBrandName(settings.platformName)}</span>
-          <span className={plexMono.className}>v2.0 — executive platform</span>
+          <div className="flex items-center gap-4">
+            {/* Staff entrance. Deliberately plain: a candidate reads past it,
+                and the protection is the rate-limited check behind it rather
+                than the link being hard to find. */}
+            <ClientAccessGate />
+            <span className={plexMono.className}>v2.0 — executive platform</span>
+          </div>
         </div>
       </footer>
     </div>
