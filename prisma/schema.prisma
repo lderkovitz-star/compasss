@@ -16,6 +16,12 @@ model User {
   resumeFileUrl    String?             @map("resume_file_url")
   resumeUploadedAt DateTime?           @map("resume_uploaded_at")
   resumeText       String?             @map("resume_text")
+  /// Scores from outside this platform - ASVAB, an academic baseline, a
+  /// certification. Held as a list of {key,label,value,...} rather than
+  /// columns, so adding a new kind of score to a military or academic cohort
+  /// needs no migration and no change to the pipeline that reads them.
+  /// Validated on the way in; see src/lib/external-scores.ts.
+  externalScores   Json?               @map("external_scores")
   // Required: a candidate row with no owning tenant is a row no employer
   // query would exclude. Open intake writes into the legacy tenant.
   clientAccountId  String              @map("client_account_id")
@@ -278,6 +284,11 @@ model PlatformSettings {
   // the sandbox usually points at a long pack.
   sandboxSessionDepth     Int?     @default(10) @map("sandbox_session_depth")
   practiceEnabled         Boolean  @default(true) @map("practice_enabled")
+  /// The open, uninvited intake at /intake. Off by default: with it on,
+  /// anyone who finds the URL becomes a candidate inside a real employer
+  /// account, which is the opposite of an invitation-only validation layer.
+  /// The public route for strangers is the practice sandbox.
+  openIntakeEnabled       Boolean  @default(false) @map("open_intake_enabled")
   storageProvider         String   @default("VERCEL_BLOB") @map("storage_provider")
   storageConfig           Json?    @map("storage_config")
   emailProvider           String   @default("NONE") @map("email_provider")
@@ -337,17 +348,22 @@ model ClientAccount {
   assignedPackageId  String?          @map("assigned_package_id")
   assignedPackage    ScenarioPackage? @relation(fields: [assignedPackageId], references: [id])
   storageConfig      Json?            @map("storage_config")
+  /// Where to POST when one of this account's candidates finishes. Signed
+  /// with webhookSecret so the receiver can tell our call from anyone else's.
+  webhookUrl         String?          @map("webhook_url")
+  webhookSecret      String?          @map("webhook_secret")
   deletedAt          DateTime?        @map("deleted_at")
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
-  members       ClientAccountMember[]
-  candidates    User[]
-  sessions      AssessmentSession[]
-  jobContexts   JobContext[]
-  invites       AssessmentInvite[]
-  notifications Notification[]
-  consents      CandidateConsent[]
+  members          ClientAccountMember[]
+  candidates       User[]
+  sessions         AssessmentSession[]
+  jobContexts      JobContext[]
+  invites          AssessmentInvite[]
+  notifications    Notification[]
+  consents         CandidateConsent[]
+  evaluatorQueries EvaluatorQuery[]
 
   @@index([status, deletedAt])
   @@map("client_accounts")
@@ -641,4 +657,34 @@ model CandidateConsent {
 
   @@index([clientAccountId, acceptedAt])
   @@map("candidate_consents")
+}
+
+/// One question an evaluator asked, and what came back.
+///
+/// Kept for three reasons: the same question about the same people on the
+/// same model is answered from here rather than paid for twice; a hiring
+/// decision defended later needs the rationale as it was written, not a
+/// re-run that may word it differently; and an answer about candidates is
+/// tenant data, so it has an owner and is deleted with them.
+model EvaluatorQuery {
+  id              String         @id @default(uuid())
+  clientAccountId String?        @map("client_account_id")
+  clientAccount   ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  /// Who asked. Null for a master-admin query made outside any account.
+  askedByAdminId  String?        @map("asked_by_admin_id")
+  askedByEmail    String?        @map("asked_by_email")
+  question        String
+  /// sha256 of the question plus the session ids it was asked about, so the
+  /// cache cannot answer a question about one shortlist with another's answer.
+  queryHash       String         @map("query_hash")
+  sessionIds      Json           @map("session_ids")
+  answer          String
+  providerKey     String         @map("provider_key")
+  model           String
+  latencyMs       Int?           @map("latency_ms")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([clientAccountId, createdAt])
+  @@index([queryHash, model])
+  @@map("evaluator_queries")
 }

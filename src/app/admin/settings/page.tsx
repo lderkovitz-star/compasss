@@ -32,6 +32,7 @@ export default function AdminSettingsPage() {
   const [savingAI, setSavingAI] = useState(false);
 
   // Packages State
+  const [openIntakeEnabled, setOpenIntakeEnabled] = useState(false);
   const [consentRequired, setConsentRequired] = useState(true);
   const [consentPolicyVersion, setConsentPolicyVersion] = useState('1.0');
   const [consentStatement, setConsentStatement] = useState('');
@@ -55,6 +56,7 @@ export default function AdminSettingsPage() {
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
+          setOpenIntakeEnabled(settingsData.openIntakeEnabled ?? false);
           setConsentRequired(settingsData.consentRequired ?? true);
           setConsentPolicyVersion(settingsData.consentPolicyVersion ?? '1.0');
           // Blank means "use the built-in wording". The box stays empty and
@@ -113,6 +115,7 @@ export default function AdminSettingsPage() {
     setSavingConsent(true);
     try {
       await triggerSave({
+        openIntakeEnabled,
         consentRequired,
         consentPolicyVersion: consentPolicyVersion.trim() || '1.0',
         consentStatement: consentStatement.trim() || null,
@@ -510,7 +513,7 @@ export default function AdminSettingsPage() {
                 <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-.34-.014-.675-.041-1.007z"/>
                 </svg>
-                <h2 className="text-sm font-bold text-slate-900">Candidate Consent</h2>
+                <h2 className="text-sm font-bold text-slate-900">Candidate Access &amp; Consent</h2>
               </div>
               <p className="text-xs text-slate-500 mt-1 ml-6">
                 Shown at intake and on invitation links, and recorded against the sitting with the
@@ -519,6 +522,27 @@ export default function AdminSettingsPage() {
               </p>
             </div>
             <div className="p-5 space-y-5">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <span className="flex h-[44px] w-[24px] flex-shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={openIntakeEnabled}
+                    onChange={(e) => setOpenIntakeEnabled(e.target.checked)}
+                    className="h-[18px] w-[18px] rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-700">
+                    Allow uninvited candidates at /intake
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Off by default. With this on, anyone who finds the URL becomes a candidate
+                    inside a real employer account. Assessments are otherwise invitation-only, and
+                    strangers are sent to the practice sandbox.
+                  </span>
+                </span>
+              </label>
+
               <label className="flex items-start gap-3 cursor-pointer">
                 <span className="flex h-[44px] w-[24px] flex-shrink-0 items-center justify-center">
                   <input

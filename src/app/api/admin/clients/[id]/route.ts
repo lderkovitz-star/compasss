@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { issueAccessKey } from '@/lib/access-key';
+import { isAllowedWebhookUrl, generateWebhookSecret } from '@/lib/webhook';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +49,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
+    // Completion webhook. Clearing the URL also clears the secret, so a URL
+    // set again later gets a fresh one rather than silently reusing a secret
+    // that may have been shared with whoever ran the old endpoint.
+    let issuedSecret: string | null = null;
+    if (body.webhookUrl !== undefined) {
+      const raw = typeof body.webhookUrl === 'string' ? body.webhookUrl.trim() : '';
+      if (!raw) {
+        data.webhookUrl = null;
+        data.webhookSecret = null;
+      } else {
+        const allowed = isAllowedWebhookUrl(raw);
+        if (!allowed.ok) {
+          return NextResponse.json({ error: allowed.reason }, { status: 400 });
+        }
+        data.webhookUrl = allowed.url.toString();
+        const existing = await prisma.clientAccount.findUnique({
+          where: { id: params.id },
+          select: { webhookUrl: true, webhookSecret: true },
+        });
+        // A new secret only when there was none, or the URL changed.
+        if (!existing?.webhookSecret || existing.webhookUrl !== data.webhookUrl) {
+          issuedSecret = generateWebhookSecret();
+          data.webhookSecret = issuedSecret;
+        }
+      }
+    }
+
     const account = await prisma.clientAccount.update({
       where: { id: params.id },
       data,
@@ -57,6 +85,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         status: true,
         assignedPackageId: true,
         candidateSeatLimit: true,
+        webhookUrl: true,
       },
     });
 
@@ -69,11 +98,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         action: 'client_account.update',
         targetType: 'ClientAccount',
         targetId: account.id,
-        meta: data as object,
+        // The secret is stripped: an audit row is read by more people than
+        // the settings screen is.
+        meta: { ...data, webhookSecret: undefined } as object,
       },
     });
 
-    return NextResponse.json({ account });
+    // Returned once, like an access key, so it can be copied into the
+    // receiving system. It is never listed afterwards.
+    return NextResponse.json({ account, ...(issuedSecret ? { webhookSecret: issuedSecret } : {}) });
   } catch (error) {
     console.error('[clients PATCH]', error);
     return NextResponse.json({ error: 'Failed to update client account.' }, { status: 500 });

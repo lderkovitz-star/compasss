@@ -39,6 +39,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
     }
 
+    // The open door is shut unless a deployment explicitly opens it. Checked
+    // before validation so a disabled route does not leak what it would have
+    // accepted.
+    const platform = await prisma.platformSettings.findFirst({
+      select: { openIntakeEnabled: true },
+    });
+    if (!platform?.openIntakeEnabled) {
+      return NextResponse.json(
+        {
+          error:
+            'Assessments are by invitation. Ask the organisation assessing you for a link, or try the practice run.',
+        },
+        { status: 403 }
+      );
+    }
+
     // Consent is checked before anything is written. A candidate who declines
     // leaves no candidate row, no sitting and no uploaded document attached to
     // them - refusing after the fact would mean having to undo records we
