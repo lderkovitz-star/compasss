@@ -194,7 +194,9 @@
 
   /* ─── TABLE ──────────────────────────────────────── */
   .table-wrapper {
-    @apply card overflow-hidden;
+    /* Horizontal scroll, not hidden: a table wider than its card had its last
+       column clipped off and unreachable rather than scrollable. */
+    @apply card overflow-x-auto overflow-y-hidden;
   }
 
   .table-header {
@@ -250,4 +252,40 @@
 
   @keyframes fadeIn  { from { opacity:0; transform:translateY(8px); }  to { opacity:1; transform:translateY(0); } }
   @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+}
+
+/*
+ * Touch targets.
+ *
+ * The console is driven from a phone or a tablet during live demos, so the
+ * controls have to be hittable with a thumb. Several of them were laid out for
+ * a mouse and came out 28-32px tall. 44px is the figure Apple's guidance and
+ * the WCAG target-size rule both settle on.
+ *
+ * Scoped to coarse pointers so the desktop layout keeps its density, and to
+ * real controls rather than every anchor - an inline link inside a paragraph
+ * ignores min-height anyway, but being explicit keeps prose out of it.
+ */
+@media (pointer: coarse) {
+  button,
+  select,
+  [role="button"],
+  a.btn-primary,
+  a.btn-secondary,
+  a.btn-ghost,
+  a.btn-danger,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    min-height: 44px;
+  }
+
+  /* A checkbox is tapped on its label as often as on the box itself, so give
+     the box room without stretching the row it sits in. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 20px;
+    min-height: 20px;
+  }
 }

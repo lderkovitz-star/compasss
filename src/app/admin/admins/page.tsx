@@ -11,7 +11,7 @@ export default async function AdminsPage() {
   const currentAdmin = await getCurrentAdmin();
 
   if (!currentAdmin) {
-    redirect('/admin-login');
+    redirect('/master-admin');
   }
 
   // Fetch all admins

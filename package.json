@@ -12,7 +12,12 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:seed-admin": "ts-node prisma/seed-admin.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate deploy",
+    "db:backfill": "ts-node prisma/backfill/001-legacy-tenant.ts",
+    "db:rank-registries": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/rank-registries.ts",
+    "db:purge-expired": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/purge-expired.ts",
+    "check:tenant-scoping": "ts-node --compiler-options '{\"module\":\"commonjs\"}' scripts/check-tenant-scoping.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -25,6 +30,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.454.0",
+    "mammoth": "^1.13.0",
     "next": "14.2.15",
     "nextjs-toploader": "^3.9.17",
     "react": "^18.3.1",
@@ -33,6 +39,7 @@
     "react-hot-toast": "^2.6.0",
     "recharts": "^2.13.0",
     "tailwindcss-animate": "^1.0.7",
+    "unpdf": "^1.8.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

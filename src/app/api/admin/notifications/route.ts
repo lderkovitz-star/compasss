@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getAdminSession } from '@/lib/auth';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 
 // GET all notifications
 export async function GET() {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
 
   try {
     const notifications = await prisma.notification.findMany({
@@ -21,8 +21,8 @@ export async function GET() {
 
 // PATCH to mark all as read
 export async function PATCH() {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
 
   try {
     await prisma.notification.updateMany({
@@ -38,8 +38,8 @@ export async function PATCH() {
 
 // DELETE to clear all notifications
 export async function DELETE() {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin(WRITE_ROLES);
+  if (auth instanceof NextResponse) return auth;
 
   try {
     await prisma.notification.deleteMany({});

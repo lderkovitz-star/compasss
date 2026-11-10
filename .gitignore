@@ -40,3 +40,9 @@ next-env.d.ts
 # Local upload folders - files are stored in Vercel Blob, not in the repo
 /public/resumes/
 /public/uploads/
+
+# Material the client sent us, if it is ever copied in here. Their scenario
+# pack is converted into prisma/packs/ instead; the raw SQL and the mockups are
+# theirs and do not belong in a public repository.
+files by client/
+latest client images shared/

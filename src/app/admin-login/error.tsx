@@ -14,7 +14,7 @@ export default function AdminLoginError({ error, reset }: { error: Error; reset:
         >
           Try again
         </button>
-        <Link href="/admin-login" className="px-4 py-2 bg-slate-300 text-slate-800 rounded hover:bg-slate-400 transition">
+        <Link href="/admin" className="px-4 py-2 bg-slate-300 text-slate-800 rounded hover:bg-slate-400 transition">
           Back to login
         </Link>
       </div>

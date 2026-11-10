@@ -39,7 +39,6 @@ export async function GET(
           },
           orderBy: { submittedAt: 'asc' },
         },
-        biometrics: { orderBy: { recordedAt: 'asc' } },
       },
     });
 
@@ -47,16 +46,7 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
     }
 
-    // Serialize BigInt fields for JSON
-    const serialized = {
-      ...session,
-      biometrics: session.biometrics.map(b => ({
-        ...b,
-        recordedAt: Number(b.recordedAt),
-      })),
-    };
-
-    return NextResponse.json(serialized);
+    return NextResponse.json(session);
   } catch (err) {
     console.error('[admin report GET]', err);
     return NextResponse.json({ error: 'Failed to load report.' }, { status: 500 });

@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
+import { getConsentPolicy, recordConsent } from '@/lib/consent';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-// Vercel rejects request bodies over 4.5 MB before they reach this handler.
-const MAX_RESUME_BYTES = 4 * 1024 * 1024;
 
 /**
  * Begins an invited candidate's assessment.
@@ -18,8 +15,14 @@ const MAX_RESUME_BYTES = 4 * 1024 * 1024;
  */
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const token = formData.get('token');
+    // The resume is uploaded straight to storage by the browser and
+    // registered through /api/uploads/confirm, so only its id arrives here.
+    // Nothing large passes through this handler any more.
+    const body = await req.json().catch(() => null);
+    const token = body && typeof body === 'object' ? body.token : null;
+    const resumeDocumentId =
+      body && typeof body.resumeDocumentId === 'string' ? body.resumeDocumentId : null;
+    const consentAccepted = body && body.consentAccepted === true;
 
     if (!isWellFormedInviteToken(token)) {
       return NextResponse.json({ error: 'This invitation link is not valid.' }, { status: 400 });
@@ -56,8 +59,21 @@ export async function POST(req: NextRequest) {
     }
     // Already started: send them back to the same session rather than making a
     // second one. Refreshing the page mid-assessment should not lose progress.
+    // This sits above the consent gate on purpose - consent was taken when the
+    // sitting began, and a refresh should not ask for it twice.
     if (invite.sessionId) {
       return NextResponse.json({ sessionId: invite.sessionId });
+    }
+
+    // Checked after the invitation is validated, so a bad link is reported as
+    // a bad link, and before the candidate record is touched, so declining
+    // writes nothing at all.
+    const policy = await getConsentPolicy();
+    if (policy.required && !consentAccepted) {
+      return NextResponse.json(
+        { error: 'Please confirm the consent statement to continue.' },
+        { status: 400 }
+      );
     }
 
     // The candidate record belongs to the inviting employer. The same person
@@ -78,51 +94,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Attach the document the candidate uploaded, if any. It is looked up by
+    // id within this tenant, so an id from another account behaves like one
+    // that does not exist, and the parsed text is already stored against it.
     let resumeFileUrl: string | null = null;
-    let resumeUploadedAt: Date | null = null;
+    let resumeText: string | null = null;
 
-    const rawResume = formData.get('resume');
-    const resumeFile =
-      rawResume && typeof rawResume === 'object' && 'arrayBuffer' in rawResume
-        ? (rawResume as File)
-        : null;
-
-    if (resumeFile && resumeFile.size > 0) {
-      const validTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      ];
-      const nameLower = (resumeFile.name || '').toLowerCase();
-      const allowedExt = nameLower.endsWith('.pdf') || nameLower.endsWith('.docx');
-      if (!validTypes.includes(resumeFile.type) && !allowedExt) {
-        return NextResponse.json({ error: 'Resume must be a PDF or DOCX file.' }, { status: 400 });
-      }
-      if (resumeFile.size > MAX_RESUME_BYTES) {
-        return NextResponse.json({ error: 'Resume must be under 4MB.' }, { status: 400 });
-      }
-
-      try {
-        const ext = resumeFile.name.split('.').pop() || 'pdf';
-        const safeName =
-          invite.candidateName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase() || 'candidate';
-        const blob = await put(
-          `tenants/${invite.clientAccountId}/resumes/${Date.now()}-${safeName}.${ext}`,
-          resumeFile,
-          { access: 'public', addRandomSuffix: true }
-        );
-        resumeFileUrl = blob.url;
-        resumeUploadedAt = new Date();
-      } catch (fileErr) {
-        // An optional attachment must never block the assessment. Both fields
-        // stay null so the ledger does not claim a resume that is not there.
-        console.error('[assess start] resume upload failed:', fileErr);
+    if (resumeDocumentId) {
+      const document = await prisma.resumeDocument.findFirst({
+        where: { id: resumeDocumentId, clientAccountId: invite.clientAccountId },
+        select: { id: true, blobUrl: true, parsedText: true },
+      });
+      if (document) {
+        resumeFileUrl = document.blobUrl;
+        resumeText = document.parsedText;
       }
     }
 
     if (resumeFileUrl) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { resumeFileUrl, resumeUploadedAt },
+        data: { resumeFileUrl, resumeUploadedAt: new Date(), resumeText },
       });
     }
 
@@ -140,10 +132,28 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
 
+    if (consentAccepted) {
+      await recordConsent({
+        sessionId: session.id,
+        userId: user.id,
+        clientAccountId: invite.clientAccountId,
+        policy,
+        headers: req.headers,
+      });
+    }
+
     await prisma.assessmentInvite.update({
       where: { id: invite.id },
       data: { status: 'STARTED', consumedAt: new Date(), sessionId: session.id },
     });
+
+    // Tie the uploaded document to this sitting so the evaluation can find it.
+    if (resumeDocumentId && resumeFileUrl) {
+      await prisma.resumeDocument.update({
+        where: { id: resumeDocumentId },
+        data: { sessionId: session.id, userId: user.id },
+      });
+    }
 
     await prisma.auditLog.create({
       data: {

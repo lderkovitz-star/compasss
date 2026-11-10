@@ -9,20 +9,28 @@ generator client {
 
 model User {
   id               String              @id @default(uuid())
-  email            String              @unique
+  email            String
   name             String
   targetRole       String?             @map("target_role")
   hobbiesSkills    String?             @map("hobbies_skills")
   resumeFileUrl    String?             @map("resume_file_url")
   resumeUploadedAt DateTime?           @map("resume_uploaded_at")
   resumeText       String?             @map("resume_text")
-  // Nullable in this migration; made required once every row is backfilled.
-  clientAccountId  String?             @map("client_account_id")
-  clientAccount    ClientAccount?      @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  /// Scores from outside this platform - ASVAB, an academic baseline, a
+  /// certification. Held as a list of {key,label,value,...} rather than
+  /// columns, so adding a new kind of score to a military or academic cohort
+  /// needs no migration and no change to the pipeline that reads them.
+  /// Validated on the way in; see src/lib/external-scores.ts.
+  externalScores   Json?               @map("external_scores")
+  // Required: a candidate row with no owning tenant is a row no employer
+  // query would exclude. Open intake writes into the legacy tenant.
+  clientAccountId  String              @map("client_account_id")
+  clientAccount    ClientAccount       @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
   createdAt        DateTime            @default(now()) @map("created_at")
   sessions         AssessmentSession[]
   resumeDocuments  ResumeDocument[]
 
+  @@unique([clientAccountId, email])
   @@index([clientAccountId, createdAt])
   @@map("users")
 }
@@ -103,13 +111,19 @@ model OptionScore {
   dimension   Dimension      @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
   weightScore Float          @map("weight_score")
 
+  // One weight per option per dimension. Without this, a second row for the
+  // same pair is silently added to the first when scores are summed, so an
+  // import that ran twice would inflate a candidate's score.
+  @@unique([optionId, dimensionId])
   @@map("option_scores")
 }
 
 model AssessmentSession {
   id                 String               @id @default(uuid())
-  userId             String               @map("user_id")
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Null for practice runs, which have no candidate record at all - there is
+  // nobody to create an account for, and nothing to keep afterwards.
+  userId             String?              @map("user_id")
+  user               User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   packageId          String               @map("package_id")
   package            ScenarioPackage      @relation(fields: [packageId], references: [id], onDelete: Cascade)
   status             String               @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
@@ -148,6 +162,7 @@ model AssessmentSession {
   syntheses          ArchetypeSynthesis[]
   resumeDocument     ResumeDocument?
   registryEntry      TalentRegistryEntry?
+  consent            CandidateConsent?
 
   @@index([clientAccountId, kind, status, startedAt])
   @@index([kind, purgeAfter])
@@ -186,23 +201,30 @@ model ScoreSnapshot {
 }
 
 model FinalScore {
-  id             String            @id @default(uuid())
-  sessionId      String            @map("session_id")
-  session        AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  dimensionId    String            @map("dimension_id")
-  dimension      Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
-  finalScore     Float             @map("final_score")
-  percentileRank Float?            @map("percentile_rank")
-  rawScore       Float?            @map("raw_score")
-  maxScore       Float?            @map("max_score")
-  minScore       Float?            @map("min_score")
-  exercised      Boolean           @default(true)
-  scoringVersion Int               @default(1) @map("scoring_version")
+  id              String            @id @default(uuid())
+  sessionId       String            @map("session_id")
+  session         AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  dimensionId     String            @map("dimension_id")
+  dimension       Dimension         @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  finalScore      Float             @map("final_score")
+  percentileRank  Float?            @map("percentile_rank")
+  rawScore        Float?            @map("raw_score")
+  maxScore        Float?            @map("max_score")
+  minScore        Float?            @map("min_score")
+  // How many of the answered scenarios could actually move this dimension.
+  // A score drawn from one scenario is a single choice, not a measurement, and
+  // the report says so rather than presenting it like the rest.
+  scenariosScored Int               @default(0) @map("scenarios_scored")
+  exercised       Boolean           @default(true)
+  scoringVersion  Int               @default(1) @map("scoring_version")
 
   @@unique([sessionId, dimensionId])
   @@map("final_scores")
 }
 
+// Nothing reads this. Biometrics were removed from the product; the table and
+// the biometricMode setting stay because dropping columns is a destructive
+// migration for no benefit, and both are needed if the add-on returns.
 model BiometricReading {
   id         String            @id @default(uuid())
   sessionId  String            @map("session_id")
@@ -240,7 +262,7 @@ model PlatformSettings {
   id                      String   @id @default(uuid())
   platformName            String   @default("Compass") @map("platform_name")
   supportEmail            String   @default("support@continentalworks.com") @map("support_email")
-  biometricMode           String   @default("disabled") @map("biometric_mode") // disabled, optional, required — v0 default: disabled
+  biometricMode           String   @default("disabled") @map("biometric_mode") // Unread; see BiometricReading
   antiCheat               Boolean  @default(true) @map("anti_cheat")
   blindUiMode             Boolean  @default(true) @map("blind_ui_mode")
   // Branding / Media
@@ -257,12 +279,27 @@ model PlatformSettings {
   sandboxPackageId        String?  @map("sandbox_package_id")
   defaultClientPackageId  String?  @map("default_client_package_id")
   defaultSessionDepth     Int?     @map("default_session_depth")
+  // How long a public practice run is. Separate from the client default so a
+  // short demo in the sandbox does not shorten real assessments, and because
+  // the sandbox usually points at a long pack.
+  sandboxSessionDepth     Int?     @default(10) @map("sandbox_session_depth")
   practiceEnabled         Boolean  @default(true) @map("practice_enabled")
+  /// The open, uninvited intake at /intake. Off by default: with it on,
+  /// anyone who finds the URL becomes a candidate inside a real employer
+  /// account, which is the opposite of an invitation-only validation layer.
+  /// The public route for strangers is the practice sandbox.
+  openIntakeEnabled       Boolean  @default(false) @map("open_intake_enabled")
   storageProvider         String   @default("VERCEL_BLOB") @map("storage_provider")
   storageConfig           Json?    @map("storage_config")
   emailProvider           String   @default("NONE") @map("email_provider")
   emailFrom               String?  @map("email_from")
   synthesisDailyCallLimit Int      @default(200) @map("synthesis_daily_call_limit")
+  // Candidate consent framework. The statement is editable because the wording
+  // is a legal matter rather than an engineering one, and the version is what
+  // ties a stored consent to the text that produced it.
+  consentRequired         Boolean  @default(true) @map("consent_required")
+  consentPolicyVersion    String   @default("1.0") @map("consent_policy_version")
+  consentStatement        String?  @map("consent_statement")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
@@ -303,20 +340,30 @@ model ClientAccount {
   accessKeyLast4     String?          @map("access_key_last4")
   accessKeyRotatedAt DateTime?        @map("access_key_rotated_at")
   logoUrl            String?          @map("logo_url")
+  // How many candidates this account may put through an assessment. Null is
+  // unlimited, which is what every existing account stays on - a limit nobody
+  // set should never start refusing invitations.
+  candidateSeatLimit Int?             @map("candidate_seat_limit")
   // Module B per-company override; falls back to the global default.
   assignedPackageId  String?          @map("assigned_package_id")
   assignedPackage    ScenarioPackage? @relation(fields: [assignedPackageId], references: [id])
   storageConfig      Json?            @map("storage_config")
+  /// Where to POST when one of this account's candidates finishes. Signed
+  /// with webhookSecret so the receiver can tell our call from anyone else's.
+  webhookUrl         String?          @map("webhook_url")
+  webhookSecret      String?          @map("webhook_secret")
   deletedAt          DateTime?        @map("deleted_at")
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
-  members       ClientAccountMember[]
-  candidates    User[]
-  sessions      AssessmentSession[]
-  jobContexts   JobContext[]
-  invites       AssessmentInvite[]
-  notifications Notification[]
+  members          ClientAccountMember[]
+  candidates       User[]
+  sessions         AssessmentSession[]
+  jobContexts      JobContext[]
+  invites          AssessmentInvite[]
+  notifications    Notification[]
+  consents         CandidateConsent[]
+  evaluatorQueries EvaluatorQuery[]
 
   @@index([status, deletedAt])
   @@map("client_accounts")
@@ -535,6 +582,13 @@ model TalentRegistryEntry {
   /// mean anything - see the 30 entry floor in the ranking job.
   isHighSignal   Boolean           @default(false) @map("is_high_signal")
   rankedAt       DateTime?         @map("ranked_at")
+  /// Embedding of this candidate's searchable text, for similarity search.
+  /// Stored as a plain array rather than a vector column so no database
+  /// extension is required; cohorts here are small enough that comparing in
+  /// memory costs less than the operational weight of pgvector.
+  embedding      Json?
+  embeddingModel String?           @map("embedding_model")
+  embeddedAt     DateTime?         @map("embedded_at")
   createdAt      DateTime          @default(now()) @map("created_at")
 
   @@index([source, isHighSignal])
@@ -575,4 +629,62 @@ model EmailLog {
 
   @@index([status, createdAt])
   @@map("email_logs")
+}
+
+/// What a candidate agreed to, and the exact words they agreed to.
+///
+/// A boolean flag would not survive the question an enterprise buyer actually
+/// asks, which is not "did they consent" but "to what". So the statement is
+/// stored verbatim alongside the version it came from: editing the wording in
+/// Master Admin changes what the next candidate is shown and leaves every
+/// record already taken exactly as it was.
+///
+/// One row per sitting rather than per person. Consent is given for a specific
+/// evaluation by a specific employer, and a candidate assessed twice has
+/// consented twice.
+model CandidateConsent {
+  id              String            @id @default(uuid())
+  sessionId       String            @unique @map("session_id")
+  session         AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId          String?           @map("user_id")
+  clientAccountId String?           @map("client_account_id")
+  clientAccount   ClientAccount?    @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  policyVersion   String            @map("policy_version")
+  statementText   String            @map("statement_text")
+  acceptedAt      DateTime          @default(now()) @map("accepted_at")
+  ipAddress       String?           @map("ip_address")
+  userAgent       String?           @map("user_agent")
+
+  @@index([clientAccountId, acceptedAt])
+  @@map("candidate_consents")
+}
+
+/// One question an evaluator asked, and what came back.
+///
+/// Kept for three reasons: the same question about the same people on the
+/// same model is answered from here rather than paid for twice; a hiring
+/// decision defended later needs the rationale as it was written, not a
+/// re-run that may word it differently; and an answer about candidates is
+/// tenant data, so it has an owner and is deleted with them.
+model EvaluatorQuery {
+  id              String         @id @default(uuid())
+  clientAccountId String?        @map("client_account_id")
+  clientAccount   ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+  /// Who asked. Null for a master-admin query made outside any account.
+  askedByAdminId  String?        @map("asked_by_admin_id")
+  askedByEmail    String?        @map("asked_by_email")
+  question        String
+  /// sha256 of the question plus the session ids it was asked about, so the
+  /// cache cannot answer a question about one shortlist with another's answer.
+  queryHash       String         @map("query_hash")
+  sessionIds      Json           @map("session_ids")
+  answer          String
+  providerKey     String         @map("provider_key")
+  model           String
+  latencyMs       Int?           @map("latency_ms")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([clientAccountId, createdAt])
+  @@index([queryHash, model])
+  @@map("evaluator_queries")
 }

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getAdminSession } from '@/lib/auth';
+import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  const adminEmail = getAdminSession();
-  if (!adminEmail) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
 
   try {
     const candidates = await prisma.user.findMany({

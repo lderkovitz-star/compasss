@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { uploadResume, RESUME_MAX_BYTES } from '@/lib/upload-resume';
+import ConsentCheckbox from '@/components/ConsentCheckbox';
 
 export default function AssessInviteClient({
   token,
@@ -11,6 +13,10 @@ export default function AssessInviteClient({
   packageName,
   platformName,
   resuming,
+  uploadPrefix,
+  consentStatement,
+  consentVersion,
+  consentRequired,
 }: {
   token: string;
   companyName: string;
@@ -19,13 +25,27 @@ export default function AssessInviteClient({
   packageName: string | null;
   platformName: string;
   resuming: boolean;
+  /** Where this candidate's upload is allowed to land; checked server-side. */
+  uploadPrefix: string;
+  consentStatement: string;
+  consentVersion: string;
+  consentRequired: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [stage, setStage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [consent, setConsent] = useState(false);
+  // Someone coming back to an assessment already in progress consented when
+  // they started it, so asking again would be noise. If the server disagrees -
+  // the only way it can is if there turned out to be no sitting to resume, in
+  // which case this is a fresh start - the control is revealed rather than
+  // leaving an error on screen with nothing to act on.
+  const [needsConsent, setNeedsConsent] = useState(consentRequired && !resuming);
 
   function handleFile(f: File | null) {
     if (!f) return;
@@ -39,10 +59,8 @@ export default function AssessInviteClient({
       setError('Please upload a PDF or DOCX file.');
       return;
     }
-    // Vercel rejects request bodies over 4.5 MB before they reach the server,
-    // which the browser reports as "Failed to fetch".
-    if (f.size > 4 * 1024 * 1024) {
-      setError('File must be under 4MB.');
+    if (f.size > RESUME_MAX_BYTES) {
+      setError(`That file is ${(f.size / 1024 / 1024).toFixed(1)} MB. The limit is 25 MB.`);
       return;
     }
     setFile(f);
@@ -51,19 +69,31 @@ export default function AssessInviteClient({
 
   async function begin() {
     setError('');
+    if (needsConsent && !consent) {
+      setError('Please confirm the consent statement to continue.');
+      return;
+    }
     setLoading(true);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
 
     try {
-      const fd = new FormData();
-      fd.append('token', token);
-      if (file) fd.append('resume', file);
+      // The resume goes straight to storage from here, so the request below
+      // stays small whatever the file size.
+      let resumeDocumentId: string | undefined;
+      if (file) {
+        setStage('Uploading your resume…');
+        const uploaded = await uploadResume(file, { prefix: uploadPrefix, inviteToken: token });
+        resumeDocumentId = uploaded.documentId;
+        if (uploaded.message) setNotice(uploaded.message);
+      }
 
+      setStage('Preparing your assessment…');
       const res = await fetch('/api/assess/start', {
         method: 'POST',
-        body: fd,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, resumeDocumentId, consentAccepted: consent }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -75,6 +105,9 @@ export default function AssessInviteClient({
         // Fall through to the status-based message below.
       }
 
+      if (res.status === 400 && json.error?.toLowerCase().includes('consent')) {
+        setNeedsConsent(true);
+      }
       if (!res.ok) throw new Error(json.error || `Could not start the assessment (HTTP ${res.status}).`);
       if (!json.sessionId) throw new Error('Assessment session could not be created.');
 
@@ -117,6 +150,12 @@ export default function AssessInviteClient({
         {error && (
           <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-300">
             {error}
+          </div>
+        )}
+
+        {notice && (
+          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-[13px] text-amber-200">
+            {notice}
           </div>
         )}
 
@@ -195,12 +234,28 @@ export default function AssessInviteClient({
           </div>
         )}
 
+        {needsConsent && (
+          <div className="mt-5">
+            <ConsentCheckbox
+              statement={consentStatement}
+              version={consentVersion}
+              checked={consent}
+              onChange={setConsent}
+              disabled={loading}
+            />
+          </div>
+        )}
+
         <button
           onClick={begin}
           disabled={loading}
           className="w-full mt-6 bg-[#2E63F6] text-white text-[15px] font-semibold px-4 py-3.5 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Preparing…' : resuming ? 'Continue assessment' : 'Begin assessment'}
+          {loading
+            ? stage || 'Preparing…'
+            : resuming
+              ? 'Continue assessment'
+              : 'Begin assessment'}
         </button>
       </div>
     </main>

@@ -1,8 +1,12 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import QuickInvite from './QuickInvite';
+import QuickPackUpload from './QuickPackUpload';
 
 type Account = {
   id: string;
@@ -16,9 +20,88 @@ type Account = {
   createdAt: string;
   assignedPackage: { id: string; name: string } | null;
   _count: { candidates: number; sessions: number; invites: number };
+  testedCount: number;
+  candidateSeatLimit: number | null;
+  /** Invitations currently holding a seat; see src/lib/seats.ts. */
+  seatsUsed: number;
 };
 
 type Pkg = { id: string; name: string; code: string };
+
+/**
+ * Seat limit cell.
+ *
+ * Kept as a local draft until it is committed, because a field that saves on
+ * every keystroke would fire a request for "1", "12" and "120" on the way to
+ * typing 120 - and the "1" would be rejected as below the seats already used.
+ */
+function SeatCell({
+  used,
+  limit,
+  disabled,
+  onCommit,
+}: {
+  used: number;
+  limit: number | null;
+  disabled: boolean;
+  onCommit: (value: number | null) => void;
+}) {
+  const [draft, setDraft] = useState(limit === null ? '' : String(limit));
+
+  // The row re-renders from the server after a save; follow it rather than
+  // holding a stale draft.
+  const [lastLimit, setLastLimit] = useState(limit);
+  if (lastLimit !== limit) {
+    setLastLimit(limit);
+    setDraft(limit === null ? '' : String(limit));
+  }
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === '') {
+      if (limit !== null) onCommit(null);
+      return;
+    }
+    const value = Number(trimmed);
+    if (!Number.isInteger(value) || value < 0) {
+      toast.error('Seats must be a whole number, or blank for unlimited.');
+      setDraft(limit === null ? '' : String(limit));
+      return;
+    }
+    if (value !== limit) onCommit(value);
+  }
+
+  const over = limit !== null && used >= limit;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
+        <span className={over ? 'font-semibold text-amber-700' : 'font-medium text-slate-900'}>
+          {used}
+        </span>
+        <span className="text-slate-400">/</span>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          className="form-input text-xs text-center w-[72px] min-h-[44px]"
+          placeholder="∞"
+          aria-label="Candidate seat limit"
+          value={draft}
+          disabled={disabled}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+        />
+      </div>
+      <div className="text-xs text-slate-500">
+        {limit === null ? 'unlimited' : over ? 'at limit' : `${limit - used} left`}
+      </div>
+    </div>
+  );
+}
 
 export default function ClientAccountsClient({
   accounts,
@@ -35,6 +118,9 @@ export default function ClientAccountsClient({
   const [form, setForm] = useState({ name: '', contactEmail: '', assignedPackageId: '' });
   /** Held in state only — the server never returns a key again. */
   const [issuedKey, setIssuedKey] = useState<{ company: string; key: string } | null>(null);
+  /** Which account a modal is open for, if any. */
+  const [inviting, setInviting] = useState<Account | null>(null);
+  const [uploadingFor, setUploadingFor] = useState<Account | null>(null);
 
   const defaultPackageName =
     packages.find((p) => p.id === defaultPackageId)?.name ?? 'none set';
@@ -131,12 +217,18 @@ export default function ClientAccountsClient({
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
+      {/* Stacks on a phone. Side by side, the sentence wraps to three lines and
+          squeezes the button into a column barely wide enough for its label. */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <p className="text-sm text-slate-600">
           {accounts.length} account{accounts.length === 1 ? '' : 's'} · accounts with no package
           override follow the global default ({defaultPackageName})
         </p>
-        <button className="btn-primary" onClick={() => setCreating((v) => !v)} disabled={busy}>
+        <button
+          className="btn-primary w-full sm:w-auto justify-center min-h-[48px] whitespace-nowrap"
+          onClick={() => setCreating((v) => !v)}
+          disabled={busy}
+        >
           {creating ? 'Cancel' : 'New client account'}
         </button>
       </div>
@@ -199,14 +291,15 @@ export default function ClientAccountsClient({
           No client accounts yet. Create one to issue its first access key.
         </div>
       ) : (
-        <div className="table-wrapper">
+        <div className="table-wrapper hidden lg:block">
           <table className="w-full">
-            <thead className="table-header">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="th">Company</th>
                 <th className="th text-center">Access key</th>
                 <th className="th text-center">Scenario package</th>
                 <th className="th text-center">Candidates</th>
+                <th className="th text-center">Seats</th>
                 <th className="th text-center">Status</th>
                 <th className="th text-center">Actions</th>
               </tr>
@@ -229,14 +322,14 @@ export default function ClientAccountsClient({
                   </td>
                   <td className="td text-center">
                     <select
-                      className="form-select text-xs"
+                      className="form-select text-xs min-w-[190px]"
                       value={a.assignedPackageId ?? ''}
                       disabled={busy}
                       onChange={(e) =>
                         patch(a, { assignedPackageId: e.target.value }, `${a.name} updated`)
                       }
                     >
-                      <option value="">Global default</option>
+                      <option value="">Global default — {defaultPackageName}</option>
                       {packages.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -245,8 +338,26 @@ export default function ClientAccountsClient({
                     </select>
                   </td>
                   <td className="td text-center">
-                    <span className="text-slate-900 font-medium">{a._count.candidates}</span>
-                    <div className="text-xs text-slate-500">{a._count.sessions} sessions</div>
+                    <span className="text-slate-900 font-medium">{a.testedCount}</span>
+                    <div className="text-xs text-slate-500">
+                      tested · {a._count.candidates} invited
+                    </div>
+                  </td>
+                  <td className="td text-center">
+                    <SeatCell
+                      used={a.seatsUsed}
+                      limit={a.candidateSeatLimit}
+                      disabled={busy}
+                      onCommit={(value) =>
+                        patch(
+                          a,
+                          { candidateSeatLimit: value },
+                          value === null
+                            ? `${a.name} set to unlimited seats`
+                            : `${a.name} limited to ${value} seat${value === 1 ? '' : 's'}`
+                        )
+                      }
+                    />
                   </td>
                   <td className="td text-center">
                     <span className={a.status === 'ACTIVE' ? 'badge-green' : 'badge-amber'}>
@@ -255,6 +366,35 @@ export default function ClientAccountsClient({
                   </td>
                   <td className="td text-center">
                     <div className="flex items-center justify-center gap-2">
+                      <button
+                        className="btn-ghost text-xs"
+                        disabled={busy}
+                        onClick={() => setUploadingFor(a)}
+                      >
+                        Upload pack
+                      </button>
+                      <button
+                        className="btn-ghost text-xs disabled:opacity-40"
+                        disabled={
+                          busy ||
+                          a.status !== 'ACTIVE' ||
+                          (a.candidateSeatLimit !== null && a.seatsUsed >= a.candidateSeatLimit)
+                        }
+                        title={
+                          a.candidateSeatLimit !== null && a.seatsUsed >= a.candidateSeatLimit
+                            ? 'No candidate seats remain on this account.'
+                            : undefined
+                        }
+                        onClick={() => setInviting(a)}
+                      >
+                        Invite
+                      </button>
+                      <Link
+                        href={`/admin/clients/${a.id}/cohort`}
+                        className="btn-ghost text-xs inline-flex items-center"
+                      >
+                        Cohort AI
+                      </Link>
                       <button className="btn-ghost text-xs" disabled={busy} onClick={() => rotateKey(a)}>
                         Rotate key
                       </button>
@@ -278,6 +418,186 @@ export default function ClientAccountsClient({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Below lg the table becomes cards. A seven-column table on a phone is
+          either a horizontal scroll nobody finds or text too small to tap, and
+          this screen is the one a rep opens standing next to a client. The
+          three actions they came for are full-width buttons. */}
+      {accounts.length > 0 && (
+        <div className="lg:hidden space-y-3">
+          {accounts.map((a) => {
+            const atLimit = a.candidateSeatLimit !== null && a.seatsUsed >= a.candidateSeatLimit;
+            return (
+              <div key={a.id} className="card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 truncate">{a.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{a.contactEmail}</p>
+                  </div>
+                  <span
+                    className={`${a.status === 'ACTIVE' ? 'badge-green' : 'badge-amber'} flex-shrink-0`}
+                  >
+                    {a.status}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 py-2">
+                    <p className="text-lg font-bold text-slate-900">{a.testedCount}</p>
+                    <p className="text-[11px] text-slate-500">
+                      tested · {a._count.candidates} invited
+                    </p>
+                  </div>
+                  <div
+                    className={`rounded-lg border py-2 ${
+                      atLimit ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50'
+                    }`}
+                  >
+                    <p
+                      className={`text-lg font-bold ${atLimit ? 'text-amber-700' : 'text-slate-900'}`}
+                    >
+                      {a.seatsUsed}
+                      <span className="text-slate-400">/</span>
+                      {a.candidateSeatLimit ?? '∞'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {a.candidateSeatLimit === null
+                        ? 'seats · unlimited'
+                        : atLimit
+                          ? 'seats · at limit'
+                          : `seats · ${a.candidateSeatLimit - a.seatsUsed} left`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 1 — swap the assigned pack */}
+                <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Scenario pack
+                </label>
+                <select
+                  className="form-select mt-1 w-full min-h-[48px] text-sm"
+                  value={a.assignedPackageId ?? ''}
+                  disabled={busy}
+                  onChange={(e) =>
+                    patch(a, { assignedPackageId: e.target.value }, `${a.name} updated`)
+                  }
+                >
+                  <option value="">Global default — {defaultPackageName}</option>
+                  {packages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* 2 and 3 — upload a pack, and issue a candidate link */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    className="btn-secondary justify-center min-h-[48px] text-[13px]"
+                    disabled={busy}
+                    onClick={() => setUploadingFor(a)}
+                  >
+                    Upload pack
+                  </button>
+                  <button
+                    className="btn-primary justify-center min-h-[48px] text-[13px] disabled:opacity-50"
+                    disabled={busy || atLimit || a.status !== 'ACTIVE'}
+                    title={atLimit ? 'No candidate seats remain on this account.' : undefined}
+                    onClick={() => setInviting(a)}
+                  >
+                    Invite candidate
+                  </button>
+                </div>
+
+                <details className="mt-3">
+                  <summary className="flex min-h-[44px] cursor-pointer list-none items-center text-[13px] text-slate-500">
+                    More
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-[11px] text-slate-500">
+                      Access key:{' '}
+                      {a.accessKeyPrefix ? (
+                        <code className="font-mono">
+                          CMP-{a.accessKeyPrefix}-…{a.accessKeyLast4}
+                        </code>
+                      ) : (
+                        'none issued'
+                      )}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/admin/clients/${a.id}/cohort`}
+                        className="btn-ghost justify-center min-h-[44px] text-[13px] inline-flex items-center"
+                      >
+                        Cohort AI
+                      </Link>
+                      <button
+                        className="btn-ghost justify-center min-h-[44px] text-[13px]"
+                        disabled={busy}
+                        onClick={() => rotateKey(a)}
+                      >
+                        Rotate key
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[13px] text-slate-600" htmlFor={`seats-${a.id}`}>
+                        Seat limit
+                      </label>
+                      <input
+                        id={`seats-${a.id}`}
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        placeholder="∞"
+                        defaultValue={a.candidateSeatLimit ?? ''}
+                        disabled={busy}
+                        className="form-input w-[90px] min-h-[44px] text-sm text-center"
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          const next = raw === '' ? null : Number(raw);
+                          if (next !== null && (!Number.isInteger(next) || next < 0)) {
+                            toast.error('Seats must be a whole number, or blank for unlimited.');
+                            e.target.value = a.candidateSeatLimit === null ? '' : String(a.candidateSeatLimit);
+                            return;
+                          }
+                          if (next === a.candidateSeatLimit) return;
+                          patch(
+                            a,
+                            { candidateSeatLimit: next },
+                            next === null
+                              ? `${a.name} set to unlimited seats`
+                              : `${a.name} limited to ${next} seat${next === 1 ? '' : 's'}`
+                          );
+                        }}
+                      />
+                      <button
+                        className="btn-ghost ml-auto min-h-[44px] text-[13px]"
+                        disabled={busy}
+                        onClick={() =>
+                          patch(
+                            a,
+                            { status: a.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' },
+                            a.status === 'ACTIVE' ? `${a.name} suspended` : `${a.name} reactivated`
+                          )
+                        }
+                      >
+                        {a.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'}
+                      </button>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {inviting && (
+        <QuickInvite account={inviting} onClose={() => setInviting(null)} />
+      )}
+      {uploadingFor && (
+        <QuickPackUpload account={uploadingFor} onClose={() => setUploadingFor(null)} />
       )}
     </>
   );

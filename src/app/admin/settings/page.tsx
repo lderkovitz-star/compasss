@@ -3,17 +3,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import Image from 'next/image';
+import { SUPPORT_EMAIL, resolveSupportEmail } from '@/lib/constants/brand';
+import AiProviderPanel from './AiProviderPanel';
+import EmailQueuePanel from './EmailQueuePanel';
 
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [adminRole, setAdminRole] = useState('');
   const [saving, setSaving] = useState(false);
 
   // General Settings
   const [platformName, setPlatformName] = useState('Compass');
-  const [supportEmail, setSupportEmail] = useState('support@compass.com');
-  const [biometricMode, setBiometricMode] = useState('disabled');
+  const [supportEmail, setSupportEmail] = useState(SUPPORT_EMAIL);
 
   // Media / Branding
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -24,36 +26,57 @@ export default function AdminSettingsPage() {
   const backdropRef = useRef<HTMLInputElement>(null);
 
   // AI Config
-  const [anthropicApiKey, setAnthropicApiKey] = useState('');
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
-  const [apiKeyLast4, setApiKeyLast4] = useState<string | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
+  const [aiProviderLabel, setAiProviderLabel] = useState('Not configured');
+  const [aiKeyConfigured, setAiKeyConfigured] = useState(false);
   const [aiPromptTemplate, setAiPromptTemplate] = useState('');
   const [savingAI, setSavingAI] = useState(false);
 
   // Packages State
+  const [openIntakeEnabled, setOpenIntakeEnabled] = useState(false);
+  const [consentRequired, setConsentRequired] = useState(true);
+  const [consentPolicyVersion, setConsentPolicyVersion] = useState('1.0');
+  const [consentStatement, setConsentStatement] = useState('');
+  const [consentDefault, setConsentDefault] = useState('');
+  const [savingConsent, setSavingConsent] = useState(false);
+
   const [packages, setPackages] = useState<any[]>([]);
   const [uploadingPackageId, setUploadingPackageId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/admin/settings', { cache: 'no-store' }).then(res => res.json()),
-      fetch('/api/admin/packages', { cache: 'no-store' }).then(res => res.json())
+      fetch('/api/admin/packages', { cache: 'no-store' }).then(res => res.json()),
+      fetch('/api/admin/profile', { cache: 'no-store' }).then(res => res.json()).catch(() => null),
+      fetch('/api/admin/ai/providers', { cache: 'no-store' }).then(res => res.json()).catch(() => null),
     ])
-      .then(([settingsData, packagesData]) => {
+      .then(([settingsData, packagesData, profileData, aiData]) => {
         if (settingsData && !settingsData.error) {
           setPlatformName(settingsData.platformName ?? 'Compass');
-          setSupportEmail(settingsData.supportEmail ?? 'support@compass.com');
-          setBiometricMode(settingsData.biometricMode ?? 'disabled');
+          setSupportEmail(resolveSupportEmail(settingsData.supportEmail));
           setLogoUrl(settingsData.logoUrl ?? null);
           setBackdropUrl(settingsData.defaultBackdropUrl ?? null);
-          // The key is write-only server-side; we only learn whether one is set.
-          setApiKeyConfigured(Boolean(settingsData.anthropicApiKeyConfigured));
-          setApiKeyLast4(settingsData.anthropicApiKeyLast4 ?? null);
           setAiPromptTemplate(settingsData.aiPromptTemplate ?? '');
+          setOpenIntakeEnabled(settingsData.openIntakeEnabled ?? false);
+          setConsentRequired(settingsData.consentRequired ?? true);
+          setConsentPolicyVersion(settingsData.consentPolicyVersion ?? '1.0');
+          // Blank means "use the built-in wording". The box stays empty and
+          // the default is shown beneath it, so an admin can see what
+          // candidates get without that text being silently saved as custom.
+          setConsentStatement(settingsData.consentStatement ?? '');
+          setConsentDefault(settingsData.defaultConsentStatement ?? '');
         }
         if (Array.isArray(packagesData)) {
           setPackages(packagesData);
+        }
+        if (profileData?.role) {
+          setAdminRole(profileData.role);
+        }
+        if (aiData?.providers) {
+          const live = aiData.providers.find(
+            (p: { key: string }) => p.key === aiData.activeProviderKey
+          );
+          setAiProviderLabel(live ? `${live.label} · ${live.model || 'no model set'}` : 'Not configured');
+          setAiKeyConfigured(Boolean(live?.keyConfigured));
         }
         setLoading(false);
       })
@@ -69,7 +92,6 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ 
           platformName, 
           supportEmail, 
-          biometricMode, 
           logoUrl, 
           defaultBackdropUrl: backdropUrl, 
           ...updates 
@@ -89,6 +111,20 @@ export default function AdminSettingsPage() {
     triggerSave();
   };
 
+  const handleConsentSave = async () => {
+    setSavingConsent(true);
+    try {
+      await triggerSave({
+        openIntakeEnabled,
+        consentRequired,
+        consentPolicyVersion: consentPolicyVersion.trim() || '1.0',
+        consentStatement: consentStatement.trim() || null,
+      });
+    } finally {
+      setSavingConsent(false);
+    }
+  };
+
   const handleAISave = async () => {
     setSavingAI(true);
     try {
@@ -96,8 +132,7 @@ export default function AdminSettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          platformName, supportEmail, biometricMode,
-          ...(anthropicApiKey.trim() ? { anthropicApiKey } : {}),
+          platformName, supportEmail,
           aiPromptTemplate,
         }),
       });
@@ -237,7 +272,7 @@ export default function AdminSettingsPage() {
                   type="email"
                   value={supportEmail}
                   onChange={e => setSupportEmail(e.target.value)}
-                  placeholder="support@compass.com"
+                  placeholder={SUPPORT_EMAIL}
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-sm text-slate-900 bg-white font-medium placeholder:text-slate-400 shadow-sm"
                 />
               </div>
@@ -471,6 +506,121 @@ export default function AdminSettingsPage() {
 
 
 
+          {/* ── Candidate Consent ────────────────────────────────── */}
+          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-.34-.014-.675-.041-1.007z"/>
+                </svg>
+                <h2 className="text-sm font-bold text-slate-900">Candidate Access &amp; Consent</h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 ml-6">
+                Shown at intake and on invitation links, and recorded against the sitting with the
+                exact wording the candidate agreed to. Editing the statement changes what the next
+                candidate sees and leaves every record already taken untouched.
+              </p>
+            </div>
+            <div className="p-5 space-y-5">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <span className="flex h-[44px] w-[24px] flex-shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={openIntakeEnabled}
+                    onChange={(e) => setOpenIntakeEnabled(e.target.checked)}
+                    className="h-[18px] w-[18px] rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-700">
+                    Allow uninvited candidates at /intake
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Off by default. With this on, anyone who finds the URL becomes a candidate
+                    inside a real employer account. Assessments are otherwise invitation-only, and
+                    strangers are sent to the practice sandbox.
+                  </span>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <span className="flex h-[44px] w-[24px] flex-shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={consentRequired}
+                    onChange={(e) => setConsentRequired(e.target.checked)}
+                    className="h-[18px] w-[18px] rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-700">
+                    Require consent before an assessment can start
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    On by default. With this off, candidates are not asked and no consent record is
+                    written — only switch it off if your counsel has told you to.
+                  </span>
+                </span>
+              </label>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Statement version
+                  <span className="ml-2 text-xs text-slate-400 font-normal">
+                    Bump this whenever the wording changes
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={consentPolicyVersion}
+                  maxLength={32}
+                  onChange={(e) => setConsentPolicyVersion(e.target.value)}
+                  placeholder="1.0"
+                  className="w-full sm:w-48 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm text-slate-900 bg-white shadow-sm min-h-[44px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Consent statement
+                  <span className="ml-2 text-xs text-slate-400 font-normal">
+                    (Optional — leave blank to use the default below)
+                  </span>
+                </label>
+                <textarea
+                  value={consentStatement}
+                  onChange={(e) => setConsentStatement(e.target.value)}
+                  rows={6}
+                  placeholder="Paste the wording your counsel approved…"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm resize-y text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
+                />
+                {consentDefault && (
+                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-600 mb-1">
+                      {consentStatement.trim() ? 'Built-in default (not in use)' : 'Currently shown to candidates'}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed">{consentDefault}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
+                <p className="text-xs text-slate-500">
+                  Consent records are listed on each candidate report and are removed with the
+                  sitting if a deletion request is actioned.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleConsentSave}
+                  disabled={savingConsent || saving}
+                  className="w-full sm:w-auto justify-center px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition disabled:opacity-50 inline-flex items-center min-h-[44px] whitespace-nowrap"
+                >
+                  {savingConsent ? 'Saving…' : 'Save consent settings'}
+                </button>
+              </div>
+            </div>
+          </section>
+
           {/* ── AI Backend Configuration ─────────────────────────── */}
           <section className="bg-white rounded-xl border border-violet-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-violet-100 bg-violet-50/50">
@@ -480,41 +630,13 @@ export default function AdminSettingsPage() {
                 </svg>
                 <h2 className="text-sm font-bold text-slate-900">AI Backend Configuration</h2>
               </div>
-              <p className="text-xs text-slate-500 mt-1 ml-6">Powers the background candidate tiering in the Coordinator View. Never runs during candidate sessions.</p>
+              <p className="text-xs text-slate-500 mt-1 ml-6">
+                Powers the background candidate tiering in the Coordinator View. Never runs during
+                candidate sessions, and never shown to the candidate.
+              </p>
             </div>
             <div className="p-5 space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Anthropic API Key
-                  <span className="ml-2 text-xs text-slate-400 font-normal">(sk-ant-...)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={anthropicApiKey}
-                    onChange={e => setAnthropicApiKey(e.target.value)}
-                    placeholder={apiKeyConfigured ? `Key set (ends ${apiKeyLast4 ?? '****'}) - type to replace` : 'sk-ant-api03-...'}
-                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showApiKey ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-400 mt-1">Your key is stored securely in the database. It is never sent to the candidate&apos;s browser.</p>
-              </div>
+              <AiProviderPanel canEdit={adminRole === 'SUPER_ADMIN'} />
 
               <div>
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-2">
@@ -527,7 +649,7 @@ export default function AdminSettingsPage() {
                       type="button"
                       onClick={() => {
                         const data = {
-                          prompt: `Evaluate the candidate's performance.\nCandidate: {{candidate_name}}\nRole: {{target_role}}\n\nMetrics:\n- Decisiveness: {{decisiveness}}/100\n- Risk Tolerance: {{risk_tolerance}}/100\n- Resource Preservation: {{resource_preservation}}/100\n- Avg Time: {{avg_time_ms}}ms\n\nBased on these metrics, provide a performance tier (e.g., HIGH, MEDIUM, LOW) and a brief rationale.`
+                          prompt: `Evaluate the candidate's performance.\nCandidate: {{candidate_name}}\nRole: {{role_title}}\nSimulation: {{package_name}}\n\nThe employer described the role as follows.\n{{job_context}}\n\nThe candidate attached this resume.\n{{resume}}\n\nDimension scores, normalised against what this simulation could measure:\n{{dimension_scores}}\n\nDecision log:\n{{decision_log}}\n\nTiming: {{avg_decision_ms}}ms average per decision, {{total_revisits}} option revisit(s).\n\nRespond with JSON only: { "tier": "TOP_TIER" | "MID_TIER" | "LOWER_TIER", "rationale": "..." }`
                         };
                         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                         const url = URL.createObjectURL(blob);
@@ -569,8 +691,8 @@ export default function AdminSettingsPage() {
                             } else {
                               setAiPromptTemplate(content);
                             }
-                          } catch (err) {
-                            alert("Failed to parse file.");
+                          } catch {
+                            alert("That file could not be read as a prompt template.");
                           }
                         };
                         reader.readAsText(file);
@@ -593,14 +715,14 @@ export default function AdminSettingsPage() {
                   value={aiPromptTemplate}
                   onChange={e => setAiPromptTemplate(e.target.value)}
                   rows={9}
-                  placeholder={`Available variables:\n{{candidate_name}}, {{target_role}}, {{intake_context}}, {{package_name}}\n{{decisiveness}}, {{risk_tolerance}}, {{resource_preservation}}\n{{avg_time_ms}}, {{total_switches}}, {{completed_at}}`}
+                  placeholder={`Available variables:\n{{candidate_name}}, {{role_title}}, {{package_name}}, {{completed_at}}\n{{job_context}}, {{resume}}, {{candidate_notes}}\n{{dimension_scores}}, {{decision_log}}\n{{avg_decision_ms}}, {{total_revisits}}\n\nDimension names come from the active scenario pack, so nothing here is tied\nto a particular taxonomy. An unrecognised {{token}} is left as written.`}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-sm font-mono resize-y text-slate-900 bg-white placeholder:text-slate-400 shadow-sm"
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 sm:pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500">
-                  Uses <strong className="text-violet-700">Claude 3 Haiku</strong> — fast, cost-effective batch model.
+                  The model and provider are set below. Nothing is sent to a provider until a key is saved.
                 </p>
                 <button
                   onClick={handleAISave}
@@ -628,12 +750,24 @@ export default function AdminSettingsPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-sm font-bold text-slate-900">Outbound Email</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                What would be sent, and why it is being held.
+              </p>
+            </div>
+            <div className="p-5">
+              <EmailQueuePanel />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
               <h2 className="text-sm font-bold text-slate-900">System Integrations</h2>
             </div>
             <div className="p-5 space-y-4">
               {[
-                { icon: '🗂️', label: 'Local File System', status: 'Active', detail: 'Resumes & Media assets', color: 'text-slate-500', bg: 'bg-slate-100' },
-                { icon: '🤖', label: 'Anthropic Claude', status: apiKeyConfigured ? 'Key Configured' : 'Key Not Set', detail: 'Background AI Tiering', color: apiKeyConfigured ? 'text-emerald-600' : 'text-amber-600', bg: apiKeyConfigured ? 'bg-emerald-50' : 'bg-amber-50' },
+                { icon: '🗂️', label: 'Vercel Blob', status: 'Active', detail: 'Resumes & media, uploaded direct from the browser', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { icon: '🤖', label: aiProviderLabel, status: aiKeyConfigured ? 'Key configured' : 'Key not set', detail: 'Background AI tiering', color: aiKeyConfigured ? 'text-emerald-600' : 'text-amber-600', bg: aiKeyConfigured ? 'bg-emerald-50' : 'bg-amber-50' },
                 { icon: '📄', label: 'react-pdf/renderer', status: 'Active', detail: 'Report Generation Engine', color: 'text-emerald-600', bg: 'bg-emerald-50' },
                 { icon: '🗄️', label: 'PostgreSQL', status: 'Connected', detail: 'Prisma ORM Managed', color: 'text-emerald-600', bg: 'bg-emerald-50' },
               ].map(item => (

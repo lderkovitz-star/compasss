@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ExternalScoresEditor from "@/components/ExternalScoresEditor";
+import { parseExternalScores, describeExternalScores, type ExternalScore } from "@/lib/external-scores";
 
 export default function CandidateDetailClient({ candidate }: { candidate: any }) {
   const router = useRouter();
@@ -12,6 +14,11 @@ export default function CandidateDetailClient({ candidate }: { candidate: any })
     targetRole: candidate.targetRole || "",
     hobbiesSkills: candidate.hobbiesSkills || "",
   });
+  // Normalised on read as well as on write: a profile saved before the rules
+  // tightened should still render.
+  const [externalScores, setExternalScores] = useState<ExternalScore[]>(() =>
+    parseExternalScores(candidate.externalScores)
+  );
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +32,7 @@ export default function CandidateDetailClient({ candidate }: { candidate: any })
       const res = await fetch(`/api/admin/candidates/${candidate.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, externalScores }),
       });
 
       if (!res.ok) throw new Error("Failed to update candidate");
@@ -130,6 +137,11 @@ export default function CandidateDetailClient({ candidate }: { candidate: any })
               onChange={(e) => setForm({ ...form, hobbiesSkills: e.target.value })}
             />
           </div>
+          <ExternalScoresEditor
+            value={externalScores}
+            onChange={setExternalScores}
+            disabled={loading}
+          />
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -170,6 +182,18 @@ export default function CandidateDetailClient({ candidate }: { candidate: any })
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Background / Skills</p>
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{candidate.hobbiesSkills}</p>
+            </div>
+          )}
+          {externalScores.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">External scores</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {describeExternalScores(externalScores)}
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Measured outside this platform. Shown to the AI as separate evidence from the
+                simulation, never blended with it.
+              </p>
             </div>
           )}
         </div>

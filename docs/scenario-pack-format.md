@@ -76,6 +76,18 @@ The scale is yours, as long as it is consistent within a pack. A pack scored
 −10…+10 and a pack scored 0…100 both work, because normalisation is computed
 per dimension from the range the pack itself makes achievable.
 
+### Give every dimension enough coverage
+
+A dimension is only as reliable as the number of scenarios that can move it.
+If one scenario is the only place a dimension is scored, the candidate's result
+on it is a single choice - they will score 0 or 100 and nothing in between.
+
+Reports show the count next to any dimension drawn from fewer than three
+scenarios, and leave those out of the headline figure, so a thinly covered
+dimension is visible rather than misleading. Aim to score each dimension you
+declare across a good spread of the pack; drop the ones you do not want to
+measure rather than declaring them and scoring them once.
+
 If a pack needs dimensions that do not exist yet, declare them:
 
 ```json
@@ -110,3 +122,99 @@ anything is written. Nothing is saved until the preview is accepted.
 
 A newly imported pack is not live until it is assigned: to the public sandbox,
 as the global client default, or to a specific client account.
+
+---
+
+## Authoring a pack with an LLM
+
+JSON is the format to target. CSV exists for packs that start life in a
+spreadsheet, but it flattens to one row per option and cannot express a
+scenario cleanly, so a model writing a pack from scratch should emit JSON.
+
+Paste the prompt below and replace the three bracketed lines. It states the
+constraints the importer actually enforces, which is what keeps a generated
+pack from being rejected on upload.
+
+````text
+You are authoring a behavioural assessment pack as a single JSON document.
+
+SUBJECT: [what the pack assesses, e.g. "fleet crisis command for naval officers"]
+SCENARIOS: [how many, e.g. 50]
+TRAITS: [the trait codes this pack measures, e.g. RISK_TOLERANCE, DECISION_VELOCITY,
+         TEAM_FOCUS, RESOURCE_STEWARDSHIP, SYSTEMS_THINKING]
+
+Output one JSON object and nothing else. No prose, no markdown fence.
+
+{
+  "package": {
+    "name": "Human readable name",
+    "code": "UPPER_SNAKE_CASE_UNIQUE",
+    "description": "One sentence.",
+    "version": "1.0.0"
+  },
+  "dimensions": [
+    { "code": "RISK_TOLERANCE", "name": "Risk Tolerance", "category": "Decision Style" }
+  ],
+  "scenarios": [
+    {
+      "sequenceOrder": 1,
+      "externalRef": "PACK-001",
+      "title": "Short scenario name",
+      "narrativeText": "The situation the candidate reads. At least 40 characters, and in practice two to five sentences.",
+      "decisionPoint": "The question itself.",
+      "timeLimitSec": 90,
+      "options": [
+        {
+          "label": "A",
+          "title": "Short name for the choice",
+          "text": "The choice as the candidate reads it.",
+          "scores": { "RISK_TOLERANCE": 8, "DECISION_VELOCITY": 5 }
+        }
+      ]
+    }
+  ]
+}
+
+RULES
+- Trait codes: A-Z, digits and underscores, starting with a letter, 2 to 49
+  characters. Use exactly the codes listed under TRAITS and no others.
+- Declare every code once in "dimensions". A code that appears only in a score
+  is still imported, but it will be named from the code rather than by you.
+- Every scenario needs at least 2 options. Four is usual; more is allowed.
+- Every option needs a "scores" object with at least one trait in it. Score
+  three or four traits per option, not all of them.
+- Weights are integers from -10 to 10. Negative means the choice counts
+  against that trait, and negatives are what make a pack discriminate -- a
+  pack where every weight is positive measures almost nothing.
+- Within one scenario, the options must differ on the traits being measured.
+  If every option scores a trait the same, that scenario cannot tell anything
+  about it and the trait is excluded from the result.
+- Each trait should be moved by at least 3 scenarios across the pack. Fewer
+  and the report marks it as thin evidence.
+- "sequenceOrder" is unique and consecutive from 1.
+- "externalRef" is unique and stable. It is how a re-upload updates a scenario
+  in place instead of duplicating it.
+- No option may be obviously correct. Each should be defensible, and the
+  difference between them should be what the candidate values, not what they
+  know.
+````
+
+### Before you upload
+
+The importer runs a dry run first and writes nothing until you confirm. It
+reports the scenario, option and score counts, which trait codes are new, the
+weight range it found, and every problem with the row it came from. A pack
+with errors cannot be imported; warnings import as they are.
+
+Two things worth checking on that preview rather than afterwards:
+
+- **New traits.** The preview lists codes the platform has not seen before.
+  One unexpected entry usually means a typo — `RISK_TOLERENCE` imports happily
+  as a new trait and quietly splits your data across two.
+- **Weight range.** If it reads `0 to 10`, the model ignored the instruction
+  about negatives, and the pack will separate candidates far less than it looks
+  like it should.
+
+Scales do not need to match between packs. Scoring normalises each trait
+against the range that pack makes achievable, so a -10..10 pack and a 0..100
+pack both produce comparable 0-100 results.

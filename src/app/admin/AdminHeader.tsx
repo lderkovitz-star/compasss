@@ -6,15 +6,16 @@ import { useRouter, usePathname } from 'next/navigation';
 
 const PAGE_TITLES: Record<string, { title: string; desc: string }> = {
   '/admin': { title: 'Operational Overview', desc: 'Real-time assessment metrics and system health' },
-  '/admin/reports': { title: 'Assessment Reports', desc: 'View and analyze candidate session results' },
+  '/admin/reports': { title: 'Admin Ledger', desc: 'View and analyze candidate session results' },
   '/admin/packages': { title: 'Scenario Packages', desc: 'Manage and configure assessment packages' },
   '/admin/scenarios': { title: 'Scenarios', desc: 'Build and manage assessment scenarios' },
   '/admin/settings': { title: 'System Settings', desc: 'Configure platform behavior and integrations' },
   '/admin/admins': { title: 'Admins & Team', desc: 'Manage administrator accounts and roles' },
   '/admin/profile': { title: 'My Profile', desc: 'Update your account information' },
   '/admin/clients': { title: 'Client Accounts', desc: 'Employer workspaces, access keys and package assignment' },
-  '/admin/candidates': { title: 'Candidates', desc: 'Candidate records and assessment history' },
+  '/admin/candidates': { title: 'Candidate View', desc: 'Candidate records and assessment history' },
   '/admin/coordinator': { title: 'Coordinator View', desc: 'Trait scores, human overrides and AI tiering' },
+  '/admin/talent': { title: 'Talent Registry', desc: 'Platform-wide candidates and archetype comparison' },
 };
 
 interface AdminHeaderProps {
@@ -51,7 +52,7 @@ export default function AdminHeader({ adminEmail, adminName, adminRole, adminIma
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin-login');
+    router.push('/admin');
     router.refresh();
   }
 
@@ -88,11 +89,11 @@ export default function AdminHeader({ adminEmail, adminName, adminRole, adminIma
         {/* Mobile Hamburger Toggle Button */}
         <button
           onClick={onMenuToggle}
-          className="lg:hidden p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors focus:outline-none flex-shrink-0"
+          className="lg:hidden h-11 w-11 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 active:bg-slate-200 transition-colors focus:outline-none flex-shrink-0"
           title="Open Menu"
           aria-label="Open Navigation Menu"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
