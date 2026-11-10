@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ClientAccessGate from '@/components/ClientAccessGate';
 import { getGlobalSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { resolveBrandName } from "@/lib/constants/brand";
@@ -89,7 +90,7 @@ export default async function Home() {
             </div>
           </Link>
           <div className="flex items-center flex-shrink-0">
-            <Link href="/intake" className="min-h-[44px] bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
+            <Link href="/practice" className="min-h-[44px] bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
               Begin assessment &rarr;
             </Link>
           </div>
@@ -365,7 +366,7 @@ export default async function Home() {
         <h2 className="text-2xl sm:text-[28px] md:text-[38px] font-semibold tracking-tight text-white max-w-[600px] mx-auto leading-[1.15]">Ready to see how a candidate performs under pressure?</h2>
         <p className="mt-3 sm:mt-4 text-[#97A2BE] text-sm sm:text-[15px]">Set up takes minutes. The report writes itself.</p>
         <div className="flex flex-wrap items-center justify-center gap-3.5 mt-6 sm:mt-9">
-          <Link href="/intake" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-colors">
+          <Link href="/practice" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-colors">
             Start candidate assessment
           </Link>
         </div>
@@ -375,7 +376,13 @@ export default async function Home() {
       <footer className="border-t border-white/10 py-6 sm:py-7">
         <div className="max-w-[1180px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs sm:text-[12.5px] text-[#5B6580] text-center sm:text-left">
           <span>© 2026 {resolveBrandName(settings.platformName)}</span>
-          <span className={plexMono.className}>v2.0 — executive platform</span>
+          <div className="flex items-center gap-4">
+            {/* Staff entrance. Deliberately plain: a candidate reads past it,
+                and the protection is the rate-limited check behind it rather
+                than the link being hard to find. */}
+            <ClientAccessGate />
+            <span className={plexMono.className}>v2.0 — executive platform</span>
+          </div>
         </div>
       </footer>
     </div>

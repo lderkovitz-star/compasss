@@ -68,6 +68,7 @@ export async function PUT(req: NextRequest) {
       consentRequired,
       consentPolicyVersion,
       consentStatement,
+      openIntakeEnabled,
     } = body;
 
     const updateData: Record<string, unknown> = {};
@@ -83,6 +84,9 @@ export async function PUT(req: NextRequest) {
     // record, so editing it here changes what the next candidate sees and
     // leaves every record already taken untouched. Blanking it restores the
     // built-in default rather than showing a candidate an empty statement.
+    if (openIntakeEnabled !== undefined) {
+      updateData.openIntakeEnabled = Boolean(openIntakeEnabled);
+    }
     if (consentRequired !== undefined) updateData.consentRequired = Boolean(consentRequired);
     if (consentStatement !== undefined) {
       const text = typeof consentStatement === 'string' ? consentStatement.trim() : '';
