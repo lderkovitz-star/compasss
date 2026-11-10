@@ -10,6 +10,20 @@ export const dynamic = 'force-dynamic';
 const SUPERUSER = ['SUPER_ADMIN'] as const;
 
 /**
+ * Whether a key can actually be resolved for this provider.
+ *
+ * `apiKeyEnvVar` is seeded on every row, so testing the column alone reports
+ * a key as configured on a deployment that has none - the panel then offers
+ * "Saved" and an enabled Test button, and the first real failure is a
+ * provider error nobody can place. The variable has to actually hold
+ * something to count.
+ */
+function hasResolvableKey(cipher: string | null, envVar: string | null): boolean {
+  if (cipher) return true;
+  return Boolean(envVar && process.env[envVar]?.trim());
+}
+
+/**
  * The provider panel.
  *
  * No response from here ever contains an API key. A saved key is reported as
@@ -38,7 +52,7 @@ export async function GET() {
       baseUrl: p.baseUrl,
       maxTokens: p.maxTokens,
       isEnabled: p.isEnabled,
-      keyConfigured: Boolean(p.apiKeyCipher) || Boolean(p.apiKeyEnvVar),
+      keyConfigured: hasResolvableKey(p.apiKeyCipher, p.apiKeyEnvVar),
       keyLast4: p.apiKeyLast4,
       lastTestedAt: p.lastTestedAt,
       lastTestError: p.lastTestError,
@@ -70,7 +84,7 @@ export async function PATCH(req: NextRequest) {
           { status: 400 }
         );
       }
-      if (!exists.apiKeyCipher && !exists.apiKeyEnvVar) {
+      if (!hasResolvableKey(exists.apiKeyCipher, exists.apiKeyEnvVar)) {
         return NextResponse.json(
           { error: `Save an API key for ${exists.label} before making it live.` },
           { status: 400 }
@@ -192,7 +206,7 @@ export async function PATCH(req: NextRequest) {
         baseUrl: saved.baseUrl,
         maxTokens: saved.maxTokens,
         isEnabled: saved.isEnabled,
-        keyConfigured: Boolean(saved.apiKeyCipher) || Boolean(saved.apiKeyEnvVar),
+        keyConfigured: hasResolvableKey(saved.apiKeyCipher, saved.apiKeyEnvVar),
         keyLast4: saved.apiKeyLast4,
       },
     });
