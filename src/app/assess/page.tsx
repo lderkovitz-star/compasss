@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
 import { getPublicSettings } from '@/lib/settings';
+import { getConsentPolicy } from '@/lib/consent';
 import AssessInviteClient from './AssessInviteClient';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function AssessPage({
   searchParams: { token?: string };
 }) {
   const token = searchParams.token;
-  const settings = await getPublicSettings();
+  const [settings, consent] = await Promise.all([getPublicSettings(), getConsentPolicy()]);
 
   if (!isWellFormedInviteToken(token)) {
     return (
@@ -84,6 +85,9 @@ export default async function AssessPage({
       platformName={settings.platformName}
       resuming={Boolean(invite.sessionId)}
       uploadPrefix={`tenants/${invite.clientAccountId}/resumes`}
+      consentStatement={consent.statement}
+      consentVersion={consent.version}
+      consentRequired={consent.required}
     />
   );
 }

@@ -5,6 +5,7 @@ import { resolveScenarioOrder, loadScenariosInOrder } from '@/lib/session-scenar
 import { getGlobalSettings } from '@/lib/settings';
 import { recordRegistryEntry } from '@/lib/talent-registry';
 import { queueEmail } from '@/lib/email';
+import { dispatchCompletionWebhook } from '@/lib/webhook';
 
 // GET — fetch current blind scenario (no scores, no dimension data)
 export async function GET(
@@ -209,6 +210,22 @@ export async function POST(
               },
             });
           }
+
+          // Machine-readable twin of the notification above, for an
+          // evaluator's own dashboard. Awaited so a serverless function does
+          // not exit before the call goes out, but it cannot fail the
+          // request: dispatchCompletionWebhook never throws, and the
+          // in-app notification has already been written either way.
+          await dispatchCompletionWebhook(session.clientAccountId, {
+            event: 'assessment.completed',
+            sessionId,
+            candidateName: session.user?.name ?? null,
+            candidateEmail: session.user?.email ?? null,
+            packageName: session.package?.name ?? null,
+            roleTitle: session.user?.targetRole ?? null,
+            completedAt: new Date().toISOString(),
+            reportUrl: `${req.nextUrl.origin}/employer/reports/${sessionId}`,
+          });
         }
       }
 

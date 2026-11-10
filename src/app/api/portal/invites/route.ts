@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireClient } from '@/lib/portal-auth';
 import { generateInviteToken, buildInviteUrl } from '@/lib/invite-token';
 import { queueEmail } from '@/lib/email';
+import { assertSeatAvailable, SeatLimitError, getSeatUsage } from '@/lib/seats';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,18 @@ export async function POST(req: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateEmail)) {
       return NextResponse.json({ error: 'A valid candidate email is required.' }, { status: 400 });
     }
+
+    // Seats are checked before anything is written. Placed after this point it
+    // would still refuse correctly, but the job context created below would
+    // already exist - a refused request would quietly leave a row behind every
+    // time an employer hit their limit.
+    //
+    // Two requests arriving together can both see the last seat free, since
+    // this is a count rather than a lock. The limit is a commercial cap rather
+    // than a security boundary, and an employer issuing invitations by hand
+    // does not race themselves, so the window is left rather than paid for
+    // with a lock on every invitation.
+    await assertSeatAvailable(portal.clientAccountId);
 
     // Job context: either an existing one belonging to this account, or a new
     // one from the pasted description. The candidate never sees this - it is
@@ -195,8 +208,19 @@ export async function POST(req: NextRequest) {
     });
 
     // The only time the raw token is readable.
-    return NextResponse.json({ invite, url }, { status: 201 });
+    return NextResponse.json(
+      { invite, url, seats: await getSeatUsage(portal.clientAccountId) },
+      { status: 201 }
+    );
   } catch (error) {
+    // A seat limit is a known, actionable refusal rather than a fault, so it
+    // carries its own message and the figures behind it.
+    if (error instanceof SeatLimitError) {
+      return NextResponse.json(
+        { error: error.message, seats: error.usage },
+        { status: 409 }
+      );
+    }
     console.error('[invites POST]', error);
     return NextResponse.json({ error: 'Failed to generate the invite link.' }, { status: 500 });
   }

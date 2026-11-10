@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadResume, RESUME_MAX_BYTES } from '@/lib/upload-resume';
+import ConsentCheckbox from '@/components/ConsentCheckbox';
 
 export default function AssessInviteClient({
   token,
@@ -13,6 +14,9 @@ export default function AssessInviteClient({
   platformName,
   resuming,
   uploadPrefix,
+  consentStatement,
+  consentVersion,
+  consentRequired,
 }: {
   token: string;
   companyName: string;
@@ -23,6 +27,9 @@ export default function AssessInviteClient({
   resuming: boolean;
   /** Where this candidate's upload is allowed to land; checked server-side. */
   uploadPrefix: string;
+  consentStatement: string;
+  consentVersion: string;
+  consentRequired: boolean;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -32,6 +39,13 @@ export default function AssessInviteClient({
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [consent, setConsent] = useState(false);
+  // Someone coming back to an assessment already in progress consented when
+  // they started it, so asking again would be noise. If the server disagrees -
+  // the only way it can is if there turned out to be no sitting to resume, in
+  // which case this is a fresh start - the control is revealed rather than
+  // leaving an error on screen with nothing to act on.
+  const [needsConsent, setNeedsConsent] = useState(consentRequired && !resuming);
 
   function handleFile(f: File | null) {
     if (!f) return;
@@ -55,6 +69,10 @@ export default function AssessInviteClient({
 
   async function begin() {
     setError('');
+    if (needsConsent && !consent) {
+      setError('Please confirm the consent statement to continue.');
+      return;
+    }
     setLoading(true);
 
     const controller = new AbortController();
@@ -75,7 +93,7 @@ export default function AssessInviteClient({
       const res = await fetch('/api/assess/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, resumeDocumentId }),
+        body: JSON.stringify({ token, resumeDocumentId, consentAccepted: consent }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -87,6 +105,9 @@ export default function AssessInviteClient({
         // Fall through to the status-based message below.
       }
 
+      if (res.status === 400 && json.error?.toLowerCase().includes('consent')) {
+        setNeedsConsent(true);
+      }
       if (!res.ok) throw new Error(json.error || `Could not start the assessment (HTTP ${res.status}).`);
       if (!json.sessionId) throw new Error('Assessment session could not be created.');
 
@@ -210,6 +231,18 @@ export default function AssessInviteClient({
               Your resume is read alongside the role requirements {companyName} provided, to give
               context to your results.
             </p>
+          </div>
+        )}
+
+        {needsConsent && (
+          <div className="mt-5">
+            <ConsentCheckbox
+              statement={consentStatement}
+              version={consentVersion}
+              checked={consent}
+              onChange={setConsent}
+              disabled={loading}
+            />
           </div>
         )}
 

@@ -9,6 +9,7 @@ import {
   type EvaluationInput,
 } from './prompt';
 import { ProviderError, type CandidateTier } from './types';
+import { parseExternalScores, describeExternalScores } from '../external-scores';
 
 export type Evaluation = {
   tier: CandidateTier;
@@ -39,7 +40,13 @@ export async function evaluateSession(
       completedAt: true,
       traitScores: true,
       user: {
-        select: { name: true, targetRole: true, hobbiesSkills: true, resumeText: true },
+        select: {
+          name: true,
+          targetRole: true,
+          hobbiesSkills: true,
+          resumeText: true,
+          externalScores: true,
+        },
       },
       package: { select: { name: true } },
       jobContext: { select: { title: true, descriptionText: true } },
@@ -111,6 +118,7 @@ export async function evaluateSession(
     // the candidate record from an earlier one.
     resumeText: session.resumeDocument?.parsedText ?? session.user?.resumeText ?? null,
     candidateNotes: session.user?.hobbiesSkills ?? null,
+    externalScores: describeExternalScores(parseExternalScores(session.user?.externalScores)),
     dimensions: session.finalScores.map((s) => ({
       name: s.dimension.name,
       score: s.finalScore,
