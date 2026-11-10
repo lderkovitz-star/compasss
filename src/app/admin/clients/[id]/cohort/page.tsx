@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { getCurrentAdmin } from '@/lib/auth';
 import CohortWorkbench from '@/components/CohortWorkbench';
+import EvaluatorAskBox from '@/components/EvaluatorAskBox';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -29,7 +30,7 @@ export default async function AdminCompanyCohortPage({
   });
   if (!account) notFound();
 
-  const [contexts, completed] = await Promise.all([
+  const [contexts, completed, askable] = await Promise.all([
     prisma.jobContext.findMany({
       where: { clientAccountId: account.id, isArchived: false },
       orderBy: { createdAt: 'desc' },
@@ -37,6 +38,16 @@ export default async function AdminCompanyCohortPage({
     }),
     prisma.assessmentSession.count({
       where: { clientAccountId: account.id, kind: 'OFFICIAL', status: 'COMPLETED' },
+    }),
+    prisma.assessmentSession.findMany({
+      where: { clientAccountId: account.id, kind: 'OFFICIAL', status: 'COMPLETED' },
+      orderBy: { completedAt: 'desc' },
+      take: 24,
+      select: {
+        id: true,
+        user: { select: { name: true } },
+        jobContext: { select: { title: true } },
+      },
     }),
   ]);
 
@@ -59,6 +70,25 @@ export default async function AdminCompanyCohortPage({
           reportBase="/admin/reports"
         />
       </div>
+
+      <section className="mt-6 card card-p">
+        <h2 className="text-sm font-bold text-slate-900">Ask about {account.name}&rsquo;s candidates</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Answered from the simulation records — decisions, timing, dimension scores and any
+          external scores on file. Scoped to this account; every question is audited.
+        </p>
+        <div className="mt-5">
+          <EvaluatorAskBox
+            endpoint="/api/admin/ask"
+            clientAccountId={account.id}
+            candidates={askable.map((s) => ({
+              sessionId: s.id,
+              name: s.user?.name ?? 'Unnamed candidate',
+              roleTitle: s.jobContext?.title ?? null,
+            }))}
+          />
+        </div>
+      </section>
     </main>
   );
 }

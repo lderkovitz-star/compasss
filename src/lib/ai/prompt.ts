@@ -41,6 +41,8 @@ export type DimensionRecord = {
 
 export type EvaluationInput = {
   candidateName: string;
+  /** Already rendered by describeExternalScores; see src/lib/external-scores.ts. */
+  externalScores?: string;
   packageName: string;
   completedAt: string;
   roleTitle: string | null;
@@ -132,6 +134,10 @@ The candidate attached this resume.
 Anything else the candidate submitted about themselves:
 {{candidate_notes}}
 
+Scores recorded outside this simulation, if any. These measure different
+things from the simulation and must not be blended with it into one claim:
+{{external_scores}}
+
 Dimension scores, normalised against what this simulation could measure:
 {{dimension_scores}}
 
@@ -163,6 +169,11 @@ export function buildEvaluationPrompt(
     job_context: fence('job_context', input.jobContext, 'No role description was provided.'),
     resume: fence('resume', input.resumeText, 'No readable resume was attached.'),
     candidate_notes: fence('candidate_notes', input.candidateNotes, 'Nothing provided.'),
+    external_scores: fence(
+      'external_scores',
+      input.externalScores ?? null,
+      'None on file.'
+    ),
     dimension_scores: describeDimensions(input.dimensions),
     decision_log: describeDecisions(input.decisions),
     avg_decision_ms: String(Math.round(input.avgDecisionMs)),

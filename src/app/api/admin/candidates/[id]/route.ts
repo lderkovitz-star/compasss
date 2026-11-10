@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
+import { parseExternalScores } from '@/lib/external-scores';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireAdmin();
@@ -38,6 +39,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         email: data.email,
         targetRole: data.targetRole,
         hobbiesSkills: data.hobbiesSkills,
+        // Normalised rather than stored as sent. The column is schemaless;
+        // what goes into it is not. Omitting the field leaves it alone, and
+        // an empty array clears it.
+        ...(data.externalScores !== undefined
+          ? { externalScores: parseExternalScores(data.externalScores) }
+          : {}),
       }
     });
     return NextResponse.json(candidate);
