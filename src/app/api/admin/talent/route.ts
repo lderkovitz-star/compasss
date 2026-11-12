@@ -7,6 +7,7 @@ import {
   HIGH_SIGNAL_PERCENTILE,
   rankRegistry,
 } from '@/lib/talent-registry';
+import { VECTOR_DIMENSIONS, countWithoutVector, searchRegistryByVector } from '@/lib/registry-vectors';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,42 +59,51 @@ export async function GET(req: NextRequest) {
   if (query) {
     try {
       const { embed, cosineSimilarity } = await import('@/lib/ai/embeddings');
-      const embedded = await prisma.talentRegistryEntry.findMany({
-        where: { source, NOT: { embedding: { equals: Prisma.DbNull } } },
-        select: { id: true, embedding: true, embeddingModel: true },
-      });
+      const { vectors, model } = await embed([query]);
+      const target = vectors[0];
+      let matches: { id: string; similarity: number }[] = [];
+      let unsearchable = 0;
 
-      if (embedded.length > 0) {
-        const { vectors, model } = await embed([query]);
-        const target = vectors[0];
-        const scores = new Map<string, number>();
-
-        for (const row of embedded) {
+      if (target.length === VECTOR_DIMENSIONS) {
+        // pgvector: the database returns the nearest entries by cosine
+        // distance, so no candidate's vector has to leave it.
+        matches = await searchRegistryByVector(source, target, model, PAGE_SIZE);
+        unsearchable = await countWithoutVector(source);
+      } else {
+        // A model of another size has no vector column; compare the JSON
+        // copies here, as before.
+        const embedded = await prisma.talentRegistryEntry.findMany({
+          where: { source, NOT: { embedding: { equals: Prisma.DbNull } } },
+          select: { id: true, embedding: true, embeddingModel: true },
+        });
+        matches = embedded
           // Vectors from different models are not comparable.
-          if (row.embeddingModel && row.embeddingModel !== model) continue;
-          const vector = row.embedding as unknown as number[];
-          if (!Array.isArray(vector)) continue;
-          scores.set(row.id, cosineSimilarity(target, vector));
-        }
+          .filter((row) => (!row.embeddingModel || row.embeddingModel === model) && Array.isArray(row.embedding))
+          .map((row) => ({ id: row.id, similarity: cosineSimilarity(target, row.embedding as unknown as number[]) }))
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, PAGE_SIZE);
+        unsearchable = await prisma.talentRegistryEntry.count({
+          where: { source, embedding: { equals: Prisma.DbNull } },
+        });
+      }
 
-        if (scores.size > 0) {
-          const ids = Array.from(scores.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, PAGE_SIZE)
-            .map(([id]) => id);
-          semantic = { ids, scores };
-          searchMode = 'similarity';
-          const unembedded = await prisma.talentRegistryEntry.count({
-            where: { source, embedding: { equals: Prisma.DbNull } },
-          });
-          if (unembedded > 0) {
-            searchNote = `${unembedded} entr${unembedded === 1 ? 'y has' : 'ies have'} no embedding yet and were not included in the similarity search.`;
-          }
+      if (matches.length > 0) {
+        semantic = { ids: matches.map((m) => m.id), scores: new Map(matches.map((m) => [m.id, m.similarity])) };
+        searchMode = 'similarity';
+        if (unsearchable > 0) {
+          searchNote = `${unsearchable} entr${unsearchable === 1 ? 'y has' : 'ies have'} no embedding yet and ${unsearchable === 1 ? 'was' : 'were'} not included in the similarity search.`;
         }
+      } else {
+        searchNote = 'No entries in this registry have embeddings yet, so this matched on words.';
       }
     } catch (error) {
+      // Not set up is explained by the error itself; anything else (the
+      // embeddings provider down, a bad key) says what went wrong.
+      const { EmbeddingsUnavailable } = await import('@/lib/ai/embeddings');
       searchNote =
-        error instanceof Error ? error.message : 'Similarity search was unavailable; matched on words instead.';
+        error instanceof EmbeddingsUnavailable
+          ? error.message
+          : `Similarity search failed (${error instanceof Error ? error.message : 'unknown error'}), so this matched on words.`;
     }
   }
 

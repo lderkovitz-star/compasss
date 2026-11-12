@@ -94,6 +94,9 @@ export async function recordRegistryEntry(sessionId: string): Promise<void> {
         where: { id: saved.id },
         data: { embedding: vectors[0] as never, embeddingModel: model, embeddedAt: new Date() },
       });
+      // The copy the database searches with pgvector.
+      const { storeEmbeddingVector } = await import('./registry-vectors');
+      await storeEmbeddingVector(saved.id, vectors[0]);
     }
   } catch {
     // Left unembedded; the search falls back and says so.
