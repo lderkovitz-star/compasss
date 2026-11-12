@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { computeAndStoreScoreSnapshot, computeFinalScores, DecisionEvent } from '@/lib/scoring';
+import { computeFinalScores, DecisionEvent } from '@/lib/scoring';
 import { resolveScenarioOrder, loadScenariosInOrder } from '@/lib/session-scenarios';
+import { cleanClientTiming, markScenarioServed, recordAnswer } from '@/lib/telemetry';
 import { getGlobalSettings } from '@/lib/settings';
 import { recordRegistryEntry } from '@/lib/talent-registry';
 import { queueEmail } from '@/lib/email';
@@ -70,6 +71,10 @@ export async function GET(
 
     const settings = await getGlobalSettings();
 
+    // The decision clock starts here, on the server, the first time this
+    // scenario is served. A reload does not restart it.
+    await markScenarioServed(sessionId, nextScenario.id);
+
     // ⚠️ BLIND UI RULE: return ONLY narrative text, options, timer, total count — NO scores, NO dimensions
     return NextResponse.json({
       id: nextScenario.id,
@@ -104,11 +109,22 @@ export async function POST(
   const sessionId = params.id;
 
   try {
-    const body = await req.json();
-    const { optionId, timeSpentMs, decisionPath } = body as {
+    // An unreadable body is the sender's mistake, not a server failure: 400,
+    // so the page does not treat it as worth retrying.
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'The request body must be JSON.' }, { status: 400 });
+    }
+    const { optionId, timeSpentMs, decisionPath, eventId, timing } = body as {
       optionId: string;
-      timeSpentMs: number;
+      // Sent by pages from before server-side timing; used only when this
+      // scenario has no server start time.
+      timeSpentMs?: number;
       decisionPath?: DecisionEvent[];
+      // One id per answer; a retry of the same answer repeats it.
+      eventId?: string;
+      // The page's own performance.now() measurements, kept to cross-check.
+      timing?: unknown;
     };
 
     if (!optionId) {
@@ -132,31 +148,24 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid option for this session.' }, { status: 400 });
     }
 
-    // Ensure we don't already have a response for this scenario to prevent duplicates
-    const existingResponse = await prisma.response.findFirst({
-      where: { sessionId, scenarioId: option.scenarioId }
+    // Stored once, timed by the server, scored server-side (scores are never
+    // returned to the client). A second copy of the same answer - a retry, a
+    // second tab - waits for the first and is then recognised, so it can no
+    // longer be stored twice or move progress twice.
+    const outcome = await recordAnswer({
+      sessionId,
+      scenarioId: option.scenarioId,
+      optionId,
+      clientEventId: typeof eventId === 'string' && eventId.length > 0 && eventId.length <= 64 ? eventId : null,
+      client: cleanClientTiming(timing),
+      legacyTimeSpentMs: typeof timeSpentMs === 'number' ? timeSpentMs : null,
+      decisionPath,
     });
-    
-    if (existingResponse) {
-      // Race condition caught: quietly accept to avoid crashing frontend, but don't duplicate
+
+    if (outcome.duplicate) {
+      // Quietly accepted so the page moves on, but nothing is stored again.
       return NextResponse.json({ success: true, duplicateIgnored: true });
     }
-
-    // Run server-side scoring with full telemetry capture
-    // Scores NEVER returned to client
-    await computeAndStoreScoreSnapshot(
-      sessionId,
-      option.scenarioId,
-      optionId,
-      timeSpentMs || 0,
-      decisionPath
-    );
-
-    // Update session progress
-    await prisma.assessmentSession.update({
-      where: { id: sessionId },
-      data: { currentScenarioIdx: { increment: 1 } },
-    });
 
     // Was that the last one? Counted from the same frozen list the GET side
     // serves, or the two can disagree - and if this side thinks there are
