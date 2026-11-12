@@ -582,11 +582,15 @@ model TalentRegistryEntry {
   /// mean anything - see the 30 entry floor in the ranking job.
   isHighSignal   Boolean           @default(false) @map("is_high_signal")
   rankedAt       DateTime?         @map("ranked_at")
-  /// Embedding of this candidate's searchable text, for similarity search.
-  /// Stored as a plain array rather than a vector column so no database
-  /// extension is required; cohorts here are small enough that comparing in
-  /// memory costs less than the operational weight of pgvector.
+  /// Embedding of this candidate's searchable text, as a plain array. Kept for
+  /// models whose vectors are not 1536 long, which are compared in memory.
   embedding      Json?
+  /// The same embedding as a pgvector column, sized for the default model
+  /// (text-embedding-3-small, 1536 dimensions). Similarity search runs in the
+  /// database on this column with cosine distance, so a search no longer
+  /// loads every candidate's vector into the app. Read and written with raw
+  /// SQL (lib/registry-vectors.ts): Prisma has no vector type.
+  embeddingVector Unsupported("vector(1536)")? @map("embedding_vector")
   embeddingModel String?           @map("embedding_model")
   embeddedAt     DateTime?         @map("embedded_at")
   createdAt      DateTime          @default(now()) @map("created_at")
