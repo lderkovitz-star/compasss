@@ -7,6 +7,11 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // Nothing renders next/image, so the built-in optimizer behind
+    // /_next/image is attack surface with no use. Two critical RCE advisories
+    // against it are fixed only in Next 15.5+, not in 14.2.x. With this set,
+    // /_next/image answers 404. Remove it when something needs next/image.
+    unoptimized: true,
     remotePatterns: [],
   },
   async headers() {
