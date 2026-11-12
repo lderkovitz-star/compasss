@@ -23,6 +23,7 @@
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^5.22.0",
     "@react-pdf/renderer": "^4.6.0",
+    "@upstash/qstash": "^2.12.1",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "exceljs": "^4.4.0",
