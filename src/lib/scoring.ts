@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from './db';
 
 /**
@@ -72,33 +73,51 @@ export function computeDeterministicTraits(
   return { decisiveness, riskTolerance, resourcePreservation };
 }
 
+/** Server timing and telemetry stored with an answer (see lib/telemetry.ts). */
+export type AnswerRecord = {
+  startedAt?: Date;
+  clientEventId?: string | null;
+  serverElapsedMs?: number | null;
+  hiddenMs?: number | null;
+  tabSwitches?: number | null;
+  telemetry?: Prisma.InputJsonValue;
+};
+
 export async function computeAndStoreScoreSnapshot(
   sessionId: string,
   scenarioId: string,
   optionId: string,
   timeSpentMs: number,
-  decisionPath?: DecisionEvent[]
+  decisionPath?: DecisionEvent[],
+  record: AnswerRecord = {},
+  // Pass a transaction client to store the answer and its scores atomically.
+  db: Prisma.TransactionClient = prisma
 ) {
   // Store the response with decision path telemetry
-  await prisma.response.create({
+  await db.response.create({
     data: {
       sessionId,
       scenarioId,
       optionId,
       timeSpentMs,
-      startedAt: new Date(Date.now() - timeSpentMs),
+      startedAt: record.startedAt ?? new Date(Date.now() - timeSpentMs),
       decisionPath: decisionPath ? (decisionPath as any) : undefined,
+      clientEventId: record.clientEventId ?? undefined,
+      serverElapsedMs: record.serverElapsedMs ?? undefined,
+      hiddenMs: record.hiddenMs ?? undefined,
+      tabSwitches: record.tabSwitches ?? undefined,
+      telemetry: record.telemetry ?? undefined,
     },
   });
 
   // Get all dimension scores for chosen option
-  const optionScores = await prisma.optionScore.findMany({
+  const optionScores = await db.optionScore.findMany({
     where: { optionId },
     include: { dimension: true },
   });
 
   // Get current cumulative scores for this session
-  const existingSnapshots = await prisma.scoreSnapshot.findMany({
+  const existingSnapshots = await db.scoreSnapshot.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'desc' },
   });
@@ -114,7 +133,7 @@ export async function computeAndStoreScoreSnapshot(
   // Create new snapshots
   for (const os of optionScores) {
     const prev = cumulMap[os.dimensionId] ?? 0;
-    await prisma.scoreSnapshot.create({
+    await db.scoreSnapshot.create({
       data: {
         sessionId,
         scenarioId,
