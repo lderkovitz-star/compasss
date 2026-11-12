@@ -6,7 +6,7 @@ import ExportButtons from "@/components/ReportExportButtons";
 import ScoringVersionNotice from "@/components/ScoringVersionNotice";
 import ConsentRecord from "@/components/ConsentRecord";
 
-const ReportCharts = dynamic(() => import("./ReportCharts"), { 
+const ReportCharts = dynamic(() => import("@/components/ReportCharts"), { 
   ssr: false,
   loading: () => <div className="h-[280px] w-full animate-pulse bg-slate-100 rounded-2xl"></div>
 });
