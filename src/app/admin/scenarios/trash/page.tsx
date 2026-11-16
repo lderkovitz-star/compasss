@@ -5,7 +5,9 @@ import TrashClient from "./TrashClient";
 
 async function getDeletedScenarios() {
   return prisma.scenario.findMany({
-    where: { deletedAt: { not: null } },
+    // Earlier versions of edited scenarios are not trash: they are kept,
+    // unchanged, for the candidates who saw them, and can't be restored.
+    where: { deletedAt: { not: null }, supersededById: null },
     orderBy: { deletedAt: "desc" },
     include: {
       package: { select: { name: true, code: true } },

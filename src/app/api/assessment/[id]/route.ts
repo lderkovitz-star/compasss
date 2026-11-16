@@ -144,12 +144,16 @@ export async function POST(
     if (!session) return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
     if (session.status === 'COMPLETED') return NextResponse.json({ completed: true });
 
-    // Verify option belongs to a scenario in this session's package
+    // The option must belong to a scenario in this sitting's frozen list. The
+    // package also holds other versions of its scenarios - earlier ones kept
+    // for reports, newer ones for later candidates - and an answer to one of
+    // those does not belong to this sitting.
+    const order = await resolveScenarioOrder(session);
     const option = await prisma.scenarioOption.findUnique({
       where: { id: optionId },
       include: { scenario: true },
     });
-    if (!option || option.scenario.packageId !== session.packageId) {
+    if (!option || option.scenario.packageId !== session.packageId || !order.includes(option.scenarioId)) {
       return NextResponse.json({ error: 'Invalid option for this session.' }, { status: 400 });
     }
 
@@ -176,7 +180,7 @@ export async function POST(
     // serves, or the two can disagree - and if this side thinks there are
     // more, the candidate is asked for answers that never arrive and the
     // sitting never completes.
-    const totalScenarios = (await resolveScenarioOrder(session)).length;
+    const totalScenarios = order.length;
     const answeredCount = await prisma.response.count({ where: { sessionId } });
 
     if (answeredCount >= totalScenarios) {

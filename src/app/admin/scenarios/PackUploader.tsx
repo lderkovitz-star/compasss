@@ -21,9 +21,14 @@ type Preview = {
 
 type Result = {
   packageCode: string;
+  revision: number;
   scenariosCreated: number;
   scenariosUpdated: number;
+  scenariosVersioned: number;
+  scenariosUnchanged: number;
+  scenariosRestored: number;
   scenariosRetired: number;
+  sittingsKeepingEarlierVersions: number;
   options: number;
   scores: number;
   dimensionsCreated: string[];
@@ -196,7 +201,16 @@ export default function PackUploader({ onClose }: { onClose: () => void }) {
               <ul className="mt-2 text-[13px] text-emerald-800 space-y-0.5">
                 <li>{result.scenariosCreated} scenarios added</li>
                 {result.scenariosUpdated > 0 && <li>{result.scenariosUpdated} updated in place</li>}
+                {result.scenariosVersioned > 0 && (
+                  <li>
+                    {result.scenariosVersioned} saved as new versions, because candidates have already
+                    seen the earlier ones
+                  </li>
+                )}
+                {result.scenariosRestored > 0 && <li>{result.scenariosRestored} restored from the trash</li>}
+                {result.scenariosUnchanged > 0 && <li>{result.scenariosUnchanged} unchanged</li>}
                 {result.scenariosRetired > 0 && <li>{result.scenariosRetired} retired</li>}
+                <li>The pack is now at revision {result.revision}</li>
                 <li>
                   {result.options} options and {result.scores} dimension weights written
                 </li>
@@ -204,6 +218,14 @@ export default function PackUploader({ onClose }: { onClose: () => void }) {
                   <li>New dimensions: {result.dimensionsCreated.join(', ')}</li>
                 )}
               </ul>
+              {result.sittingsKeepingEarlierVersions > 0 && (
+                <p className="mt-3 text-xs text-emerald-800">
+                  {result.sittingsKeepingEarlierVersions === 1
+                    ? '1 assessment under way keeps the version it started with.'
+                    : `${result.sittingsKeepingEarlierVersions} assessments under way keep the version they started with.`}{' '}
+                  New assessments get this revision.
+                </p>
+              )}
               <p className="mt-3 text-xs text-emerald-800">
                 This pack is not live until it is assigned — to the public sandbox, as the global
                 client default, or to a specific client account.
@@ -327,8 +349,9 @@ export default function PackUploader({ onClose }: { onClose: () => void }) {
                       <span className="text-[13px] text-amber-900">
                         <strong>{preview.packageCode}</strong> already exists. Replace its contents
                         with this file. Scenarios already in it are updated rather than duplicated,
-                        and anything the file no longer contains is retired. Assessments already
-                        completed keep their reports.
+                        and anything the file no longer contains is retired. Candidates part-way
+                        through keep the version they started with, and finished reports keep what
+                        each candidate answered.
                       </span>
                     </label>
                   )}
