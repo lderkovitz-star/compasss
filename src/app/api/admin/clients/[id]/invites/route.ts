@@ -4,6 +4,7 @@ import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
 import { generateInviteToken, buildInviteUrl } from '@/lib/invite-token';
 import { assertSeatAvailable, SeatLimitError, getSeatUsage } from '@/lib/seats';
 import { queueEmail } from '@/lib/email';
+import { packRefusal } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       select: { id: true, name: true },
     });
     if (!pkg) {
+      return NextResponse.json({ error: 'The assigned scenario package is missing.' }, { status: 409 });
+    }
+    // A pack with no live scenarios would leave the candidate stuck after
+    // consent; a hidden demo pack is not offered at all.
+    const refusal = await packRefusal(pkg.id);
+    if (refusal === 'empty') {
+      return NextResponse.json(
+        { error: `The package assigned to ${account.name} has no scenarios yet, so a candidate would have nothing to answer. Assign another package first.` },
+        { status: 409 }
+      );
+    }
+    if (refusal === 'missing') {
       return NextResponse.json({ error: 'The assigned scenario package is missing.' }, { status: 409 });
     }
 

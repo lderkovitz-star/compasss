@@ -95,8 +95,8 @@ export default function PracticeClient({
         </h1>
         <p className="mt-3 text-[14px] leading-relaxed text-[#97A2BE]">
           {scenarioCount} scenario{scenarioCount === 1 ? '' : 's'} from {packageName}. You will be
-          put under time pressure and asked to decide with incomplete information. Nothing you do
-          here reaches any employer, and no result is shown to anyone unless you ask for it below.
+          asked to decide with incomplete information. Nothing you do here reaches any employer, and
+          no result is shown to anyone unless you ask for it below.
         </p>
 
         {error && (
@@ -126,7 +126,8 @@ export default function PracticeClient({
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-3 text-[14px] text-white placeholder:text-[#5B6580] focus:border-[#5B8CFF] focus:outline-none"
             />
             <p className="mt-1.5 text-xs text-[#5B6580]">
-              Used to frame the write-up at the end. It changes nothing about the scenarios you see.
+              It changes nothing about the scenarios you see or your result. If you join the talent
+              registry below, it is kept with your entry.
             </p>
           </div>
 

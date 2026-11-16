@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { getCurrentAdmin } from '@/lib/auth';
+import { withoutDemoSessions } from '@/lib/demo-data';
 import CohortWorkbench from '@/components/CohortWorkbench';
 import EvaluatorAskBox from '@/components/EvaluatorAskBox';
 
@@ -37,10 +38,10 @@ export default async function AdminCompanyCohortPage({
       select: { id: true, title: true },
     }),
     prisma.assessmentSession.count({
-      where: { clientAccountId: account.id, kind: 'OFFICIAL', status: 'COMPLETED' },
+      where: { clientAccountId: account.id, kind: 'OFFICIAL', status: 'COMPLETED', ...withoutDemoSessions() },
     }),
     prisma.assessmentSession.findMany({
-      where: { clientAccountId: account.id, kind: 'OFFICIAL', status: 'COMPLETED' },
+      where: { clientAccountId: account.id, kind: 'OFFICIAL', status: 'COMPLETED', ...withoutDemoSessions() },
       orderBy: { completedAt: 'desc' },
       take: 24,
       select: {

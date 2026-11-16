@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
 import { getPublicSettings } from '@/lib/settings';
 import { getConsentPolicy } from '@/lib/consent';
+import { packHasLiveScenarios } from '@/lib/package-availability';
 import AssessInviteClient from './AssessInviteClient';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +47,7 @@ export default async function AssessPage({
       revokedAt: true,
       sessionId: true,
       clientAccount: { select: { name: true, status: true, deletedAt: true } },
+      packageId: true,
       package: { select: { name: true } },
     },
   });
@@ -71,6 +73,16 @@ export default async function AssessPage({
       <Notice
         title="This invitation has expired"
         body="Ask the company that invited you to send a new link."
+      />
+    );
+  }
+  // Nothing to sit: say so before asking for consent, not after. A sitting
+  // already under way goes on to the assessment page, which explains it there.
+  if (!invite.sessionId && !(await packHasLiveScenarios(invite.packageId))) {
+    return (
+      <Notice
+        title="This assessment isn't ready yet"
+        body={`${invite.clientAccount.name} hasn't finished setting it up. Please contact them; this link stays valid until it expires.`}
       />
     );
   }

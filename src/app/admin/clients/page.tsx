@@ -3,6 +3,8 @@ import { getCurrentAdmin } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import ClientAccountsClient from './ClientAccountsClient';
 import { countSeatsUsedForAccounts } from '@/lib/seats';
+import { withoutDemoCandidates, withoutDemoSessions } from '@/lib/demo-data';
+import { offeredPackageWhere } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -24,17 +26,25 @@ async function getData() {
         candidateSeatLimit: true,
         createdAt: true,
         assignedPackage: { select: { id: true, name: true } },
-        _count: { select: { candidates: true, sessions: true, invites: true } },
+        _count: {
+          select: {
+            candidates: { where: withoutDemoCandidates() },
+            sessions: { where: withoutDemoSessions() },
+            invites: true,
+          },
+        },
         // "Tested" means finished, not invited. Counted here rather than in
         // the page so one query covers every account.
         sessions: {
-          where: { kind: 'OFFICIAL', status: 'COMPLETED' },
+          where: { kind: 'OFFICIAL', status: 'COMPLETED', ...withoutDemoSessions() },
           select: { id: true },
         },
       },
     }),
+    // Packs that can be assigned - none that is empty or demo - plus any an
+    // account already points at, so its dropdown still shows what it is set to.
     prisma.scenarioPackage.findMany({
-      where: { deletedAt: null },
+      where: { OR: [offeredPackageWhere(), { deletedAt: null, assignedTo: { some: { deletedAt: null } } }] },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, code: true },
     }),

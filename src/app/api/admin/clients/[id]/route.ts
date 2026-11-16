@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { issueAccessKey } from '@/lib/access-key';
 import { isAllowedWebhookUrl, generateWebhookSecret } from '@/lib/webhook';
+import { assignmentRefusal } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Module B: this account's package override. null means "follow the
     // global client default", and it affects no other account.
     if (body.assignedPackageId !== undefined) {
-      data.assignedPackageId = body.assignedPackageId || null;
+      const packageId = body.assignedPackageId ? String(body.assignedPackageId) : null;
+      if (packageId) {
+        const refused = await assignmentRefusal(packageId);
+        if (refused) return NextResponse.json({ error: refused }, { status: 400 });
+      }
+      data.assignedPackageId = packageId;
     }
     // Candidate seats. An empty value clears the limit rather than setting it
     // to zero - "unlimited" and "none allowed" are opposite instructions and

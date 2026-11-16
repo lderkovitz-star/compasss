@@ -257,6 +257,17 @@ Outbound Email**. Mail from an unverified domain is filtered as spam, which is
 worse than not sending it. Meanwhile employers copy the invitation link from
 the portal, and see an in-app notification when a report is ready.
 
+## Starter demo data
+
+A brand-new database is loaded with starter demo content: two sample packs
+("Cabin in the Woods: Survival Protocol", and "Corporate Crisis: Executive
+Turnaround", which has no scenarios), a sample candidate (Alex Mercer) with a
+finished assessment, and ten sample dimensions. It stays in the database but
+is hidden everywhere: lists, counts, the dashboard and the invite form. To
+show it again for testing or a walkthrough, add `SHOW_DEMO_DATA` with the value
+`true` under Settings → Environment Variables and redeploy. Remove it and
+redeploy to hide it again.
+
 ## Uploading your own assessment
 
 Master console → **Scenarios** → **Import**. Drop in a `.json` or `.csv` and

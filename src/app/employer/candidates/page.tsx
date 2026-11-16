@@ -5,6 +5,8 @@ import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../PortalShell';
 import InviteGenerator from './InviteGenerator';
 import { getSeatUsage } from '@/lib/seats';
+import { withoutDemoSessions } from '@/lib/demo-data';
+import { offeredPackageWhere } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -56,7 +58,7 @@ export default async function PortalCandidatesPage({
   // by anything the browser sent. A candidate belongs to exactly one account,
   // and practice runs carry no account at all, so they cannot appear here.
   const sessions = await prisma.assessmentSession.findMany({
-    where: { clientAccountId: session.clientAccountId, kind: 'OFFICIAL', ...matches },
+    where: { clientAccountId: session.clientAccountId, kind: 'OFFICIAL', ...matches, ...withoutDemoSessions() },
     orderBy: { startedAt: 'desc' },
     take: 200,
     select: {
@@ -163,16 +165,20 @@ export default async function PortalCandidatesPage({
       select: { id: true, title: true },
       take: 50,
     }),
+    // Only packs a candidate can actually sit: none that is empty or demo.
     prisma.scenarioPackage.findMany({
-      where: { deletedAt: null },
+      where: offeredPackageWhere(),
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
     getSeatUsage(session.clientAccountId),
   ]);
 
-  const defaultPackageId =
-    account?.assignedPackageId ?? settings?.defaultClientPackageId ?? packages[0]?.id ?? null;
+  // The account's pack, then the client default - if it is one the form can
+  // offer. Otherwise the form would hold a pack it does not list.
+  const offered = new Set(packages.map((p) => p.id));
+  const preferred = account?.assignedPackageId ?? settings?.defaultClientPackageId ?? null;
+  const defaultPackageId = (preferred && offered.has(preferred) ? preferred : packages[0]?.id) ?? null;
 
   return (
     <PortalShell company={session.account.name}>

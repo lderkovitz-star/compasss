@@ -747,3 +747,20 @@ model EvaluatorQuery {
   @@index([queryHash, model])
   @@map("evaluator_queries")
 }
+
+/// A request for access or a demo, sent from the public site: the landing page
+/// or a practice result. Listed in the Master Admin (Contact requests) for
+/// someone to answer by hand; nothing is emailed.
+model ContactRequest {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  company   String?
+  message   String?
+  /// Where it was sent from: landing | practice-result
+  source    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("contact_requests")
+}

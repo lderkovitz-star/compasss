@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hashInviteToken, isWellFormedInviteToken } from '@/lib/invite-token';
 import { getConsentPolicy, recordConsent } from '@/lib/consent';
+import { packHasLiveScenarios } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
         revokedAt: true,
         consumedAt: true,
         sessionId: true,
-        clientAccount: { select: { status: true, deletedAt: true } },
+        clientAccount: { select: { name: true, status: true, deletedAt: true } },
       },
     });
 
@@ -63,6 +64,20 @@ export async function POST(req: NextRequest) {
     // sitting began, and a refresh should not ask for it twice.
     if (invite.sessionId) {
       return NextResponse.json({ sessionId: invite.sessionId });
+    }
+
+    // A pack with nothing in it - empty from the start, or emptied while the
+    // link was out - would leave the candidate stuck straight after consent.
+    // Refused before anything is written, so the link still works if the
+    // employer fixes the pack before it expires.
+    if (!(await packHasLiveScenarios(invite.packageId))) {
+      return NextResponse.json(
+        {
+          error: `This assessment isn't ready yet. Please contact ${invite.clientAccount.name}, who sent you this link.`,
+          unavailable: true,
+        },
+        { status: 409 }
+      );
     }
 
     // Checked after the invitation is validated, so a bad link is reported as

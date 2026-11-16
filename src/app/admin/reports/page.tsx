@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { withoutDemoSessions } from "@/lib/demo-data";
 import AdminProfileDropdown from "@/app/admin/AdminProfileDropdown";
 
 async function getAllSessions() {
   return prisma.assessmentSession.findMany({
+    where: withoutDemoSessions(),
     orderBy: { startedAt: "desc" },
     include: { user: true, package: true },
   });

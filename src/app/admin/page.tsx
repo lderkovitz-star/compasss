@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { withoutDemoPackages, withoutDemoSessions } from "@/lib/demo-data";
 
 async function getDashboardData(filter?: string) {
+  // The starter demo's sample candidate and packs stay out of every figure
+  // here unless SHOW_DEMO_DATA is set (src/lib/demo-data.ts).
+  const noDemo = withoutDemoSessions();
   const [totalSessions, completedSessions, inProgressSessions, totalPackages] = await Promise.all([
-    prisma.assessmentSession.count(),
-    prisma.assessmentSession.count({ where: { status: "COMPLETED" } }),
-    prisma.assessmentSession.count({ where: { status: "IN_PROGRESS" } }),
-    prisma.scenarioPackage.count(),
+    prisma.assessmentSession.count({ where: noDemo }),
+    prisma.assessmentSession.count({ where: { status: "COMPLETED", ...noDemo } }),
+    prisma.assessmentSession.count({ where: { status: "IN_PROGRESS", ...noDemo } }),
+    prisma.scenarioPackage.count({ where: withoutDemoPackages() }),
   ]);
 
-  let sessionWhere: any = {};
+  let sessionWhere: any = { ...noDemo };
   if (filter === "COMPLETED") sessionWhere.status = "COMPLETED";
   if (filter === "IN_PROGRESS") sessionWhere.status = "IN_PROGRESS";
 
@@ -20,7 +24,15 @@ async function getDashboardData(filter?: string) {
     include: { user: true, package: true },
   });
 
-  const activePackage = await prisma.scenarioPackage.findFirst({ where: { isActive: true } });
+  // The pack new client invitations run: the client default slot. The old
+  // isActive flag decides nothing any more, and on a seeded database it still
+  // pointed at the demo pack.
+  const slots = await prisma.platformSettings.findFirst({ select: { defaultClientPackageId: true } });
+  const activePackage = slots?.defaultClientPackageId
+    ? await prisma.scenarioPackage.findFirst({
+        where: { id: slots.defaultClientPackageId, deletedAt: null, ...withoutDemoPackages() },
+      })
+    : null;
 
   return { totalSessions, completedSessions, inProgressSessions, totalPackages, recentSessions, activePackage };
 }

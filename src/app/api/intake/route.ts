@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { resolveDefaultTenantId } from '@/lib/tenant';
 import { getConsentPolicy, recordConsent } from '@/lib/consent';
+import { packHasLiveScenarios } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
     const activePackage = preferredId
       ? await prisma.scenarioPackage.findFirst({ where: { id: preferredId, deletedAt: null } })
       : await prisma.scenarioPackage.findFirst({ where: { isActive: true, deletedAt: null } });
-    if (!activePackage) {
+    if (!activePackage || !(await packHasLiveScenarios(activePackage.id))) {
       return NextResponse.json(
         { error: 'No active assessment package configured. Please contact platform support.' },
         { status: 503 }
