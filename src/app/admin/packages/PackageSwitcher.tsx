@@ -386,7 +386,7 @@ export default function PackageSwitcher({
               </svg>
             </div>
             <h3 className="text-sm font-bold text-slate-900 mb-2">Delete Package?</h3>
-            <p className="text-xs text-slate-500 mb-5">This will permanently delete the package and all its scenarios. This action cannot be undone.</p>
+            <p className="text-xs text-slate-500 mb-5">The package and its scenarios move to the trash, where you can recover them.</p>
             <div className="flex justify-center gap-3">
               <button onClick={() => setConfirmDelete(null)} className="btn-secondary text-sm">Cancel</button>
               <button
