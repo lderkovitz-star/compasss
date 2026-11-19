@@ -84,6 +84,8 @@ model Scenario {
   responses        Response[]
   snapshots        ScoreSnapshot[]
   biometrics       BiometricReading[]
+  views            ScenarioView[]
+  telemetryEvents  TelemetryEvent[]
 
   @@unique([packageId, externalRef])
   @@map("scenarios")
@@ -163,6 +165,8 @@ model AssessmentSession {
   resumeDocument     ResumeDocument?
   registryEntry      TalentRegistryEntry?
   consent            CandidateConsent?
+  scenarioViews      ScenarioView[]
+  telemetryEvents    TelemetryEvent[]
 
   @@index([clientAccountId, kind, status, startedAt])
   @@index([kind, purgeAfter])
@@ -177,13 +181,64 @@ model Response {
   scenario     Scenario          @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
   optionId     String            @map("option_id")
   option       ScenarioOption    @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  // Decision time used by scoring and reports. Measured on the server, from
+  // when the scenario was first served to when the answer arrived, so nothing
+  // the browser sends can shorten it.
   timeSpentMs  Int               @map("time_spent_ms")
   startedAt    DateTime?         @map("started_at") // When candidate first saw the scenario
   submittedAt  DateTime          @default(now()) @map("submitted_at")
   // JSON decision path: array of { optionId, event: 'hover'|'click'|'revisit', timestampMs }
   decisionPath Json?             @map("decision_path")
 
+  // One id per answer, made in the candidate's browser. A retry of the same
+  // answer carries the same id, so it is recognised instead of stored twice.
+  clientEventId   String? @unique @map("client_event_id")
+  // Server clock, first serve to answer. Null for answers recorded before
+  // scenarios were timed on the server.
+  serverElapsedMs Int?    @map("server_elapsed_ms")
+  // Time the assessment tab was hidden while this scenario was open, and how
+  // many times the candidate left it, from tab events logged as they happened.
+  hiddenMs        Int?    @map("hidden_ms")
+  tabSwitches     Int?    @map("tab_switches")
+  // What the browser measured with performance.now(), plus any integrity
+  // flags raised when that disagrees with the server. Kept for audit.
+  telemetry       Json?
+
   @@map("responses")
+}
+
+// When each scenario was first put in front of a candidate. Written by the
+// server on the first serve and never moved afterwards, so reloading the page
+// cannot restart the clock; a reload only raises serveCount.
+model ScenarioView {
+  id            String            @id @default(uuid())
+  sessionId     String            @map("session_id")
+  session       AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioId    String            @map("scenario_id")
+  scenario      Scenario          @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  firstServedAt DateTime          @map("first_served_at")
+  lastServedAt  DateTime          @map("last_served_at")
+  serveCount    Int               @default(1) @map("serve_count")
+
+  @@unique([sessionId, scenarioId])
+  @@map("scenario_views")
+}
+
+// Tab and focus events, sent by the browser the moment they happen and stamped
+// with the server's clock on arrival.
+model TelemetryEvent {
+  id         String            @id @default(uuid())
+  sessionId  String            @map("session_id")
+  session    AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scenarioId String            @map("scenario_id")
+  scenario   Scenario          @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  type       String // hidden | visible | blur | focus
+  // performance.now() in the browser, in ms since the scenario appeared
+  clientAtMs Int?              @map("client_at_ms")
+  receivedAt DateTime          @default(now()) @map("received_at")
+
+  @@index([sessionId, scenarioId, receivedAt])
+  @@map("telemetry_events")
 }
 
 model ScoreSnapshot {

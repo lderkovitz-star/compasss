@@ -9,6 +9,32 @@ interface DecisionEvent {
   timestampMs: number;
 }
 
+type TabEvent = 'hidden' | 'visible' | 'blur' | 'focus' | 'unload';
+
+// One id per answer. crypto.randomUUID needs a secure context, which every
+// real deployment is; the fallback only keeps an odd local setup working.
+function newEventId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+// The same body - so the same event id - on every attempt. If an earlier
+// attempt did reach the server, the retry is recognised there, not stored again.
+async function postAnswer(url: string, body: string): Promise<Response> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, attempt * 800));
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+      if (res.status < 500) return res;
+      lastError = new Error('The server could not save that answer.');
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Submission failed');
+}
+
 interface Scenario {
   id: string;
   sequenceOrder: number;
@@ -34,9 +60,116 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
   const [backdropFading, setBackdropFading] = useState(false);
   const currentBackdropRef = useRef<string | null>(null);
 
-  const startTimeRef = useRef<number>(Date.now());
+  // Timing for the scenario on screen, all from performance.now(), which never
+  // jumps when the computer's clock is adjusted. The server keeps its own
+  // clock for the decision time; these are sent alongside to cross-check.
+  const shownAtRef = useRef<number>(0);
+  const hiddenSinceRef = useRef<number | null>(null);
+  const hiddenMsRef = useRef(0);
+  const tabSwitchesRef = useRef(0);
+  const focusLossesRef = useRef(0);
+  const scenarioIdRef = useRef<string | null>(null);
+  const eventIdRef = useRef('');
   const decisionPathRef = useRef<DecisionEvent[]>([]);
   const visitedOptionsRef = useRef<Set<string>>(new Set());
+
+  const sinceShown = useCallback(() => Math.round(performance.now() - shownAtRef.current), []);
+
+  // Sent the moment it happens, so the server holds its own record of every
+  // tab change rather than relying on the page's count at the end.
+  const sendTabEvent = useCallback((type: TabEvent) => {
+    const scenarioId = scenarioIdRef.current;
+    if (!scenarioId) return;
+    const url = `/api/assessment/${sessionId}/telemetry`;
+    const payload = JSON.stringify({ scenarioId, events: [{ type, atMs: sinceShown() }] });
+    // sendBeacon still delivers while the page is being hidden or closed.
+    const queued =
+      typeof navigator !== 'undefined' &&
+      typeof navigator.sendBeacon === 'function' &&
+      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+    if (!queued) {
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(
+        () => undefined
+      );
+    }
+  }, [sessionId, sinceShown]);
+
+  useEffect(() => {
+    // Reloading or closing the page also hides it, but that is not a tab
+    // switch. pagehide comes first, so it marks the page as leaving and the
+    // hidden event that follows is not counted.
+    let leaving = false;
+    let leftAt: number | null = null;
+    const onPageHide = () => {
+      leaving = true;
+      leftAt = performance.now();
+      sendTabEvent('unload');
+    };
+    // Restored from the back/forward cache: the same page, back on screen.
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted || !leaving) return;
+      leaving = false;
+      if (leftAt !== null) hiddenMsRef.current += performance.now() - leftAt;
+      leftAt = null;
+      sendTabEvent('visible');
+    };
+
+    const onVisibility = () => {
+      if (leaving) return;
+      const now = performance.now();
+      if (document.visibilityState === 'hidden') {
+        if (hiddenSinceRef.current === null) {
+          hiddenSinceRef.current = now;
+          tabSwitchesRef.current += 1;
+          sendTabEvent('hidden');
+        }
+      } else if (hiddenSinceRef.current !== null) {
+        hiddenMsRef.current += now - hiddenSinceRef.current;
+        hiddenSinceRef.current = null;
+        sendTabEvent('visible');
+      }
+    };
+
+    // Focus moving to another window while this tab stays visible, such as a
+    // second window beside the test. Switching tabs blurs the window too, so
+    // wait a moment and count it only if the tab is still showing.
+    let blurTimer: ReturnType<typeof setTimeout> | undefined;
+    let unfocused = false;
+    const onBlur = () => {
+      clearTimeout(blurTimer);
+      blurTimer = setTimeout(() => {
+        if (document.visibilityState === 'visible' && !document.hasFocus()) {
+          unfocused = true;
+          focusLossesRef.current += 1;
+          sendTabEvent('blur');
+        }
+      }, 300);
+    };
+    const onFocus = () => {
+      clearTimeout(blurTimer);
+      if (unfocused) {
+        unfocused = false;
+        sendTabEvent('focus');
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      // Navigating to another page of the site (the back button) unmounts this
+      // one without a pagehide; it is still the scenario leaving the screen.
+      if (!leaving) sendTabEvent('unload');
+      clearTimeout(blurTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [sendTabEvent]);
 
   const loadScenario = useCallback(async () => {
     setLoading(true);
@@ -67,17 +200,17 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
         }, 500); // Matches the 500ms transition duration in CSS
       }
 
-      // When this scenario was first shown. Kept in localStorage so a refresh
-      // does not reset it and report a decision as faster than it was - the
-      // latency is what the scoring reads. Nothing about it is shown to the
-      // candidate.
-      const storageKey = `scenario_start_${sessionId}_${data.id}`;
-      const storedStart = localStorage.getItem(storageKey);
-      const startTime = storedStart ? parseInt(storedStart, 10) : Date.now();
-      if (!storedStart) {
-        localStorage.setItem(storageKey, startTime.toString());
-      }
-      startTimeRef.current = startTime;
+      // A fresh clock and a fresh answer id for this scenario. A refresh used
+      // to be covered by a start time in localStorage, which the candidate
+      // could edit; the server now records the first serve itself, so a
+      // reload cannot make a decision look faster.
+      scenarioIdRef.current = data.id;
+      eventIdRef.current = newEventId();
+      shownAtRef.current = performance.now();
+      hiddenMsRef.current = 0;
+      tabSwitchesRef.current = 0;
+      focusLossesRef.current = 0;
+      hiddenSinceRef.current = document.visibilityState === 'hidden' ? shownAtRef.current : null;
 
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error loading scenario');
@@ -90,17 +223,17 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
 
   // Track hover events for decision path telemetry
   const handleOptionHover = useCallback((optionId: string) => {
-    const elapsed = Date.now() - startTimeRef.current;
+    const elapsed = sinceShown();
     decisionPathRef.current.push({
       optionId,
       event: 'hover',
       timestampMs: elapsed,
     });
-  }, []);
+  }, [sinceShown]);
 
   // Track option selection & revisits
   const handleOptionSelect = useCallback((optionId: string) => {
-    const elapsed = Date.now() - startTimeRef.current;
+    const elapsed = sinceShown();
     const isRevisit = visitedOptionsRef.current.has(optionId) && selected !== optionId;
     visitedOptionsRef.current.add(optionId);
 
@@ -111,23 +244,32 @@ export default function AssessmentPage({ params }: { params: { sessionId: string
     });
 
     setSelected(optionId);
-  }, [selected]);
+  }, [selected, sinceShown]);
 
   const handleSubmit = useCallback(async (optionId: string) => {
     if (submitting) return;
     setSubmitting(true);
-    const timeSpentMs = Date.now() - startTimeRef.current;
+    const now = performance.now();
+    const totalMs = Math.round(now - shownAtRef.current);
+    const hiddenMs = Math.round(
+      hiddenMsRef.current + (hiddenSinceRef.current !== null ? now - hiddenSinceRef.current : 0)
+    );
+    const body = JSON.stringify({
+      optionId,
+      eventId: eventIdRef.current,
+      timing: {
+        activeMs: Math.max(0, totalMs - hiddenMs),
+        hiddenMs,
+        tabSwitches: tabSwitchesRef.current,
+        focusLosses: focusLossesRef.current,
+      },
+      // Read only by a server older than this page.
+      timeSpentMs: totalMs,
+      decisionPath: decisionPathRef.current,
+    });
 
     try {
-      const res = await fetch(`/api/assessment/${sessionId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          optionId,
-          timeSpentMs,
-          decisionPath: decisionPathRef.current,
-        }),
-      });
+      const res = await postAnswer(`/api/assessment/${sessionId}`, body);
       const data = await res.json();
       if (data.completed) {
         // The server decides where a finished sitting goes: a practice run to

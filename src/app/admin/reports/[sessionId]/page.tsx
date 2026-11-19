@@ -34,6 +34,30 @@ interface DBResponse {
     optionText: string;
   } | null;
   timeSpentMs: number;
+  serverElapsedMs: number | null;
+  hiddenMs: number | null;
+  tabSwitches: number | null;
+  telemetry: unknown;
+}
+
+type ResponseTelemetry = { flags?: string[]; focusLosses?: number; leftPageMs?: number };
+
+function telemetryOf(r: DBResponse): ResponseTelemetry {
+  return r.telemetry && typeof r.telemetry === "object" ? (r.telemetry as ResponseTelemetry) : {};
+}
+
+/** What happened during one scenario besides answering it, in a line. */
+function focusNote(r: DBResponse): string | null {
+  const t = telemetryOf(r);
+  const parts: string[] = [];
+  if (r.tabSwitches) parts.push(`Left tab ${r.tabSwitches}× · ${Math.round((r.hiddenMs ?? 0) / 1000)}s away`);
+  if (t.focusLosses) parts.push(`Focus lost ${t.focusLosses}×`);
+  if (t.flags?.includes("reloaded")) {
+    parts.push(t.leftPageMs ? `Reloaded (${Math.max(1, Math.round(t.leftPageMs / 1000))}s gone)` : "Reloaded");
+  }
+  if (t.flags?.includes("timing_mismatch")) parts.push("Page timing disagreed with server");
+  if (t.flags?.includes("tab_events_missing")) parts.push("Tab events missing");
+  return parts.length ? parts.join(" · ") : null;
 }
 
 async function getReport(sessionId: string) {
@@ -72,6 +96,19 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
   const overallScore = dimensionScores.length > 0
     ? Math.round(dimensionScores.reduce((acc: number, item: { score: number }) => acc + item.score, 0) / dimensionScores.length)
     : 0;
+
+  // Tab activity across the sitting. Answers from before server-side timing
+  // have no record, and the summary says so rather than implying a clean run.
+  const tracked = ((session.responses || []) as unknown as DBResponse[]).filter((r) => r.serverElapsedMs !== null);
+  const tabSwitchTotal = tracked.reduce((n, r) => n + (r.tabSwitches ?? 0), 0);
+  const awaySeconds = Math.round(tracked.reduce((n, r) => n + (r.hiddenMs ?? 0), 0) / 1000);
+  const scenariosLeft = tracked.filter((r) => (r.tabSwitches ?? 0) > 0).length;
+  const focusSummary =
+    tracked.length === 0
+      ? "Tab activity was not recorded for this sitting (taken before tracking began)."
+      : tabSwitchTotal === 0
+        ? "Stayed on the assessment tab throughout."
+        : `Left the assessment tab ${tabSwitchTotal} time${tabSwitchTotal === 1 ? "" : "s"} (${awaySeconds}s away) during ${scenariosLeft} of ${tracked.length} scenarios.`;
 
   return (
     <>
@@ -199,6 +236,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Response Log</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{session.responses.length} answers recorded</p>
+                <p className={`text-xs mt-1 font-medium ${tabSwitchTotal > 0 ? "text-amber-600" : "text-slate-500"}`}>{focusSummary}</p>
               </div>
             </div>
 
@@ -232,6 +270,9 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                       </td>
                       <td className="td text-xs text-slate-500 text-center font-medium">
                         {r.timeSpentMs ? `${Math.round(r.timeSpentMs / 1000)}s` : "—"}
+                        {focusNote(r) && (
+                          <span className="block mt-1 text-[10px] leading-tight font-semibold text-amber-600">{focusNote(r)}</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -258,6 +299,10 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                       {r.timeSpentMs ? `${Math.round(r.timeSpentMs / 1000)}s` : "—"}
                     </span>
                   </div>
+
+                  {focusNote(r) && (
+                    <p className="text-[11px] font-semibold text-amber-600">{focusNote(r)}</p>
+                  )}
 
                   {r.scenario?.narrativeText && (
                     <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
