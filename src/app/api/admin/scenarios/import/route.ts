@@ -146,6 +146,8 @@ export async function POST(req: NextRequest) {
           code: result.packageCode,
           created: result.scenariosCreated,
           updated: result.scenariosUpdated,
+          versioned: result.scenariosVersioned,
+          revision: result.revision,
           retired: result.scenariosRetired,
           options: result.options,
           scores: result.scores,

@@ -718,7 +718,7 @@ export default function ScenariosClient({ packages, scenarios }: { packages: Pac
               </svg>
             </div>
             <h3 className="text-sm font-bold text-slate-900 mb-2">Delete Scenario?</h3>
-            <p className="text-xs text-slate-500 mb-5">This will permanently delete the scenario, its options, and all associated responses. This cannot be undone.</p>
+            <p className="text-xs text-slate-500 mb-5">It moves to the trash, where you can recover it. Candidates who have already started keep it, and new candidates won&apos;t get it.</p>
             <div className="flex justify-center gap-3">
               <button onClick={() => setConfirmDelete(null)} className="btn-secondary text-sm">Cancel</button>
               <button

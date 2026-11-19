@@ -13,32 +13,32 @@ export async function POST() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Delete packages older than 30 days
-    // Due to cascading deletion set in Prisma schema on scenarios related to package, 
-    // it will delete scenarios and options of those packages as well, if we use hard delete.
-    // However, if some scenarios were soft-deleted but their package was not, we should also delete them.
-    
-    // Hard delete soft-deleted scenarios older than 30 days
-    const scenariosRes = await prisma.scenario.deleteMany({
-      where: {
-        deletedAt: {
-          lte: thirtyDaysAgo
-        }
-      }
-    });
+    // Hard delete soft-deleted scenarios older than 30 days - but only ones no
+    // candidate depends on. Answers cascade from the scenario, so deleting one
+    // that was answered, or that a sitting under way includes, would take it
+    // out of candidates' reports and assessments.
+    const scenariosRes = await prisma.$executeRaw`
+      DELETE FROM scenarios s
+       WHERE s.deleted_at <= ${thirtyDaysAgo}
+         AND NOT EXISTS (SELECT 1 FROM responses r WHERE r.scenario_id = s.id)
+         AND NOT EXISTS (
+           SELECT 1 FROM assessment_sessions a
+            WHERE jsonb_typeof(a.scenario_order) = 'array'
+              AND a.scenario_order @> to_jsonb(s.id))`;
 
-    // Hard delete soft-deleted packages older than 30 days
+    // Hard delete soft-deleted packages older than 30 days, except those with
+    // sittings (their reports cascade from the package) or invite links.
     const packagesRes = await prisma.scenarioPackage.deleteMany({
       where: {
-        deletedAt: {
-          lte: thirtyDaysAgo
-        }
-      }
+        deletedAt: { lte: thirtyDaysAgo },
+        sessions: { none: {} },
+        invites: { none: {} },
+      },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      purgedScenarios: scenariosRes.count,
+    return NextResponse.json({
+      success: true,
+      purgedScenarios: scenariosRes,
       purgedPackages: packagesRes.count
     });
   } catch (err) {

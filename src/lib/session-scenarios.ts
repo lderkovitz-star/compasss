@@ -12,7 +12,9 @@ import { prisma } from './db';
  *
  * So the ordered list is frozen the first time the sitting asks for it and
  * read back from the session afterwards. Editing the pack then affects the
- * next candidate rather than the one currently sitting.
+ * next candidate rather than the one currently sitting - and because a
+ * scenario in a frozen list is never edited in place (scenario-versions.ts),
+ * the rows behind these ids keep their wording, options and weights too.
  */
 
 type SessionRef = {
@@ -45,9 +47,15 @@ export async function resolveScenarioOrder(session: SessionRef): Promise<string[
   const ids = chosen.map((s) => s.id);
 
   if (ids.length > 0) {
+    // The revision is recorded alongside, so a report can say which version of
+    // the pack this sitting ran on.
+    const pkg = await prisma.scenarioPackage.findUnique({
+      where: { id: session.packageId },
+      select: { revision: true },
+    });
     await prisma.assessmentSession.update({
       where: { id: session.id },
-      data: { scenarioOrder: ids as never },
+      data: { scenarioOrder: ids as never, packageRevision: pkg?.revision ?? null },
     });
   }
 

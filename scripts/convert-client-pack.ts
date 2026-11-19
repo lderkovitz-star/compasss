@@ -335,8 +335,9 @@ function main() {
     );
     const result = await writePack(prisma, pack, { replaceExisting: true });
     console.log(
-      `Imported: ${result.scenariosCreated} scenarios created, ${result.scenariosUpdated} updated, ` +
-        `${result.scenariosRetired} retired; ${result.options} options written, ${result.scores} scores` +
+      `Imported (revision ${result.revision}): ${result.scenariosCreated} scenarios created, ${result.scenariosUpdated} updated, ` +
+        `${result.scenariosVersioned} saved as new versions, ${result.scenariosRetired} retired; ` +
+        `${result.options} options written, ${result.scores} scores` +
         (result.dimensionsCreated.length ? `; ${result.dimensionsCreated.length} dimensions created` : '')
     );
     await prisma.$disconnect();

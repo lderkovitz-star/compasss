@@ -218,3 +218,26 @@ Two things worth checking on that preview rather than afterwards:
 Scales do not need to match between packs. Scoring normalises each trait
 against the range that pack makes achievable, so a -10..10 pack and a 0..100
 pack both produce comparable 0-100 results.
+
+### Updating a pack that candidates are using
+
+Uploading a new copy of a pack, editing a scenario in the scenario editor, or
+moving one to the trash never changes anything for a candidate who has already
+started. Each assessment keeps the version of the pack it started with to the
+end: the same wording, the same options, and the same weights for scoring.
+Finished reports keep showing exactly what each candidate answered.
+
+How that works:
+
+- A scenario nobody has seen yet is updated where it is.
+- A scenario candidates have answered, or that is part of an assessment under
+  way, is not changed. Your edit is saved as a new version, and the earlier
+  one is kept, unchanged, for those candidates and their reports.
+- Scenarios that haven't changed are left alone. Uploading the same file
+  twice writes nothing.
+- Every change raises the pack's revision number. Each assessment records the
+  revision it started on, and the admin report shows it ("Pack revision 2
+  (now 3)"). New assessments always get the latest revision.
+- Scenarios that candidates depend on can't be deleted permanently from the
+  trash, and neither can a pack that assessments were taken on. Deleting them
+  would delete those candidates' answers.

@@ -41,6 +41,9 @@ model ScenarioPackage {
   code             String              @unique
   description      String
   version          String              @default("1.0.0")
+  // Goes up by one each time the pack's scenarios change. A sitting records the
+  // revision it started on and keeps those scenario versions to the end.
+  revision         Int                 @default(1)
   isActive         Boolean             @default(false) @map("is_active")
   createdAt        DateTime            @default(now()) @map("created_at")
   deletedAt        DateTime?           @map("deleted_at")
@@ -79,6 +82,9 @@ model Scenario {
   externalRef      String?            @map("external_ref")
   timeLimitSec     Int                @default(60) @map("time_limit_sec")
   deletedAt        DateTime?          @map("deleted_at")
+  // Set on an earlier version once an edit replaced it. That row stays, unchanged,
+  // for the sittings and reports that used it, and is never served to new ones.
+  supersededById   String?            @map("superseded_by_id")
   backdropImageUrl String?            @map("backdrop_image_url") // Per-scenario backdrop override
   options          ScenarioOption[]
   responses        Response[]
@@ -148,6 +154,8 @@ model AssessmentSession {
   // Frozen at session start so later edits to option weights cannot rewrite
   // the normalisation of a report that has already been issued.
   scenarioOrder      Json?                @map("scenario_order")
+  // The pack revision current when the order above was frozen.
+  packageRevision    Int?                 @map("package_revision")
   scoringBasis       Json?                @map("scoring_basis")
   scoringVersion     Int                  @default(1) @map("scoring_version")
   practiceJobText    String?              @map("practice_job_text")

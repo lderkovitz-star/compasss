@@ -160,6 +160,17 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className="badge-slate text-xs">{session.user?.targetRole ?? "—"}</span>
                   <span className="badge-blue text-xs">{session.package?.name}</span>
+                  {session.packageRevision != null && (
+                    <span
+                      className="badge-slate text-xs"
+                      title="The version of the pack this assessment ran on. Later edits to the pack don't change what this candidate saw or how they were scored."
+                    >
+                      Pack revision {session.packageRevision}
+                      {session.package && session.package.revision > session.packageRevision
+                        ? ` (now ${session.package.revision})`
+                        : ''}
+                    </span>
+                  )}
                   {session.status === "COMPLETED"
                     ? <span className="badge-green text-xs">Completed</span>
                     : <span className="badge-amber text-xs">In Progress</span>}

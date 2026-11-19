@@ -74,8 +74,17 @@ export default function ScenarioEditor({ initialScenario, dimensions }: { initia
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scenario),
       });
-      if (!res.ok) throw new Error('Failed to save scenario');
-      setMessage({ text: 'Scenario saved successfully!', type: 'success' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to save scenario');
+      if (data.versioned) {
+        // Candidates have seen this scenario, so the edit became a new version
+        // with its own id. Carry on editing that one.
+        const qs = new URLSearchParams({ saved: 'version', kept: String(data.unfinishedSittings ?? 0) });
+        if (data.revision) qs.set('rev', String(data.revision));
+        router.replace(`/admin/scenarios/${data.id}?${qs}`);
+        return;
+      }
+      setMessage({ text: data.unchanged ? 'Nothing has changed, so there was nothing to save.' : 'Scenario saved successfully!', type: 'success' });
       router.refresh();
     } catch (err: any) {
       setMessage({ text: err.message, type: 'error' });

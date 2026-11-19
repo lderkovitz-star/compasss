@@ -21,16 +21,20 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete an active package. Set another package as active first.' }, { status: 400 });
     }
 
-    // Perform soft delete in a transaction to cascade to scenarios
+    // Perform soft delete in a transaction to cascade to scenarios. Only the
+    // live ones are stamped, with the package's own time, so recovering the
+    // package brings back exactly these - not scenarios retired earlier, or
+    // earlier versions kept for candidates' reports.
+    const now = new Date();
     await prisma.$transaction(async (tx) => {
       await tx.scenarioPackage.update({
         where: { id: packageId },
-        data: { deletedAt: new Date() }
+        data: { deletedAt: now }
       });
       
       await tx.scenario.updateMany({
-        where: { packageId: packageId },
-        data: { deletedAt: new Date() }
+        where: { packageId: packageId, deletedAt: null },
+        data: { deletedAt: now }
       });
     });
 
