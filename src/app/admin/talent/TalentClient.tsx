@@ -16,6 +16,8 @@ type Entry = {
   packageName: string | null;
   employerName: string | null;
   completedAt: string;
+  /** 0-100 when the search matched on meaning, otherwise null or absent. */
+  similarity?: number | null;
 };
 
 type Registry = {
@@ -210,7 +212,9 @@ export default function TalentClient() {
         <p className="text-xs text-slate-500">
           {registry.searchMode === 'similarity'
             ? 'Matched on meaning, using embeddings of each candidate\u2019s resume and role.'
-            : 'Matched on words. Similarity search needs an OpenAI-compatible provider with a key saved.'}
+            : registry.searchNote
+              ? 'Matched on words.'
+              : 'Matched on words. Similarity search needs an OpenAI-compatible provider with a key saved.'}
           {registry.searchNote ? ` ${registry.searchNote}` : ''}
         </p>
       )}
@@ -383,6 +387,14 @@ export default function TalentClient() {
                     {entry.isHighSignal && (
                       <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                         High signal
+                      </span>
+                    )}
+                    {entry.similarity !== null && entry.similarity !== undefined && (
+                      <span
+                        className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-semibold text-indigo-700"
+                        title="How closely this candidate's resume and role match the search, by meaning"
+                      >
+                        {Math.max(0, entry.similarity)}% match
                       </span>
                     )}
                   </div>

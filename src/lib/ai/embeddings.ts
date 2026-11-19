@@ -1,11 +1,17 @@
 import { resolveActiveProvider } from './registry';
-import { DEFAULT_TIMEOUT_MS, ProviderError, fetchWithTimeout, isRetryableStatus } from './types';
+import {
+  DEFAULT_TIMEOUT_MS,
+  ProviderError,
+  fetchWithTimeout,
+  isRetryableStatus,
+  type ResolvedProvider,
+} from './types';
 
 /**
  * Embeddings, for similarity search over the talent registries.
  *
  * Only OpenAI-compatible endpoints expose an embeddings API, so this works
- * when one of those is the configured provider and is honest about it when
+ * when one of those has a key saved (live or not) and is honest about it when
  * not: the registry search falls back to matching words, and says which of
  * the two it used rather than quietly degrading.
  */
@@ -20,10 +26,36 @@ export class EmbeddingsUnavailable extends Error {
   }
 }
 
+/**
+ * The provider that does the embedding. Anthropic has no embeddings API, so
+ * when it is the live provider for evaluations, embeddings come from a saved
+ * OpenAI (or OpenRouter / custom) provider instead: the provider that writes
+ * evaluations and the one that embeds do not have to be the same.
+ */
+async function resolveEmbeddingProvider(): Promise<ResolvedProvider> {
+  try {
+    const live = await resolveActiveProvider();
+    if (live.providerType === 'OPENAI_COMPATIBLE') return live;
+  } catch {
+    // Not configured; try the others.
+  }
+  for (const key of ['openai', 'custom']) {
+    try {
+      const provider = await resolveActiveProvider(key);
+      if (provider.providerType === 'OPENAI_COMPATIBLE') return provider;
+    } catch {
+      // No key saved for this one.
+    }
+  }
+  throw new EmbeddingsUnavailable(
+    'Similarity search needs an OpenAI-compatible provider with a key saved in Settings → AI provider (it does not have to be the live one).'
+  );
+}
+
 export async function embeddingsAvailable(): Promise<boolean> {
   try {
-    const provider = await resolveActiveProvider();
-    return provider.providerType === 'OPENAI_COMPATIBLE';
+    await resolveEmbeddingProvider();
+    return true;
   } catch {
     return false;
   }
@@ -33,12 +65,7 @@ export async function embeddingsAvailable(): Promise<boolean> {
 export async function embed(texts: string[]): Promise<{ vectors: number[][]; model: string }> {
   if (texts.length === 0) return { vectors: [], model: DEFAULT_MODEL };
 
-  const provider = await resolveActiveProvider();
-  if (provider.providerType !== 'OPENAI_COMPATIBLE') {
-    throw new EmbeddingsUnavailable(
-      `The active provider (${provider.label}) has no embeddings endpoint. Similarity search needs an OpenAI-compatible provider; the registry will match on words instead.`
-    );
-  }
+  const provider = await resolveEmbeddingProvider();
 
   const base = (provider.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
   const model = process.env.EMBEDDING_MODEL?.trim() || DEFAULT_MODEL;
