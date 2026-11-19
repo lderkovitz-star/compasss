@@ -12,6 +12,26 @@ import {
 const DEFAULT_BASE_URL = 'https://api.anthropic.com';
 const API_VERSION = '2023-06-01';
 
+/**
+ * Claude models from the 5 generation on (Sonnet 5.5, Opus 5.5, Haiku 5.5,
+ * Fable and so on) think before they answer unless told otherwise, and that
+ * thinking counts toward max_tokens. Every call here asks for a short answer
+ * (a tier and a few sentences, a ranking, a reply to one question), so those
+ * models are asked for low effort: the thinking stays short, replies come back
+ * sooner, and "Max tokens per reply" is left for the answer itself.
+ *
+ * Older models do not think unless asked, and some reject the effort setting,
+ * so their requests are left exactly as they were.
+ */
+const THINKING_EFFORT = 'low';
+
+export function thinksByDefault(model: string): boolean {
+  const id = model.trim().toLowerCase().replace(/^anthropic\./, '');
+  if (/^claude-(fable|mythos)-/.test(id)) return true;
+  const family = /^claude-(opus|sonnet|haiku)-(\d+)/.exec(id);
+  return family !== null && Number(family[2]) >= 5;
+}
+
 export const anthropic: Provider = {
   async complete(
     provider: ResolvedProvider,
@@ -33,6 +53,7 @@ export const anthropic: Provider = {
           model: provider.model,
           max_tokens: provider.maxTokens,
           ...(provider.temperature !== null ? { temperature: provider.temperature } : {}),
+          ...(thinksByDefault(provider.model) ? { output_config: { effort: THINKING_EFFORT } } : {}),
           ...(request.system ? { system: request.system } : {}),
           messages: [{ role: 'user', content: request.prompt }],
         }),
@@ -56,6 +77,16 @@ export const anthropic: Provider = {
       : '';
 
     if (!text.trim()) {
+      // Neither of these gets better on a second try, so say what happened
+      // rather than retrying and reporting an empty response.
+      if (data.stop_reason === 'max_tokens') {
+        throw new ProviderError(
+          `The model used all ${provider.maxTokens} tokens before it answered. Raise "Max tokens per reply" in Settings → AI provider.`
+        );
+      }
+      if (data.stop_reason === 'refusal') {
+        throw new ProviderError('The model declined to answer this request.');
+      }
       throw new ProviderError('The provider returned an empty response.', { retryable: true });
     }
 
