@@ -138,6 +138,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Scenario package not found.' }, { status: 400 });
     }
 
+    // A package with nothing in it has nothing to serve. The failure only
+    // surfaces after the candidate has consented and a session exists, so it
+    // is caught here instead: the invitation is never created, and the person
+    // sending it is told why while they can still pick another package.
+    const liveScenarios = await prisma.scenario.count({
+      where: { packageId: pkg.id, deletedAt: null },
+    });
+    if (liveScenarios === 0) {
+      return NextResponse.json(
+        {
+          error: `"${pkg.name}" has no scenarios yet, so the candidate would have nothing to answer. Add scenarios to it, or choose another package.`,
+        },
+        { status: 409 }
+      );
+    }
+
     // Three cases, and they are different: a number caps the sitting, an
     // explicit null means "the whole pack" and must not be overridden by the
     // platform default, and an absent field means the caller did not choose.

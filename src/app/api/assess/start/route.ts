@@ -65,6 +65,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ sessionId: invite.sessionId });
     }
 
+    // Invitations sent before packages were checked can still point at an
+    // empty one. This has to refuse here rather than at the first scenario:
+    // past this point consent is recorded and a session exists, and the
+    // candidate is left on an error screen having already given it.
+    const scenarioCount = await prisma.scenario.count({
+      where: { packageId: invite.packageId, deletedAt: null },
+    });
+    if (scenarioCount === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'This assessment has not finished being set up - its scenario package is empty. Nothing has been recorded. Please contact whoever invited you.',
+        },
+        { status: 409 }
+      );
+    }
+
     // Checked after the invitation is validated, so a bad link is reported as
     // a bad link, and before the candidate record is touched, so declining
     // writes nothing at all.
