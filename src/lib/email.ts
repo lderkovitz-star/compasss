@@ -64,7 +64,7 @@ export function renderEmail(template: EmailTemplate, data: Record<string, unknow
             ? `${company} would like you to complete a short decision assessment as part of their process for the ${role} role.`
             : `${company} would like you to complete a short decision assessment as part of their process.`,
           '',
-          'It runs in your browser and puts you in a series of situations where you have to decide with incomplete information and a clock running. There is no preparation to do, and no right answer to look up.',
+          'It runs in your browser and puts you in a series of situations where you have to decide with incomplete information. There is no preparation to do, and no right answer to look up.',
           '',
           `Start here: ${str('url', '[link]')}`,
           '',

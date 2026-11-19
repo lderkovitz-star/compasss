@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { withoutDemoSessions } from '@/lib/demo-data';
 import CoordinatorClient from './CoordinatorClient';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,7 @@ async function getCoordinatorData() {
     // Practice runs have no candidate record and belong to no employer, so
     // they do not belong in a ledger of people being considered for a role.
     // They are reviewed in the sandbox talent registry instead.
-    where: { status: 'COMPLETED', kind: 'OFFICIAL' },
+    where: { status: 'COMPLETED', kind: 'OFFICIAL', ...withoutDemoSessions() },
     orderBy: { completedAt: 'desc' },
     include: {
       user: {

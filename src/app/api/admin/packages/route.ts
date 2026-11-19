@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
+import { withoutDemoPackages } from '@/lib/demo-data';
 
 // GET — list all packages
 export async function GET(req: NextRequest) {
@@ -14,7 +15,8 @@ export async function GET(req: NextRequest) {
 
     const packages = await prisma.scenarioPackage.findMany({
       where: {
-        deletedAt: isDeleted ? { not: null } : null
+        deletedAt: isDeleted ? { not: null } : null,
+        ...withoutDemoPackages(),
       },
       orderBy: { createdAt: 'asc' },
       include: {

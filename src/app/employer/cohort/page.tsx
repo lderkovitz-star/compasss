@@ -4,6 +4,7 @@ import { getClientSession } from '@/lib/portal-auth';
 import PortalShell from '../PortalShell';
 import CohortWorkbench from '@/components/CohortWorkbench';
 import EvaluatorAskBox from '@/components/EvaluatorAskBox';
+import { withoutDemoSessions } from '@/lib/demo-data';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -23,6 +24,7 @@ export default async function CohortPage() {
         clientAccountId: session.clientAccountId,
         kind: 'OFFICIAL',
         status: 'COMPLETED',
+        ...withoutDemoSessions(),
       },
     }),
     // The question box works on finished sittings only - an unfinished one
@@ -33,6 +35,7 @@ export default async function CohortPage() {
         clientAccountId: session.clientAccountId,
         kind: 'OFFICIAL',
         status: 'COMPLETED',
+        ...withoutDemoSessions(),
       },
       orderBy: { completedAt: 'desc' },
       take: 24,

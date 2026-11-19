@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { withoutDemoPackages } from "@/lib/demo-data";
 import PackageSwitcher from "./PackageSwitcher";
 import AssignmentMatrix from "./AssignmentMatrix";
 import Link from "next/link";
@@ -6,9 +7,11 @@ import { Trash2 } from "lucide-react";
 
 async function getPackages() {
   return prisma.scenarioPackage.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, ...withoutDemoPackages() },
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { scenarios: true, sessions: true } } },
+    // Scenarios in the trash are not counted: a pack whose scenarios are all
+    // there is empty, and can't be assigned (see package-availability.ts).
+    include: { _count: { select: { scenarios: { where: { deletedAt: null } }, sessions: true } } },
   });
 }
 

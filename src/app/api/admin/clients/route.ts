@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
 import { issueAccessKey } from '@/lib/access-key';
+import { assignmentRefusal } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +55,10 @@ export async function POST(req: NextRequest) {
     }
     if (!contactEmail?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
       return NextResponse.json({ error: 'A valid contact email is required.' }, { status: 400 });
+    }
+    if (assignedPackageId) {
+      const refused = await assignmentRefusal(String(assignedPackageId));
+      if (refused) return NextResponse.json({ error: refused }, { status: 400 });
     }
 
     let slug = slugify(name);

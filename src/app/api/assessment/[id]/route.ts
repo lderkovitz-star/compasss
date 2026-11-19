@@ -9,6 +9,17 @@ import { queueEmail } from '@/lib/email';
 import { dispatchCompletionWebhook } from '@/lib/webhook';
 import { enqueueAiEvaluation } from '@/lib/queue';
 
+/**
+ * What a candidate reads when their sitting has no scenarios: its pack had
+ * none left when the sitting began. Said plainly, with who can fix it, instead
+ * of "No scenarios found for this package".
+ */
+function noScenariosMessage(kind: string): string {
+  return kind === 'PRACTICE'
+    ? 'This practice run has no scenarios, so it cannot continue. Please start a new one from the practice page.'
+    : 'This assessment has no scenarios yet, so it cannot continue. Please contact the company that invited you.';
+}
+
 // GET — fetch current blind scenario (no scores, no dimension data)
 export async function GET(
   req: NextRequest,
@@ -48,7 +59,7 @@ export async function GET(
     const scenarios = await loadScenariosInOrder(order);
 
     if (scenarios.length === 0) {
-      return NextResponse.json({ error: 'No scenarios found for this package.' }, { status: 404 });
+      return NextResponse.json({ error: noScenariosMessage(session.kind), unavailable: true }, { status: 409 });
     }
 
     // Get already answered scenario IDs
@@ -151,6 +162,13 @@ export async function POST(
     });
     if (!option || option.scenario.packageId !== session.packageId) {
       return NextResponse.json({ error: 'Invalid option for this session.' }, { status: 400 });
+    }
+
+    // A sitting with no scenarios has nothing to answer. Without this, an
+    // option from a trashed scenario of the same pack was accepted, and the
+    // sitting was marked complete and scored on a scenario never shown.
+    if ((await resolveScenarioOrder(session)).length === 0) {
+      return NextResponse.json({ error: noScenariosMessage(session.kind), unavailable: true }, { status: 409 });
     }
 
     // Stored once, timed by the server, scored server-side (scores are never

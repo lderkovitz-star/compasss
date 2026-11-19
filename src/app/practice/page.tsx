@@ -14,7 +14,13 @@ export const metadata = {
 export default async function PracticePage() {
   const [settings, platform] = await Promise.all([
     prisma.platformSettings.findFirst({
-      select: { practiceEnabled: true, sandboxPackageId: true, defaultClientPackageId: true },
+      select: {
+        practiceEnabled: true,
+        sandboxPackageId: true,
+        defaultClientPackageId: true,
+        sandboxSessionDepth: true,
+        defaultSessionDepth: true,
+      },
     }),
     getPublicSettings(),
   ]);
@@ -30,7 +36,7 @@ export default async function PracticePage() {
       })
     : null;
 
-  const unavailable = settings?.practiceEnabled === false || !pack;
+  const unavailable = settings?.practiceEnabled === false || !pack || pack._count.scenarios === 0;
 
 
   if (unavailable) {
@@ -51,11 +57,17 @@ export default async function PracticePage() {
     );
   }
 
+  // How many scenarios this run will have: the sandbox length (the same
+  // setting /api/practice/start uses), capped by what the pack holds. The
+  // page used to state the size of the whole pack - 50 - for a run of 10.
+  const depth = settings?.sandboxSessionDepth ?? settings?.defaultSessionDepth ?? null;
+  const runLength = depth && depth > 0 ? Math.min(depth, pack._count.scenarios) : pack._count.scenarios;
+
   return (
     <PracticeClient
       platformName={platform.platformName}
       packageName={pack.name}
-      scenarioCount={pack._count.scenarios}
+      scenarioCount={runLength}
     />
   );
 }
