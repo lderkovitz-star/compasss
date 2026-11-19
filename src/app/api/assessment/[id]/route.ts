@@ -6,10 +6,11 @@ import { getGlobalSettings } from '@/lib/settings';
 import { recordRegistryEntry } from '@/lib/talent-registry';
 import { queueEmail } from '@/lib/email';
 import { dispatchCompletionWebhook } from '@/lib/webhook';
+import { enqueueAiEvaluation } from '@/lib/queue';
 
 // GET — fetch current blind scenario (no scores, no dimension data)
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const sessionId = params.id;
@@ -62,6 +63,10 @@ export async function GET(
     if (!nextScenario) {
       // All answered — finalize
       await computeFinalScores(sessionId);
+      if (session.kind !== 'PRACTICE') {
+        // Deduplicated against the POST path, so a sitting is queued once.
+        await enqueueAiEvaluation(sessionId, req.nextUrl.origin);
+      }
       return NextResponse.json(
         { redirect: `/assessment/complete?session=${sessionId}` },
         { status: 200 }
@@ -227,6 +232,10 @@ export async function POST(
             reportUrl: `${req.nextUrl.origin}/employer/reports/${sessionId}`,
           });
         }
+
+        // Hand the AI evaluation to the queue and answer the candidate now.
+        // QStash runs it in the background, one at a time, with retries.
+        await enqueueAiEvaluation(sessionId, req.nextUrl.origin);
       }
 
       return NextResponse.json({

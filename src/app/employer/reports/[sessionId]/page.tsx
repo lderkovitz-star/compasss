@@ -6,6 +6,15 @@ import PortalShell from '../../PortalShell';
 import ScoringVersionNotice from '@/components/ScoringVersionNotice';
 import ReportExportButtons from '@/components/ReportExportButtons';
 import ConsentRecord from '@/components/ConsentRecord';
+// Renamed: this page also exports the route config `dynamic`.
+import nextDynamic from 'next/dynamic';
+
+// The same radar and breakdown charts the admin report shows. Recharts
+// measures the DOM, so it renders on the client only.
+const ReportCharts = nextDynamic(() => import('@/components/ReportCharts'), {
+  ssr: false,
+  loading: () => <div className="h-[280px] w-full animate-pulse rounded-xl bg-slate-100" />,
+});
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -75,6 +84,16 @@ export default async function PortalReportPage({
     ? Math.round(forAverage.reduce((sum, s) => sum + s.finalScore, 0) / forAverage.length)
     : null;
   const thinCount = scored.length - wellEvidenced.length;
+
+  // Same shape the admin report feeds ReportCharts. Only exercised dimensions:
+  // an unexercised one has no score, and plotting it as 0 would draw a dent.
+  const chartScores = scored.map((s) => ({
+    name: s.dimension.name,
+    code: s.dimension.name,
+    category: s.dimension.category,
+    score: Math.round(s.finalScore),
+    percentile: Math.round(s.percentileRank ?? 0),
+  }));
 
   return (
     <PortalShell company={session.account.name}>
@@ -158,6 +177,12 @@ export default async function PortalReportPage({
         </div>
         <ConsentRecord consent={report.consent} />
       </div>
+
+      {chartScores.length > 0 && (
+        <div className="mt-6">
+          <ReportCharts dimensionScores={chartScores} showBreakdown={false} />
+        </div>
+      )}
 
       <div className="mt-6 bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200">

@@ -291,10 +291,13 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
   const renderExpandedDetails = (s: SessionData) => {
     const ai = getAI(s);
     return (
-      <div className="p-5 space-y-4 bg-slate-50/50">
+      // whitespace-normal: the desktop table is whitespace-nowrap so its cells
+      // stay on one line, and this panel sits inside it - without resetting
+      // that, the AI rationale ran off the right edge as a single line.
+      <div className="p-5 space-y-4 bg-slate-50/50 whitespace-normal">
         <h3 className="text-sm font-bold text-slate-900">Decision Trail — {s.candidate.name}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Trait Scores</p>
             <div className="space-y-2">
               {(['decisiveness', 'riskTolerance', 'resourcePreservation'] as const).map(t => {
@@ -312,7 +315,7 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Scenario Response Trail</p>
             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {s.responses.map((r, i) => (
@@ -333,11 +336,11 @@ export default function CoordinatorClient({ sessions }: { sessions: SessionData[
           </div>
 
           {ai && (
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">AI Rationale</p>
               <div className={`p-3 rounded-lg border text-xs leading-relaxed ${TIER_CONFIG[ai.tier].bg} ${TIER_CONFIG[ai.tier].color}`}>
                 <p className="font-bold mb-1">{TIER_CONFIG[ai.tier].label}</p>
-                <p>{ai.rationale}</p>
+                <p className="break-words">{ai.rationale}</p>
               </div>
             </div>
           )}
