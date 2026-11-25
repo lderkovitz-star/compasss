@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getPublicSettings } from '@/lib/settings';
 import PracticeResultCharts from './PracticeResultCharts';
+import ContactForm from '@/components/ContactForm';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -250,6 +251,15 @@ export default async function PracticeResultsPage({
           >
             Run another
           </Link>
+        </div>
+
+        {/* Someone trying the sandbox is often a buyer: give them a way in. */}
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+          <h2 className="text-lg font-semibold text-white">Assessing candidates for your own team?</h2>
+          <p className="mt-1.5 mb-5 text-[13px] leading-relaxed text-[#97A2BE]">
+            Request access or a demo, and we will reply by email.
+          </p>
+          <ContactForm source="practice-result" />
         </div>
       </div>
     </main>

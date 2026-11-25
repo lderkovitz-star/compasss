@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { withoutDemoCandidates } from "@/lib/demo-data";
 import { Eye } from "lucide-react";
 
 async function getCandidates() {
   return prisma.user.findMany({
+    where: withoutDemoCandidates(),
     orderBy: { createdAt: "desc" },
     include: {
       _count: {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
+import { withoutDemoCandidates } from '@/lib/demo-data';
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin();
@@ -8,6 +9,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const candidates = await prisma.user.findMany({
+      where: withoutDemoCandidates(),
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {

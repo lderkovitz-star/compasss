@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ClientAccessGate from '@/components/ClientAccessGate';
+import ContactForm from '@/components/ContactForm';
 import { getGlobalSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { resolveBrandName } from "@/lib/constants/brand";
@@ -89,7 +90,10 @@ export default async function Home() {
               <div className="text-[8px] sm:text-[10px] text-[#5B6580] tracking-[0.08em] uppercase leading-tight mt-0.5 font-semibold truncate hidden sm:block">Executive Assessment</div>
             </div>
           </Link>
-          <div className="flex items-center flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <a href="#contact" className="hidden sm:inline-flex min-h-[44px] items-center px-3 text-[13.5px] font-semibold text-[#C3CBDD] hover:text-white transition-colors">
+              Request access
+            </a>
             <Link href="/practice" className="min-h-[44px] bg-[#2E63F6] text-white text-[11px] sm:text-[13.5px] font-semibold px-3 sm:px-[18px] rounded-lg inline-flex items-center whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_4px_14px_rgba(46,99,246,0.4)] hover:bg-[#5B8CFF] hover:-translate-y-[1px] transition-all">
               Begin assessment &rarr;
             </Link>
@@ -261,9 +265,9 @@ export default async function Home() {
         <div className="max-w-[1180px] mx-auto px-4 sm:px-8">
           <div className="max-w-[620px] mb-8 sm:mb-[56px]">
             <span className="text-[11.5px] font-semibold text-[#5B8CFF] uppercase tracking-[0.1em] mb-2 sm:mb-3.5 block">Architecture</span>
-            <h2 className="text-2xl sm:text-[26px] md:text-[34px] leading-[1.18] font-semibold tracking-tight text-white">Four systems, one assessment.</h2>
+            <h2 className="text-2xl sm:text-[26px] md:text-[34px] leading-[1.18] font-semibold tracking-tight text-white">Three systems, one assessment.</h2>
             <p className="mt-3 sm:mt-4 text-sm sm:text-[15.5px] leading-relaxed sm:leading-[1.7] text-[#97A2BE]">
-              Each module runs independently so the platform stays swappable — new scenario packs, new dimensions, new hardware — without touching the core.
+              Each module runs independently so the platform stays swappable — new scenario packs, new dimensions — without touching the core.
             </p>
           </div>
 
@@ -273,7 +277,7 @@ export default async function Home() {
                 <span className={`text-[11px] text-[#5B6580] tracking-[0.08em] mb-3 sm:mb-[22px] block ${plexMono.className}`}>MODULE A</span>
                 <div className="text-lg sm:text-[19px] font-semibold text-white tracking-tight">Blind candidate UI</div>
                 <div className="mt-2.5 text-xs sm:text-[13.5px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
-                  The test screen shows scenario text, choices, and a timer — nothing else. No trait meters, no live scores, no stress charts. Scoring happens entirely server-side, invisible until the candidate submits.
+                  The test screen shows scenario text and choices — nothing else. No trait meters, no live scores, no stress charts. Scoring happens entirely server-side, invisible until the candidate submits.
                 </div>
                 <span className="inline-block mt-4 sm:mt-5 text-[10.5px] font-semibold tracking-[0.06em] uppercase px-2.5 py-1.5 rounded-md text-[#F5B95C] bg-[#F5B95C]/10 border border-[#F5B95C]/25">
                   Zero visible scoring
@@ -303,7 +307,7 @@ export default async function Home() {
             </div>
 
             <div className="bg-[#10192E] p-6 sm:p-9 relative border-t border-white/10">
-              <span className={`text-[11px] text-[#5B6580] tracking-[0.08em] mb-3 sm:mb-[22px] block ${plexMono.className}`}>MODULE D</span>
+              <span className={`text-[11px] text-[#5B6580] tracking-[0.08em] mb-3 sm:mb-[22px] block ${plexMono.className}`}>MODULE C</span>
               <div className="text-lg sm:text-[19px] font-semibold text-white tracking-tight">Decision telemetry</div>
               <div className="mt-2.5 text-xs sm:text-[13.5px] leading-relaxed sm:leading-[1.65] text-[#97A2BE]">
                 How long each call took, which options were revisited, and where the candidate hesitated — recorded per decision and carried into the executive report.
@@ -337,7 +341,7 @@ export default async function Home() {
             <div className="flex-1 p-5 sm:p-7 relative border-x border-b md:border-b-y md:border-l md:border-r-0 border-white/10">
               <span className={`text-[11px] text-[#35E0C8] mb-2 sm:mb-3.5 block ${plexMono.className}`}>02</span>
               <div className="text-sm sm:text-[14.5px] font-semibold text-white">Assessment</div>
-              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">Timed scenarios, one-way navigation, silent telemetry.</div>
+              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">One-way navigation, decision time recorded, silent telemetry.</div>
               <div className="absolute left-1/2 -bottom-3 md:left-auto md:-right-3 md:top-1/2 -translate-x-1/2 md:translate-x-0 md:-translate-y-1/2 w-[22px] h-[22px] rounded-full bg-[#0B0F17] border border-white/15 flex items-center justify-center z-10 rotate-90 md:rotate-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#5B6580" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
@@ -355,7 +359,7 @@ export default async function Home() {
             <div className="flex-1 p-5 sm:p-7 relative border-x border-b md:border-b-y md:border-l border-white/10 rounded-b-xl md:rounded-bl-none md:rounded-r-xl">
               <span className={`text-[11px] text-[#35E0C8] mb-2 sm:mb-3.5 block ${plexMono.className}`}>04</span>
               <div className="text-sm sm:text-[14.5px] font-semibold text-white">Report</div>
-              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">Radar breakdown, stress timeline, exportable PDF.</div>
+              <div className="mt-1.5 sm:mt-2 text-xs sm:text-[12.5px] leading-[1.6] text-[#5B6580]">Radar breakdown, per-decision timing, exportable PDF.</div>
             </div>
           </div>
         </div>
@@ -369,6 +373,22 @@ export default async function Home() {
           <Link href="/practice" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold bg-[#2E63F6] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_28px_-12px_rgba(46,99,246,0.55)] hover:bg-[#5B8CFF] transition-colors">
             Start candidate assessment
           </Link>
+          <a href="#contact" className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm sm:text-[14.5px] font-semibold border border-white/15 text-white hover:border-white/30 hover:bg-white/[0.04] transition-colors">
+            Request access
+          </a>
+        </div>
+      </section>
+
+      {/* CONTACT - the way in for a buyer without an access key. Saved for
+          the Master Admin's Contact requests page; nothing is emailed. */}
+      <section id="contact" className="scroll-mt-24 border-t border-white/10 py-12 sm:py-16 md:py-[88px] px-4 sm:px-8">
+        <div className="max-w-[620px] mx-auto">
+          <span className="text-[11.5px] font-semibold text-[#5B8CFF] uppercase tracking-[0.1em] mb-2 sm:mb-3.5 block">Contact</span>
+          <h2 className="text-2xl sm:text-[26px] md:text-[34px] leading-[1.18] font-semibold tracking-tight text-white">Request access or a demo</h2>
+          <p className="mt-3 sm:mt-4 mb-7 text-sm sm:text-[15.5px] leading-relaxed text-[#97A2BE]">
+            Tell us a little about your team and what you are hiring for, and we will reply by email.
+          </p>
+          <ContactForm source="landing" />
         </div>
       </section>
 

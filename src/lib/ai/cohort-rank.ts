@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { withoutDemoSessions } from '@/lib/demo-data';
 import { deriveAxes, synthesise } from './synthesis';
 
 /**
@@ -59,7 +60,7 @@ export async function rankCohort(
   jobSpec: string
 ): Promise<CohortRanking> {
   const sessions = await prisma.assessmentSession.findMany({
-    where: { clientAccountId, kind: 'OFFICIAL', status: 'COMPLETED' },
+    where: { clientAccountId, kind: 'OFFICIAL', status: 'COMPLETED', ...withoutDemoSessions() },
     orderBy: { completedAt: 'desc' },
     select: {
       id: true,

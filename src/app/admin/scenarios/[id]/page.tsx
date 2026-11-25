@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
+import { withoutDemoDimensions } from '@/lib/demo-data';
 import ScenarioEditor from './ScenarioEditor';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
@@ -23,6 +24,8 @@ export default async function ScenarioBuilderPage({ params }: { params: { id: st
 
   const dimensions = await prisma.dimension.findMany({
     orderBy: { code: 'asc' },
+    // The starter demo's sample dimensions, unless this scenario scores one.
+    where: withoutDemoDimensions(scenario.options.flatMap((o) => o.scores.map((s) => s.dimensionId))),
   });
 
   return (

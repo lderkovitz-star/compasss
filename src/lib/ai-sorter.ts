@@ -12,6 +12,7 @@
 
 import { Prisma } from '@prisma/client';
 import { prisma } from './db';
+import { withoutDemoSessions } from './demo-data';
 import { evaluateSession, type Evaluation } from './ai/evaluate';
 import type { CandidateTier } from './ai/types';
 
@@ -53,6 +54,9 @@ export async function batchTierCandidates(): Promise<{
     where: {
       status: 'COMPLETED',
       aiEvaluation: { equals: Prisma.AnyNull },
+      // Not the starter demo's sample candidate: tiering it spends AI calls on
+      // made-up data that nobody sees.
+      ...withoutDemoSessions(),
     },
     select: { id: true, user: { select: { name: true } } },
     orderBy: { completedAt: 'asc' },

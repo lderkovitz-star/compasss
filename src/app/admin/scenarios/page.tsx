@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
+import { withoutDemoPackages } from '@/lib/demo-data';
 import ScenariosClient from './ScenariosClient';
 
 export const dynamic = 'force-dynamic';
@@ -7,16 +8,16 @@ export const revalidate = 0;
 
 async function getData() {
   const [packages, scenarios, optionCount] = await Promise.all([
-    prisma.scenarioPackage.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'asc' } }),
+    prisma.scenarioPackage.findMany({ where: { deletedAt: null, ...withoutDemoPackages() }, orderBy: { createdAt: 'asc' } }),
     prisma.scenario.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: null, package: withoutDemoPackages() },
       orderBy: [{ packageId: 'asc' }, { sequenceOrder: 'asc' }],
       include: {
         package: { select: { name: true, code: true, isActive: true } },
         _count: { select: { options: true } },
       },
     }),
-    prisma.scenarioOption.count({ where: { scenario: { deletedAt: null } } }),
+    prisma.scenarioOption.count({ where: { scenario: { deletedAt: null, package: withoutDemoPackages() } } }),
   ]);
   return { packages, scenarios, optionCount };
 }

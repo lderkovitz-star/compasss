@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth';
+import { withoutDemoDimensions } from '@/lib/demo-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,7 @@ export async function GET() {
 
   try {
     const dimensions = await prisma.dimension.findMany({
+      where: withoutDemoDimensions(),
       orderBy: { code: 'asc' },
     });
     return NextResponse.json(dimensions);

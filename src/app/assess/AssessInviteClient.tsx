@@ -142,7 +142,7 @@ export default function AssessInviteClient({
           </h1>
           <p className="text-[14px] text-[#97A2BE] mt-3">
             Hello {candidateName}. {packageName ? `${packageName}. ` : ''}
-            You will work through a series of timed scenarios — there are no right answers, only
+            You will work through a series of scenarios — there are no right answers, only
             choices.
           </p>
         </div>

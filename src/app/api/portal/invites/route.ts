@@ -4,6 +4,7 @@ import { requireClient } from '@/lib/portal-auth';
 import { generateInviteToken, buildInviteUrl } from '@/lib/invite-token';
 import { queueEmail } from '@/lib/email';
 import { assertSeatAvailable, SeatLimitError, getSeatUsage } from '@/lib/seats';
+import { EMPTY_PACK_MESSAGE, packRefusal } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +70,48 @@ export async function POST(req: NextRequest) {
     // with a lock on every invitation.
     await assertSeatAvailable(portal.clientAccountId);
 
+    // Which package this candidate runs. Resolution order is the Module B one:
+    // the account's own assignment, then the global client default. Whatever it
+    // resolves to is snapshotted on the invite, so reassigning a package later
+    // never changes an assessment that has already gone out. Resolved before
+    // anything is written, like the seats, so a refusal leaves nothing behind.
+    const [account, settings] = await Promise.all([
+      prisma.clientAccount.findUnique({
+        where: { id: portal.clientAccountId },
+        select: { assignedPackageId: true },
+      }),
+      prisma.platformSettings.findFirst({
+        select: { defaultClientPackageId: true, defaultSessionDepth: true },
+      }),
+    ]);
+
+    const requestedPackageId = body.packageId ? String(body.packageId) : null;
+    const packageId =
+      requestedPackageId ?? account?.assignedPackageId ?? settings?.defaultClientPackageId ?? null;
+
+    if (!packageId) {
+      return NextResponse.json(
+        { error: 'No scenario package is assigned to this account yet.' },
+        { status: 409 }
+      );
+    }
+
+    // Never a pack the candidate could not sit - one with no live scenarios
+    // left them stuck after consent. Hidden demo packs read as not found.
+    const refusal = await packRefusal(packageId);
+    if (refusal === 'empty') {
+      return NextResponse.json({ error: EMPTY_PACK_MESSAGE }, { status: 409 });
+    }
+    const pkg = refusal
+      ? null
+      : await prisma.scenarioPackage.findFirst({
+          where: { id: packageId, deletedAt: null },
+          select: { id: true, name: true },
+        });
+    if (!pkg) {
+      return NextResponse.json({ error: 'Scenario package not found.' }, { status: 400 });
+    }
+
     // Job context: either an existing one belonging to this account, or a new
     // one from the pasted description. The candidate never sees this - it is
     // bundled with their assessment for the evaluation.
@@ -103,39 +146,6 @@ export async function POST(req: NextRequest) {
         { error: 'Select a saved role or paste a job description.' },
         { status: 400 }
       );
-    }
-
-    // Which package this candidate runs. Resolution order is the Module B one:
-    // the account's own assignment, then the global client default. Whatever it
-    // resolves to is snapshotted on the invite, so reassigning a package later
-    // never changes an assessment that has already gone out.
-    const [account, settings] = await Promise.all([
-      prisma.clientAccount.findUnique({
-        where: { id: portal.clientAccountId },
-        select: { assignedPackageId: true },
-      }),
-      prisma.platformSettings.findFirst({
-        select: { defaultClientPackageId: true, defaultSessionDepth: true },
-      }),
-    ]);
-
-    const requestedPackageId = body.packageId ? String(body.packageId) : null;
-    const packageId =
-      requestedPackageId ?? account?.assignedPackageId ?? settings?.defaultClientPackageId ?? null;
-
-    if (!packageId) {
-      return NextResponse.json(
-        { error: 'No scenario package is assigned to this account yet.' },
-        { status: 409 }
-      );
-    }
-
-    const pkg = await prisma.scenarioPackage.findFirst({
-      where: { id: packageId, deletedAt: null },
-      select: { id: true, name: true },
-    });
-    if (!pkg) {
-      return NextResponse.json({ error: 'Scenario package not found.' }, { status: 400 });
     }
 
     // Three cases, and they are different: a number caps the sitting, an

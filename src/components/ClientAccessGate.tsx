@@ -15,7 +15,8 @@ import ModalPortal from './ModalPortal';
  *
  * Whether key sign-in is offered at all is asked of the server when the modal
  * opens, not baked into the page: a deployment with no key configured shows
- * the password route instead of a box that cannot work.
+ * the password route instead of a box that cannot work - without saying so,
+ * since anyone can open this and "not configured" is a setup note for staff.
  */
 export default function ClientAccessGate({ label = 'Client Access' }: { label?: string }) {
   const router = useRouter();
@@ -134,8 +135,7 @@ export default function ClientAccessGate({ label = 'Client Access' }: { label?: 
             {enabled === false && (
               <div className="mt-5">
                 <p className="text-[13px] leading-relaxed text-[#97A2BE]">
-                  Key access is not configured on this deployment. Sign in with your console
-                  account instead.
+                  Sign in with your console account.
                 </p>
                 <a
                   href="/admin"
@@ -188,6 +188,15 @@ export default function ClientAccessGate({ label = 'Client Access' }: { label?: 
                   Sign in with email instead
                 </a>
               </form>
+            )}
+
+            {enabled !== null && (
+              <p className="mt-4 text-center text-[12.5px] text-[#5B6580]">
+                No account yet?{' '}
+                <a href="/#contact" onClick={() => setOpen(false)} className="font-semibold text-[#8E99B4] hover:text-white">
+                  Request access
+                </a>
+              </p>
             )}
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { consumeRateLimit, clientIp } from '@/lib/rate-limit';
+import { packHasLiveScenarios } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -60,7 +61,8 @@ export async function POST(req: NextRequest) {
         })
       : null;
 
-    if (!pkg) {
+    // A pack with no live scenarios would start a run with nothing in it.
+    if (!pkg || !(await packHasLiveScenarios(pkg.id))) {
       return NextResponse.json(
         { error: 'No practice scenarios are available yet. Please check back shortly.' },
         { status: 503 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
+import { assignmentRefusal } from '@/lib/package-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,19 +53,10 @@ export async function PATCH(req: NextRequest) {
       if (body[field] === undefined) continue;
       const value = body[field] ? String(body[field]) : null;
       if (value) {
-        const pkg = await prisma.scenarioPackage.findFirst({
-          where: { id: value, deletedAt: null },
-          select: { id: true, _count: { select: { scenarios: true } } },
-        });
-        if (!pkg) {
-          return NextResponse.json({ error: 'That package no longer exists.' }, { status: 400 });
-        }
-        if (pkg._count.scenarios === 0) {
-          return NextResponse.json(
-            { error: 'That package has no scenarios yet, so an assessment would have nothing to run.' },
-            { status: 400 }
-          );
-        }
+        // Scenarios in the trash do not count, and hidden demo packs read as
+        // missing - see package-availability.ts.
+        const refused = await assignmentRefusal(value);
+        if (refused) return NextResponse.json({ error: refused }, { status: 400 });
       }
       data[field] = value;
     }
