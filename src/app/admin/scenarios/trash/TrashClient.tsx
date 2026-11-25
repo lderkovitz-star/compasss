@@ -20,10 +20,13 @@ export default function TrashClient({ scenarios }: { scenarios: DeletedScenario[
     setLoadingId('recover-' + id);
     try {
       const res = await fetch(`/api/admin/scenarios/${id}/recover`, { method: 'POST' });
-      if (!res.ok) throw new Error("Failed to recover");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Error recovering scenario");
+      }
       router.refresh();
     } catch (err) {
-      alert("Error recovering scenario");
+      alert(err instanceof Error ? err.message : "Error recovering scenario");
     } finally {
       setLoadingId(null);
     }
@@ -34,10 +37,13 @@ export default function TrashClient({ scenarios }: { scenarios: DeletedScenario[
     setLoadingId('delete-' + id);
     try {
       const res = await fetch(`/api/admin/scenarios/${id}/permanent`, { method: 'DELETE' });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Error permanently deleting scenario");
+      }
       router.refresh();
     } catch (err) {
-      alert("Error permanently deleting scenario");
+      alert(err instanceof Error ? err.message : "Error permanently deleting scenario");
     } finally {
       setLoadingId(null);
     }

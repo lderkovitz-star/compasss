@@ -38,9 +38,11 @@ export async function installClientPack(prisma: PrismaClient): Promise<void> {
   }
 
   const result = await writePack(prisma, parsed.pack, { replaceExisting: true });
-  if (result.scenariosCreated || result.scenariosUpdated) {
+  if (result.scenariosCreated || result.scenariosUpdated || result.scenariosVersioned || result.scenariosRetired) {
     console.log(
-      `Client pack: ${result.scenariosCreated} scenario(s) added, ${result.scenariosUpdated} updated (${result.packageCode}).`
+      `Client pack: ${result.scenariosCreated} scenario(s) added, ${result.scenariosUpdated} updated, ` +
+        `${result.scenariosVersioned} saved as new versions, ${result.scenariosRetired} retired ` +
+        `(${result.packageCode}, revision ${result.revision}).`
     );
   }
 

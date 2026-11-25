@@ -22,10 +22,13 @@ export default function TrashClient({ packages }: { packages: DeletedPackage[] }
     setLoadingId('recover-' + id);
     try {
       const res = await fetch(`/api/admin/packages/${id}/recover`, { method: 'POST' });
-      if (!res.ok) throw new Error("Failed to recover");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Error recovering package");
+      }
       router.refresh();
     } catch (err) {
-      alert("Error recovering package");
+      alert(err instanceof Error ? err.message : "Error recovering package");
     } finally {
       setLoadingId(null);
     }
@@ -40,10 +43,13 @@ export default function TrashClient({ packages }: { packages: DeletedPackage[] }
     setLoadingId('delete-' + packageToDelete);
     try {
       const res = await fetch(`/api/admin/packages/${packageToDelete}/permanent`, { method: 'DELETE' });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Error permanently deleting package");
+      }
       router.refresh();
     } catch (err) {
-      alert("Error permanently deleting package");
+      alert(err instanceof Error ? err.message : "Error permanently deleting package");
     } finally {
       setLoadingId(null);
       setPackageToDelete(null);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireAdmin, WRITE_ROLES } from '@/lib/auth';
+import { bumpRevision } from '@/lib/scenario-versions';
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +22,12 @@ export async function POST(
       return NextResponse.json({ error: 'Package is not deleted.' }, { status: 400 });
     }
 
-    // Recover package and associated scenarios
+    // Recover package and the scenarios trashed with it. Deleting a package
+    // stamps its live scenarios with the package's own time (packages older
+    // than that change were stamped a moment later, hence the window), so
+    // scenarios retired before then, and earlier versions kept for candidates'
+    // reports, stay where they are.
+    const at = pkg.deletedAt.getTime();
     await prisma.$transaction(async (tx) => {
       await tx.scenarioPackage.update({
         where: { id: packageId },
@@ -29,9 +35,14 @@ export async function POST(
       });
       
       await tx.scenario.updateMany({
-        where: { packageId: packageId },
+        where: {
+          packageId: packageId,
+          supersededById: null,
+          deletedAt: { gte: new Date(at - 60_000), lte: new Date(at + 60_000) },
+        },
         data: { deletedAt: null }
       });
+      await bumpRevision(tx, packageId);
     });
 
     return NextResponse.json({ success: true });

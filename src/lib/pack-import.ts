@@ -1,4 +1,12 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
+import {
+  bumpRevision,
+  contentOf,
+  sameContent,
+  scenarioIdsInUse,
+  unfinishedSittingsOn,
+  type ScenarioContent,
+} from './scenario-versions';
 
 /**
  * Scenario pack import.
@@ -694,9 +702,19 @@ async function createInChunks<T>(
 export type WriteResult = {
   packageId: string;
   packageCode: string;
+  /** The pack's revision after this import. */
+  revision: number;
   scenariosCreated: number;
+  /** Changed where they were, because no sitting had used them yet. */
   scenariosUpdated: number;
+  /** Changed as new versions, because sittings or reports use the old ones. */
+  scenariosVersioned: number;
+  scenariosUnchanged: number;
+  /** Brought back from the trash because the pack contains them again. */
+  scenariosRestored: number;
   scenariosRetired: number;
+  /** Sittings under way that keep the versions they started with. */
+  sittingsKeepingEarlierVersions: number;
   options: number;
   scores: number;
   dimensionsCreated: string[];
@@ -710,13 +728,14 @@ export type WriteResult = {
  * exceeds the serverless function limit long before it finishes.
  *
  * Re-importing an edited pack updates the scenarios it already has rather than
- * duplicating them, matched on `externalRef`. Matching in place is what keeps
- * finished reports readable: a response points at an option row, so replacing
- * scenarios wholesale would either orphan past sessions or, because the
- * response-to-option foreign key cascades, delete their answers outright. An
- * option that has already been answered is therefore never removed - if the new
- * pack drops one, the import stops and says which, instead of quietly taking
- * the responses with it.
+ * duplicating them, matched on `externalRef` (or position). A scenario no
+ * sitting has used yet is edited where it is. One that a sitting depends on is
+ * not: the changed copy is written as a new version and the old row is
+ * retired, keeping its options and weights, so a candidate part-way through
+ * carries on with what they started, finished reports keep what candidates
+ * answered, and the response foreign keys - which cascade - are never put at
+ * risk. Unchanged scenarios are left alone, and the pack's revision goes up
+ * only when something new sittings would be served has changed.
  */
 export async function writePack(
   prisma: PrismaClient,
@@ -797,12 +816,32 @@ export async function writePack(
           id: true,
           externalRef: true,
           sequenceOrder: true,
+          title: true,
+          narrativeText: true,
+          decisionPoint: true,
+          timeLimitSec: true,
+          backdropImageUrl: true,
           deletedAt: true,
           options: {
-            select: { id: true, optionCode: true, _count: { select: { responses: true } } },
+            orderBy: [{ sortOrder: 'asc' }, { optionCode: 'asc' }],
+            select: {
+              id: true,
+              optionCode: true,
+              title: true,
+              optionText: true,
+              sortOrder: true,
+              scores: { select: { dimensionId: true, weightScore: true } },
+              _count: { select: { responses: true } },
+            },
           },
         },
       });
+
+      // A scenario a sitting depends on - answered, or in the frozen order of
+      // any sitting - is never changed in place. A changed copy of it becomes a
+      // new version, and the old row stays as it was for those sittings and
+      // their reports (scenario-versions.ts).
+      const inUse = await scenarioIdsInUse(tx, packageId);
 
       // Identity for "the same scenario, edited". externalRef is the explicit
       // one; failing that, position in the pack, which the format requires to
@@ -823,6 +862,10 @@ export async function writePack(
 
       const matched = new Set<string>();
       let scenariosUpdated = 0;
+      let scenariosVersioned = 0;
+      let scenariosUnchanged = 0;
+      let scenariosRestored = 0;
+      const versionedIds: string[] = [];
 
       const newScenarioRows: {
         id: string;
@@ -833,6 +876,7 @@ export async function writePack(
         decisionPoint: string | null;
         externalRef: string | null;
         timeLimitSec: number;
+        backdropImageUrl: string | null;
       }[] = [];
       const newOptionRows: {
         id: string;
@@ -853,6 +897,53 @@ export async function writePack(
         }
       };
 
+      type Incoming = (typeof pack.scenarios)[number];
+      const queueScenario = (incoming: Incoming, scenarioId: string, backdropImageUrl: string | null) => {
+        newScenarioRows.push({
+          id: scenarioId,
+          packageId,
+          sequenceOrder: incoming.sequenceOrder,
+          title: incoming.title,
+          narrativeText: incoming.narrativeText,
+          decisionPoint: incoming.decisionPoint,
+          externalRef: incoming.externalRef,
+          timeLimitSec: incoming.timeLimitSec,
+          backdropImageUrl,
+        });
+        for (const o of incoming.options) {
+          const optionId = crypto.randomUUID();
+          newOptionRows.push({
+            id: optionId,
+            scenarioId,
+            optionCode: o.label,
+            title: o.title,
+            optionText: o.text,
+            sortOrder: o.sortOrder,
+          });
+          queueScores(optionId, o.scores);
+        }
+      };
+
+      // The incoming scenario in the shape stored rows are compared in.
+      const incomingContent = (incoming: Incoming): ScenarioContent => ({
+        sequenceOrder: incoming.sequenceOrder,
+        title: incoming.title,
+        narrativeText: incoming.narrativeText,
+        decisionPoint: incoming.decisionPoint,
+        timeLimitSec: incoming.timeLimitSec,
+        options: incoming.options.map((o) => ({
+          code: o.label,
+          title: o.title,
+          text: o.text,
+          sortOrder: o.sortOrder,
+          scores: Object.fromEntries(
+            Object.entries(o.scores)
+              .filter(([code]) => dimMap.has(code))
+              .map(([code, weight]) => [dimMap.get(code) as string, weight])
+          ),
+        })),
+      });
+
       for (const incoming of pack.scenarios) {
         let existing = incoming.externalRef ? byRef.get(incoming.externalRef) : undefined;
         if (!existing) {
@@ -863,33 +954,39 @@ export async function writePack(
         }
 
         if (!existing) {
-          const scenarioId = crypto.randomUUID();
-          newScenarioRows.push({
-            id: scenarioId,
-            packageId,
-            sequenceOrder: incoming.sequenceOrder,
-            title: incoming.title,
-            narrativeText: incoming.narrativeText,
-            decisionPoint: incoming.decisionPoint,
-            externalRef: incoming.externalRef,
-            timeLimitSec: incoming.timeLimitSec,
-          });
-          for (const o of incoming.options) {
-            const optionId = crypto.randomUUID();
-            newOptionRows.push({
-              id: optionId,
-              scenarioId,
-              optionCode: o.label,
-              title: o.title,
-              optionText: o.text,
-              sortOrder: o.sortOrder,
-            });
-            queueScores(optionId, o.scores);
-          }
+          queueScenario(incoming, crypto.randomUUID(), null);
           continue;
         }
 
         matched.add(existing.id);
+
+        // Nothing to write - so a deploy that re-installs an unchanged pack
+        // leaves it, and its revision, alone.
+        if (sameContent(contentOf(existing), incomingContent(incoming))) {
+          if (existing.deletedAt) {
+            await tx.scenario.update({ where: { id: existing.id }, data: { deletedAt: null } });
+            scenariosRestored++;
+          } else {
+            scenariosUnchanged++;
+          }
+          continue;
+        }
+
+        if (inUse.has(existing.id)) {
+          const scenarioId = crypto.randomUUID();
+          // The reference moves to the new version; the old row lets go of it
+          // first because of the unique index, and is retired, not deleted.
+          await tx.scenario.update({
+            where: { id: existing.id },
+            data: { deletedAt: existing.deletedAt ?? new Date(), externalRef: null, supersededById: scenarioId },
+          });
+          queueScenario(incoming, scenarioId, existing.backdropImageUrl);
+          versionedIds.push(existing.id);
+          scenariosVersioned++;
+          continue;
+        }
+
+        // Nobody has seen this scenario yet, so it can be edited where it is.
         scenariosUpdated++;
 
         await tx.scenario.update({
@@ -933,7 +1030,8 @@ export async function writePack(
 
         // An option that is gone from the new pack but has been answered
         // cannot be removed - the response foreign key cascades, so deleting it
-        // would delete the answer. Say so rather than destroying history.
+        // would delete the answer. A scenario with answers takes the version
+        // path above, so this is a last guard rather than a normal outcome.
         for (const old of existing.options) {
           if (incomingCodes.has(old.optionCode)) continue;
           if (old._count.responses > 0) {
@@ -946,6 +1044,8 @@ export async function writePack(
       }
 
       // --- retire what the new pack no longer contains ----------------------
+      // Retired, not deleted: a sitting that already includes one of these
+      // keeps it to the end.
       const retired = current.filter((sc) => !matched.has(sc.id) && !sc.deletedAt);
       if (retired.length) {
         // externalRef is cleared alongside, so the unique index does not block
@@ -966,12 +1066,29 @@ export async function writePack(
       await createInChunks(newOptionRows, (batch) => tx.scenarioOption.createMany({ data: batch }));
       await createInChunks(newScoreRows, (batch) => tx.optionScore.createMany({ data: batch }));
 
+      // --- revision ---------------------------------------------------------
+      // A new pack starts at revision 1; an existing one goes up by one when
+      // what new sittings would be served has changed.
+      const changed = newScenarioRows.length + scenariosUpdated + scenariosRestored + retired.length;
+      let revision = 1;
+      if (found) {
+        revision =
+          changed > 0
+            ? await bumpRevision(tx, packageId)
+            : (await tx.scenarioPackage.findUnique({ where: { id: packageId }, select: { revision: true } }))?.revision ?? 1;
+      }
+
       return {
         packageId,
         packageCode: pack.package.code,
-        scenariosCreated: newScenarioRows.length,
+        revision,
+        scenariosCreated: newScenarioRows.length - scenariosVersioned,
         scenariosUpdated,
+        scenariosVersioned,
+        scenariosUnchanged,
+        scenariosRestored,
         scenariosRetired: retired.length,
+        sittingsKeepingEarlierVersions: await unfinishedSittingsOn(tx, [...versionedIds, ...retired.map((sc) => sc.id)]),
         options: newOptionRows.length,
         scores: newScoreRows.length,
         dimensionsCreated,
