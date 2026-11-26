@@ -64,7 +64,7 @@ export default async function PortalReportPage({
         select: {
           id: true,
           timeSpentMs: true,
-          scenario: { select: { sequenceOrder: true, narrativeText: true } },
+          scenario: { select: { sequenceOrder: true, externalRef: true, narrativeText: true } },
           option: { select: { optionCode: true, optionText: true } },
         },
       },

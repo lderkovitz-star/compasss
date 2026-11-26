@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import ExportButtons from "@/components/ReportExportButtons";
 import ScoringVersionNotice from "@/components/ScoringVersionNotice";
 import ConsentRecord from "@/components/ConsentRecord";
+import { scenarioLabel } from "@/lib/scenario-label";
 
 const ReportCharts = dynamic(() => import("@/components/ReportCharts"), { 
   ssr: false,
@@ -27,6 +28,7 @@ interface DBResponse {
   id: string;
   scenario: {
     sequenceOrder: number;
+    externalRef: string | null;
     narrativeText: string;
   } | null;
   option: {
@@ -139,7 +141,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
               dimensionScores={dimensionScores}
               responses={((session.responses || []) as unknown as DBResponse[]).map(r => ({
                 id: r.id,
-                scenario: r.scenario ? { sequenceOrder: r.scenario.sequenceOrder, narrativeText: r.scenario.narrativeText } : null,
+                scenario: r.scenario ? { sequenceOrder: r.scenario.sequenceOrder, externalRef: r.scenario.externalRef, narrativeText: r.scenario.narrativeText } : null,
                 option: r.option ? { optionCode: r.option.optionCode, optionText: r.option.optionText } : null,
                 timeSpentMs: r.timeSpentMs
               }))}
@@ -245,8 +247,8 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
               <table className="w-full" style={{ tableLayout: 'fixed' }}>
                 <thead className="bg-slate-50/80">
                   <tr>
-                    <th className="th text-center" style={{ width: '5%' }}>#</th>
-                    <th className="th" style={{ width: '50%' }}>Scenario</th>
+                    <th className="th text-center" style={{ width: '10%' }}>Code</th>
+                    <th className="th" style={{ width: '45%' }}>Scenario</th>
                     <th className="th" style={{ width: '30%' }}>Selected Choice</th>
                     <th className="th text-center" style={{ width: '15%' }}>Time Spent</th>
                   </tr>
@@ -254,7 +256,7 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                 <tbody>
                   {((session.responses || []) as unknown as DBResponse[]).map((r) => (
                     <tr key={r.id} className="tr">
-                      <td className="td text-xs font-bold text-slate-400 text-center">{r.scenario?.sequenceOrder ?? "—"}</td>
+                      <td className="td text-xs font-bold text-slate-400 text-center">{scenarioLabel(r.scenario)}</td>
                       <td className="td">
                         <p className="text-xs text-slate-700 leading-relaxed max-w-full line-clamp-2" title={r.scenario?.narrativeText}>
                           {r.scenario?.narrativeText ?? "—"}
@@ -286,10 +288,10 @@ export default async function ReportPage({ params }: { params: { sessionId: stri
                 <div key={r.id} className="p-4 bg-white hover:bg-slate-50/50 transition-colors flex flex-col gap-2.5">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-700">
-                        #{r.scenario?.sequenceOrder ?? idx + 1}
+                      <span className="flex h-6 min-w-[1.5rem] px-1 items-center justify-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-700">
+                        {idx + 1}
                       </span>
-                      <span className="text-xs font-bold text-slate-800">Scenario {r.scenario?.sequenceOrder ?? idx + 1}</span>
+                      <span className="text-xs font-bold text-slate-800">Scenario {scenarioLabel(r.scenario, idx)}</span>
                     </div>
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                       <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
