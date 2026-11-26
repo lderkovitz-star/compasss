@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { scenarioLabel } from "@/lib/scenario-label";
+
 /**
  * Downloads a finished report as PDF or Excel.
  *
@@ -22,7 +24,7 @@ interface DimensionScore {
 
 interface Response {
   id: string;
-  scenario: { sequenceOrder: number; narrativeText: string } | null;
+  scenario: { sequenceOrder: number; externalRef?: string | null; narrativeText: string } | null;
   option: { optionCode: string; optionText: string } | null;
   timeSpentMs: number;
 }
@@ -193,9 +195,9 @@ export default function ExportButtons({
         autoTable(doc, {
           startY: y,
           margin: { left: margin, right: margin },
-          head: [["#", "Scenario Excerpt", "Selected Choice", "Time"]],
+          head: [["Code", "Scenario Excerpt", "Selected Choice", "Time"]],
           body: responses.map((r) => [
-            r.scenario?.sequenceOrder ?? "—",
+            scenarioLabel(r.scenario),
             (r.scenario?.narrativeText ?? "—").substring(0, 80) + "…",
             `${r.option?.optionCode ?? "—"}: ${(r.option?.optionText ?? "").substring(0, 40)}…`,
             r.timeSpentMs ? `${Math.round(r.timeSpentMs / 1000)}s` : "—",
@@ -436,8 +438,8 @@ export default function ExportButtons({
         });
 
         wsResp.columns = [
-          { header: "Scenario #", key: "num", width: 12 },
-          { header: "Sequence", key: "seq", width: 12 },
+          { header: "Answer #", key: "num", width: 10 },
+          { header: "Scenario Code", key: "seq", width: 16 },
           { header: "Crisis Scenario Narrative Context", key: "scen", width: 75 },
           { header: "Selected Choice", key: "code", width: 16 },
           { header: "Selected Decision Action", key: "ans", width: 55 },
@@ -457,7 +459,7 @@ export default function ExportButtons({
 
           const row = wsResp.addRow([
             idx + 1,
-            r.scenario?.sequenceOrder ?? idx + 1,
+            scenarioLabel(r.scenario, idx),
             r.scenario?.narrativeText ?? "—",
             r.option?.optionCode ?? "—",
             r.option?.optionText ?? "—",

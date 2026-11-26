@@ -34,7 +34,7 @@ export async function GET(
         },
         responses: {
           include: {
-            scenario: { select: { sequenceOrder: true, narrativeText: true, timeLimitSec: true } },
+            scenario: { select: { sequenceOrder: true, externalRef: true, narrativeText: true, timeLimitSec: true } },
             option: { select: { optionCode: true, optionText: true } },
           },
           orderBy: { submittedAt: 'asc' },
